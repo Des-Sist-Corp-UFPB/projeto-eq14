@@ -33,13 +33,19 @@
 #                     Gratuita em: https://nvd.nist.gov/developers/request-an-api-key
 #
 # CONFIGURAÇÃO no servidor (fazer uma vez):
-#   1. Criar usuário: sudo adduser ghactions && sudo usermod -aG docker ghactions
-#   2. Criar diretório: mkdir -p /home/ghactions/mercado/docker
-#   3. Criar o arquivo .env: cp .env.example /home/ghactions/mercado/.env
-#      e preencher DATABASE_USERNAME e DATABASE_PASSWORD com valores reais.
-#   4. Subir o banco na primeira vez:
-#      cd /home/ghactions/mercado
-#      docker compose -f docker/docker-compose.prod.yml up -d postgres
+#   Servidor COMPARTILHADO entre os times — por isso o time eq14 usa diretório
+#   próprio (/home/ghactions/eq14), porta única (8114) e nome de container
+#   próprio (eq14-app-prod). O banco PostgreSQL é gerenciado pelo professor
+#   (compartilhado), então a equipe NÃO sobe banco — só a aplicação.
+#
+#   Crie /home/ghactions/eq14/.env com:
+#     DATABASE_URL=jdbc:postgresql://postgres:5432/eq14
+#     DATABASE_USERNAME=eq14
+#     DATABASE_PASSWORD=<senha enviada pelo professor>
+#     DB_NETWORK=<nome da rede Docker da disciplina onde o "postgres" está>
+#   (APP_IMAGE é adicionado/atualizado automaticamente pelo passo de deploy.)
+#
+#   O Caddy (já configurado) faz proxy de https://eq14.dsc.rodrigr.com → 127.0.0.1:8114.
 # =============================================================================
 
 name: Build & Deploy
@@ -52,7 +58,10 @@ on:
 # Variáveis de ambiente globais (disponíveis em todos os jobs)
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}   # ex.: usuario/mercado → ghcr.io/usuario/mercado
+  # Nome da imagem no GHCR. Referências Docker DEVEM ser minúsculas, e o nome
+  # do repositório (Des-Sist-Corp-UFPB/projeto-eq14) contém maiúsculas — por isso
+  # fixamos a versão minúscula aqui, em vez de usar ${{ github.repository }}.
+  IMAGE_NAME: des-sist-corp-ufpb/projeto-eq14   # → ghcr.io/des-sist-corp-ufpb/projeto-eq14
 
 jobs:
 
@@ -228,7 +237,7 @@ jobs:
           context: .
           file: docker/Dockerfile
           load: true
-          tags: mercado:scan
+          tags: eq14:scan
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -238,7 +247,7 @@ jobs:
       - name: Trivy — scan de vulnerabilidades na imagem Docker
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: mercado:scan
+          image-ref: eq14:scan
           format: table
           severity: HIGH,CRITICAL
           exit-code: '1'
@@ -260,7 +269,7 @@ jobs:
   # ============================================================================
   # JOB 3 — Deploy no servidor via SSH
   #
-  # Executa no servidor dsc.rodrigor.com com o usuário "ghactions".
+  # Executa no servidor eq14.dsc.rodrigr.com com o usuário "ghactions".
   # O que acontece:
   #   1. Copia o docker-compose.prod.yml atualizado para o servidor
   #   2. Autentica no GHCR e baixa a nova imagem
@@ -278,6 +287,11 @@ jobs:
     needs: build-and-push    # Só executa se a imagem foi publicada com sucesso
     environment: production
 
+    permissions:
+      contents: read
+      packages: read         # Permite ao GITHUB_TOKEN baixar a imagem do GHCR no servidor
+                             # (funciona mesmo se o pacote ainda estiver privado)
+
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -288,11 +302,11 @@ jobs:
       - name: Copiar docker-compose.prod.yml para o servidor
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: dsc.rodrigor.com
+          host: eq14.dsc.rodrigr.com
           username: ghactions
           key: ${{ secrets.SSH_DEPLOY_KEY }}
           source: docker/docker-compose.prod.yml
-          target: /home/ghactions/mercado/
+          target: /home/ghactions/eq14/
 
       # Script de deploy executado no servidor via SSH.
       # envs: passa variáveis de ambiente do Actions para o script remoto.
@@ -304,7 +318,7 @@ jobs:
           GHCR_USER: ${{ github.actor }}
           IMAGE_FULL: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         with:
-          host: dsc.rodrigor.com
+          host: eq14.dsc.rodrigr.com
           username: ghactions
           key: ${{ secrets.SSH_DEPLOY_KEY }}
           envs: GHCR_TOKEN,GHCR_USER,IMAGE_FULL
@@ -312,8 +326,9 @@ jobs:
           script: |
             set -euo pipefail
 
-            DEPLOY_DIR="/home/ghactions/mercado"
+            DEPLOY_DIR="/home/ghactions/eq14"
             COMPOSE_FILE="$DEPLOY_DIR/docker/docker-compose.prod.yml"
+            ENV_FILE="$DEPLOY_DIR/.env"
 
             echo "======================================================"
             echo " Deploy iniciado: $(date)"
@@ -341,38 +356,65 @@ jobs:
             fi
             echo "✓ .env atualizado com APP_IMAGE=$IMAGE_FULL"
 
-            # ── 4. Reiniciar APENAS o container da aplicação ──────────────
-            # --no-deps:         NÃO reinicia o postgres (banco seguro, dados preservados)
+            # ── 4. Detectar a rede Docker do PostgreSQL compartilhado ─────
+            # O banco é um container "postgres" compartilhado (gerenciado pelo
+            # professor) numa rede Docker própria. A app precisa entrar NESSA
+            # mesma rede para resolver o host "postgres". O usuário ghactions, no
+            # grupo docker, enxerga todos os containers do host — então detectamos
+            # a rede automaticamente e gravamos DB_NETWORK no .env.
+            PG_CONTAINER="$(docker ps --filter 'name=postgres' --format '{{.Names}}' | head -n1 || true)"
+            if [ -n "$PG_CONTAINER" ]; then
+              PG_NET="$(docker inspect -f '{{range $n,$_ := .NetworkSettings.Networks}}{{$n}} {{end}}' "$PG_CONTAINER" \
+                | tr ' ' '\n' | grep -vE '^(bridge|host|none|)$' | head -n1 || true)"
+            else
+              PG_NET=""
+            fi
+            if [ -n "$PG_NET" ]; then
+              if grep -q "^DB_NETWORK=" .env 2>/dev/null; then
+                sed -i "s|^DB_NETWORK=.*|DB_NETWORK=$PG_NET|" .env
+              else
+                echo "DB_NETWORK=$PG_NET" >> .env
+              fi
+              echo "✓ Rede do postgres detectada: $PG_NET (container: $PG_CONTAINER)"
+            else
+              echo "⚠ Não detectei automaticamente a rede do 'postgres'."
+              echo "  Vou usar o DB_NETWORK definido manualmente no .env (se houver)."
+            fi
+
+            # ── 5. Recriar o container da aplicação ───────────────────────
+            # O banco é gerenciado pelo professor (externo) — não tocamos nele.
             # --force-recreate:  garante que o container seja recriado com a nova imagem
             #                    (sem --force-recreate, o Compose pode reutilizar o container antigo)
+            # --env-file:        garante que o Compose leia o .env independente do CWD
+            #                    (contém DATABASE_PASSWORD e DB_NETWORK).
             echo "Reiniciando container da aplicação..."
-            docker compose -f "$COMPOSE_FILE" up -d \
-              --no-deps \
+            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d \
               --force-recreate \
               app
             echo "✓ Container reiniciado"
 
-            # ── 5. Verificar saúde da aplicação com retry ─────────────────
+            # ── 6. Verificar saúde da aplicação com retry ─────────────────
             # O Spring Boot leva ~15-30s para inicializar.
             # Tentamos até 18 vezes (a cada 5s = 90s máximo).
             # O endpoint /actuator/health retorna 200 quando a aplicação está pronta.
+            # No host, a app está publicada na porta 8114 (container 8080 → host 8114).
             echo "Aguardando a aplicação ficar saudável (máx. 90s)..."
             for i in $(seq 1 18); do
-              if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              if curl -sf http://localhost:8114/actuator/health > /dev/null 2>&1; then
                 echo "✓ Aplicação saudável! ($(( i * 5 ))s)"
                 break
               fi
               if [ "$i" -eq 18 ]; then
                 echo "✗ ERRO: aplicação não ficou saudável após 90 segundos"
                 echo "--- Últimas 80 linhas do log da aplicação ---"
-                docker logs mercado-app-prod --tail 80
+                docker logs eq14-app-prod --tail 80
                 exit 1
               fi
               echo "  aguardando... ($i/18, $(( i * 5 ))s)"
               sleep 5
             done
 
-            # ── 6. Limpar imagens antigas ──────────────────────────────────
+            # ── 7. Limpar imagens antigas ──────────────────────────────────
             # Remove imagens sem tag (dangling images) que ficam após cada deploy.
             docker image prune -f > /dev/null
             echo "✓ Imagens antigas removidas"
