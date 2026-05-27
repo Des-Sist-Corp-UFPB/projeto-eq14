@@ -2,8 +2,8 @@
 # .gitignore — Projeto Spring Boot / Maven
 # =============================================================================
 
-# Diário local de deploy (anotações de troubleshooting — não versionar)
-.deploy-changes
+# Diário local de deploy em markdown (anotações de troubleshooting — não versionar)
+.deploy-changes*
 
 # ---------------------------------------------------------------------------
 # Maven
