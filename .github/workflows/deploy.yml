@@ -131,7 +131,7 @@ jobs:
       # Escaneia o projeto em busca de vulnerabilidades nas bibliotecas Maven
       # (lê o pom.xml e os JARs em target/) e por segredos vazados no código.
       - name: Trivy — scan de dependências e segredos
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -245,7 +245,7 @@ jobs:
       # exit-code: '1' → falha o job se encontrar HIGH/CRITICAL (com correção disponível).
       # ignore-unfixed: true → não falha por vulns sem patch ainda — apenas as que têm solução.
       - name: Trivy — scan de vulnerabilidades na imagem Docker
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: eq14:scan
           format: table
