@@ -2,7 +2,11 @@ package br.ufpb.dsc.mercado;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Teste de carregamento do contexto Spring Boot.
@@ -26,8 +30,21 @@ import org.springframework.test.context.ActiveProfiles;
  * @author DSC - UFPB Campus IV
  */
 @SpringBootTest
+@Testcontainers // Ativa o gerenciamento automático dos containers pelo JUnit 5
 @ActiveProfiles("test")
 class MercadoApplicationTests {
+
+    /**
+     * Container PostgreSQL gerenciado pelo Testcontainers.
+     *
+     * <p>{@code @SpringBootTest} carrega o contexto completo, o que inicializa o
+     * DataSource, o JPA e o Flyway — todos precisam de um banco real. Sem este
+     * container (com {@code @ServiceConnection} configurando a URL automaticamente),
+     * o contexto não sobe e o teste falha com "Failed to load ApplicationContext".
+     */
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     /**
      * Verifica que o contexto Spring Boot carrega sem erros.
