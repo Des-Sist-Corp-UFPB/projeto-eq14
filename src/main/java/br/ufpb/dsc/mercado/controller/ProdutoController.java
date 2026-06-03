@@ -54,6 +54,14 @@ public class ProdutoController {
         this.produtoService = produtoService;
     }
 
+    @GetMapping("/ping")
+    public Map<String,Object> ping() {
+    return Map.of(
+      "status", "ok",
+      "service", "eq14",
+      "timestamp", java.time.Instant.now().toString());
+    }
+
     // =========================================================================
     // LISTAGEM
     // =========================================================================
