@@ -5,7 +5,7 @@
     <div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header text-white" style="background-color:#0f766e;">
+                <div class="modal-header text-white" style="background-color:var(--cal-primary);">
                     <h5 class="modal-title" th:text="${usuario == null} ? 'Novo usuário' : 'Editar usuário'">Usuário</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -85,7 +85,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn text-white" style="background-color:#0f766e;">
+                        <button type="submit" class="btn text-white" style="background-color:var(--cal-primary);">
                             <span th:text="${usuario == null} ? 'Salvar' : 'Atualizar'">Salvar</span>
                         </button>
                     </div>

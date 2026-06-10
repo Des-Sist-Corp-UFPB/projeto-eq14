@@ -21,14 +21,19 @@
     <title th:text="${titulo != null ? titulo + ' — CALADRIUS' : 'CALADRIUS'}">CALADRIUS</title>
 
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
     <style>
         :root {
-            --cal-primary: #0f766e;   /* teal-700 — identidade do CALADRIUS */
-            --cal-primary-dark: #115e59;
-            --cal-sidebar: #0b1f24;
+            /* Paleta oficial do CALADRIUS (design/agendamento) — azul moderno */
+            --cal-font: 'Instrument Sans', system-ui, sans-serif;
+            --cal-primary: oklch(0.55 0.17 257);
+            --cal-primary-dark: oklch(0.47 0.17 257);
+            --cal-sidebar: oklch(0.27 0.055 262);
         }
-        body { background-color: #f5f7fa; }
+        body { background-color: oklch(0.98 0.004 250); font-family: var(--cal-font); }
         .navbar-cal {
             background: linear-gradient(135deg, var(--cal-primary), var(--cal-primary-dark));
         }

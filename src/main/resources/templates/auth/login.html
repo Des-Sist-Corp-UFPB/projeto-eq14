@@ -1,94 +1,172 @@
 <!DOCTYPE html>
 <!--
-  Página de login do CALADRIUS.
+  Tela de login do CALADRIUS — segue o design oficial (design/agendamento, "LoginB":
+  split com painel da marca à esquerda e formulário à direita).
 
-  Login flexível (redesenho v3): o campo "username" aceita E-MAIL OU TELEFONE —
-  o CaladriusUserDetailsService detecta o formato. Os nomes "username"/"password"
-  são exigidos pelo Spring Security. th:action="@{/login}" injeta o token CSRF.
+  Login flexível (redesenho v3): o campo "username" aceita E-MAIL OU TELEFONE — o
+  CaladriusUserDetailsService detecta o formato. Os nomes "username"/"password" são
+  exigidos pelo Spring Security; th:action="@{/login}" injeta o token CSRF.
 -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Entrar — CALADRIUS</title>
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
-        body { min-height: 100vh; }
-        .brand-pane {
-            background: linear-gradient(135deg, #0f766e, #115e59);
-            color: #fff; min-height: 100vh; padding: 3rem;
+        :root {
+            --cal-font: 'Instrument Sans', system-ui, sans-serif;
+            --cal-primary: oklch(0.55 0.17 257);
+            --cal-primary-strong: oklch(0.47 0.17 257);
+            --cal-bg: oklch(0.98 0.004 250);
+            --cal-surface: #ffffff;
+            --cal-border: oklch(0.92 0.008 250);
+            --cal-text: oklch(0.26 0.03 257);
+            --cal-muted: oklch(0.55 0.02 257);
+            --cal-faint: oklch(0.68 0.015 257);
+            --cal-sidebar-dark: oklch(0.27 0.055 262);
         }
-        .auth-pane { min-height: 100vh; display: flex; align-items: center; }
-        .auth-card { width: 100%; max-width: 420px; margin: 0 auto; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: var(--cal-font); background: var(--cal-surface); color: var(--cal-text); }
+
+        .cal-split { display: flex; min-height: 100vh; }
+
+        /* Painel da marca (esquerda) */
+        .cal-brand {
+            width: 520px; flex-shrink: 0; background: var(--cal-sidebar-dark);
+            display: flex; flex-direction: column; justify-content: space-between; padding: 48px 52px;
+        }
+        .cal-brand-mid { display: flex; flex-direction: column; gap: 14px; }
+        .cal-brand h2 { font-size: 32px; font-weight: 700; line-height: 1.25; color: #fff; margin: 0; text-wrap: balance; }
+        .cal-brand p { font-size: 15px; line-height: 1.6; color: oklch(0.78 0.02 262); margin: 0; }
+        .cal-brand-copy { font-size: 12.5px; color: oklch(0.6 0.03 262); margin: 0; }
+
+        /* Logo */
+        .cal-logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 18px; letter-spacing: 0.09em; color: var(--cal-text); }
+        .cal-logo .dot { width: 17px; height: 17px; border-radius: 5px; background: var(--cal-primary); }
+        .cal-logo--light { color: #fff; }
+
+        /* Área do formulário (direita) */
+        .cal-formwrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px; }
+        .cal-form { width: 380px; max-width: 100%; display: flex; flex-direction: column; gap: 26px; }
+        .cal-head { display: flex; flex-direction: column; gap: 6px; }
+        .cal-head h1 { font-size: 24px; font-weight: 700; color: var(--cal-text); margin: 0; }
+        .cal-head p { font-size: 14px; color: var(--cal-muted); margin: 0; }
+
+        .cal-fields { display: flex; flex-direction: column; gap: 18px; }
+        .cal-field { display: flex; flex-direction: column; gap: 7px; }
+        .cal-field-top { display: flex; justify-content: space-between; align-items: baseline; }
+        .cal-label { font-size: 13.5px; font-weight: 600; color: var(--cal-text); }
+        .cal-trailing { font-size: 12.5px; color: var(--cal-primary); font-weight: 500; text-decoration: none; }
+        .cal-input {
+            font-family: var(--cal-font); font-size: 14.5px; color: var(--cal-text);
+            padding: 11px 13px; border-radius: 8px; border: 1px solid var(--cal-border);
+            background: var(--cal-surface); outline: none; width: 100%;
+        }
+        .cal-input:focus { border-color: var(--cal-primary); }
+        .cal-hint { font-size: 12px; color: var(--cal-faint); }
+
+        .cal-btn {
+            font-family: var(--cal-font); font-weight: 600; cursor: pointer; font-size: 14.5px;
+            padding: 11px 16px; border-radius: 8px; border: 1px solid transparent; width: 100%;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .cal-btn--primary { background: var(--cal-primary); color: #fff; }
+        .cal-google {
+            font-family: var(--cal-font); font-weight: 600; font-size: 14.5px; color: var(--cal-text);
+            padding: 11px 16px; border-radius: 8px; width: 100%; border: 1px solid var(--cal-border);
+            background: var(--cal-surface); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .cal-divider { display: flex; align-items: center; gap: 12px; }
+        .cal-divider::before, .cal-divider::after { content: ""; flex: 1; height: 1px; background: var(--cal-border); }
+        .cal-divider span { font-size: 12.5px; color: var(--cal-faint); }
+
+        .cal-foot { font-size: 13.5px; color: var(--cal-muted); text-align: center; margin: 0; }
+        .cal-footlink { color: var(--cal-primary); font-weight: 600; text-decoration: none; }
+
+        .cal-alert { font-size: 13.5px; padding: 10px 13px; border-radius: 8px; }
+        .cal-alert--danger { background: oklch(0.96 0.03 25); color: oklch(0.5 0.17 25); }
+        .cal-alert--ok { background: oklch(0.95 0.04 155); color: oklch(0.45 0.14 155); }
+
+        /* Responsivo: oculta o painel da marca em telas pequenas */
+        @media (max-width: 860px) {
+            .cal-brand { display: none; }
+        }
     </style>
 </head>
 <body>
-<div class="container-fluid">
-    <div class="row">
+<div class="cal-split">
 
-        <!-- Painel de marca (esquerda) -->
-        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center brand-pane">
-            <h1 class="display-5 fw-bold mb-3">CALADRIUS</h1>
-            <p class="fs-5 mb-2">Transporte municipal organizado, do pedido à viagem.</p>
-            <p class="opacity-75">Solicitações, escalas e frota em um só lugar.</p>
-            <p class="mt-auto small opacity-50 mb-0">© 2026 Caladrius — DSC/UFPB · eq14</p>
+    <!-- Painel da marca -->
+    <aside class="cal-brand">
+        <span class="cal-logo cal-logo--light"><span class="dot"></span>CALADRIUS</span>
+        <div class="cal-brand-mid">
+            <h2>Transporte municipal organizado, do pedido à viagem.</h2>
+            <p>Solicitações, escalas e frota em um só lugar.</p>
         </div>
+        <p class="cal-brand-copy">© 2026 Caladrius</p>
+    </aside>
 
-        <!-- Painel do formulário (direita) -->
-        <div class="col-lg-6 auth-pane">
-            <div class="auth-card p-4">
-                <h2 class="h3 fw-bold mb-1">Bem-vindo(a) de volta</h2>
-                <p class="text-muted mb-4">Entre com sua conta para continuar.</p>
-
-                <!-- Mensagens -->
-                <div th:if="${param.error}" class="alert alert-danger" role="alert">
-                    Credenciais inválidas. Verifique e tente novamente.
-                </div>
-                <div th:if="${param.logout}" class="alert alert-success" role="alert">
-                    Sessão encerrada com sucesso.
-                </div>
-                <div th:if="${param.cadastro}" class="alert alert-success" role="alert">
-                    Cadastro realizado! Faça login para continuar.
-                </div>
-
-                <form th:action="@{/login}" method="post">
-                    <div class="mb-3">
-                        <label for="username" class="form-label fw-semibold">E-mail ou telefone</label>
-                        <input type="text" id="username" name="username" class="form-control form-control-lg"
-                               placeholder="seu@email.com ou (83) 99999-9999"
-                               autocomplete="username" required autofocus/>
-                        <div class="form-text">Detectamos automaticamente o formato.</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="password" class="form-label fw-semibold">Senha</label>
-                        <input type="password" id="password" name="password" class="form-control form-control-lg"
-                               placeholder="Digite sua senha" autocomplete="current-password" required/>
-                    </div>
-
-                    <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-lg text-white" style="background-color:#0f766e;">
-                            Entrar
-                        </button>
-                    </div>
-                </form>
-
-                <p class="text-center text-muted mb-3">
-                    Não tem uma conta?
-                    <a th:href="@{/registrar}" class="fw-semibold text-decoration-none"
-                       style="color:#0f766e;">Cadastre-se</a>
-                </p>
-
-                <div class="p-2 bg-light rounded border text-center">
-                    <small class="text-muted">
-                        <strong>Demonstração:</strong> 83999999999 (ou admin@caladrius.local) / admin123
-                    </small>
-                </div>
+    <!-- Formulário -->
+    <main class="cal-formwrap">
+        <div class="cal-form">
+            <div class="cal-head">
+                <h1>Bem-vindo(a) de volta</h1>
+                <p>Entre com sua conta para continuar.</p>
             </div>
-        </div>
 
-    </div>
+            <div th:if="${param.error}" class="cal-alert cal-alert--danger">
+                Credenciais inválidas. Verifique e tente novamente.
+            </div>
+            <div th:if="${param.logout}" class="cal-alert cal-alert--ok">
+                Sessão encerrada com sucesso.
+            </div>
+            <div th:if="${param.cadastro}" class="cal-alert cal-alert--ok">
+                Cadastro realizado! Faça login para continuar.
+            </div>
+
+            <form th:action="@{/login}" method="post" class="cal-fields">
+                <label class="cal-field">
+                    <span class="cal-field-top"><span class="cal-label">E-mail ou telefone</span></span>
+                    <input class="cal-input" type="text" name="username"
+                           placeholder="voce@exemplo.com ou (83) 99999-9999"
+                           autocomplete="username" required autofocus/>
+                    <span class="cal-hint">Detectamos automaticamente o formato</span>
+                </label>
+
+                <label class="cal-field">
+                    <span class="cal-field-top">
+                        <span class="cal-label">Senha</span>
+                        <a class="cal-trailing" href="#">Esqueceu a senha?</a>
+                    </span>
+                    <input class="cal-input" type="password" name="password"
+                           placeholder="••••••••" autocomplete="current-password" required/>
+                </label>
+
+                <button type="submit" class="cal-btn cal-btn--primary">Entrar</button>
+
+                <div class="cal-divider"><span>ou</span></div>
+
+                <button type="button" class="cal-google" disabled title="Disponível em breve">
+                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.616z"></path>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"></path>
+                        <path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"></path>
+                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"></path>
+                    </svg>
+                    Continuar com Google
+                </button>
+            </form>
+
+            <p class="cal-foot">
+                Não tem uma conta?
+                <a th:href="@{/registrar}" class="cal-footlink">Cadastre-se</a>
+            </p>
+        </div>
+    </main>
+
 </div>
-<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 </body>
 </html>
