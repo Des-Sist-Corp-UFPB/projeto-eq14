@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="modal">
+    <div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color:#0f766e;">
+                    <h5 class="modal-title" th:text="${usuario == null} ? 'Novo usuário' : 'Editar usuário'">Usuário</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form th:object="${form}"
+                      th:attr="hx-post=${usuario == null ? '/usuarios' : null},
+                               hx-put=${usuario != null ? '/usuarios/' + usuario.id : null},
+                               hx-target=${usuario == null ? '#lista-usuarios' : '#usuario-' + usuario.id},
+                               hx-swap=${usuario == null ? 'beforeend' : 'outerHTML'}"
+                      hx-on--after-request="if(event.detail.successful){ bootstrap.Modal.getInstance(document.getElementById('modalForm')).hide(); }">
+                    <div class="modal-body">
+
+                        <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}">
+                            <ul class="mb-0">
+                                <li th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erro</li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nome completo <span class="text-danger">*</span></label>
+                            <input type="text" th:field="*{nomeCompleto}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('nomeCompleto')} ? 'is-invalid'"/>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('nomeCompleto')}" th:errors="*{nomeCompleto}">Erro</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Telefone <span class="text-danger">*</span></label>
+                                <input type="text" th:field="*{telefone}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('telefone')} ? 'is-invalid'" placeholder="(83) 99999-9999"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('telefone')}" th:errors="*{telefone}">Erro</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">CPF</label>
+                                <input type="text" th:field="*{cpf}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('cpf')} ? 'is-invalid'" placeholder="000.000.000-00"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('cpf')}" th:errors="*{cpf}">Erro</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">E-mail</label>
+                                <input type="email" th:field="*{email}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" placeholder="opcional"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Erro</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">
+                                    Senha <span class="text-danger" th:if="${usuario == null}">*</span>
+                                </label>
+                                <input type="password" th:field="*{senha}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('senha')} ? 'is-invalid'"
+                                       autocomplete="new-password"/>
+                                <div class="form-text" th:if="${usuario != null}">Deixe em branco para manter a senha atual.</div>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('senha')}" th:errors="*{senha}">Erro</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold d-block">Papéis</label>
+                            <div th:each="p : ${papeis}" class="form-check form-check-inline">
+                                <input type="checkbox" th:field="*{papeis}" th:value="${p}"
+                                       class="form-check-input" th:id="'papel-' + ${p}"/>
+                                <label class="form-check-label" th:for="'papel-' + ${p}" th:text="${p.rotulo}">Papel</label>
+                            </div>
+                            <div class="form-text">Sem seleção, o usuário é cadastrado como Passageiro.</div>
+                        </div>
+
+                        <div class="mb-2" th:if="${usuario != null}">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select th:field="*{status}" class="form-select">
+                                <option th:each="s : ${statusesUsuario}" th:value="${s}" th:text="${s.rotulo}"></option>
+                            </select>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn text-white" style="background-color:#0f766e;">
+                            <span th:text="${usuario == null} ? 'Salvar' : 'Atualizar'">Salvar</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

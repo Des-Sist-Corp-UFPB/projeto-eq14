@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Fragmento de uma linha (<tr>) da tabela de veículos. -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<tr th:fragment="linha" th:id="'veiculo-' + ${veiculo.id}">
+    <td class="fw-semibold" th:text="${veiculo.placa}">ABC1D23</td>
+    <td>
+        <span th:text="${veiculo.marca}">Marca</span>
+        <span class="text-muted" th:text="${veiculo.modelo}">Modelo</span>
+        <span class="text-muted small" th:text="'(' + ${veiculo.ano} + ')'">(2020)</span>
+    </td>
+    <td th:text="${veiculo.tipo.rotulo}">Tipo</td>
+    <td class="text-center" th:text="${veiculo.capacidade}">0</td>
+    <td class="text-center">
+        <span th:if="${veiculo.possuiAcessibilidade}" class="badge bg-success">Sim</span>
+        <span th:unless="${veiculo.possuiAcessibilidade}" class="badge bg-secondary">Não</span>
+    </td>
+    <td><span class="badge bg-info text-dark" th:text="${veiculo.status.rotulo}">Status</span></td>
+    <td class="text-center">
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary"
+                    th:attr="hx-get='/veiculos/' + ${veiculo.id} + '/editar'"
+                    hx-target="#modal-container" hx-swap="innerHTML" title="Editar">
+                Editar
+            </button>
+            <button type="button" class="btn btn-outline-danger"
+                    th:attr="hx-delete='/veiculos/' + ${veiculo.id},
+                             hx-target='#veiculo-' + ${veiculo.id},
+                             hx-confirm='Excluir o veículo ' + ${veiculo.placa} + '?'"
+                    hx-swap="outerHTML" title="Excluir">
+                Excluir
+            </button>
+        </div>
+    </td>
+</tr>
+</body>
+</html>

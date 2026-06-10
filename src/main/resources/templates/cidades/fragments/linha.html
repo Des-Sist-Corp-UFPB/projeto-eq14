@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<tr th:fragment="linha" th:id="'cidade-' + ${cidade.id}">
+    <td class="fw-semibold" th:text="${cidade.nome}">Cidade</td>
+    <td class="text-center" th:text="${cidade.uf}">PB</td>
+    <td>
+        <span class="badge"
+              th:classappend="${cidade.tipo.name() == 'METROPOLITANA'} ? 'bg-primary' : 'bg-secondary'"
+              th:text="${cidade.tipo.rotulo}">Tipo</span>
+    </td>
+    <td class="text-center">
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary"
+                    th:attr="hx-get='/cidades/' + ${cidade.id} + '/editar'"
+                    hx-target="#modal-container" hx-swap="innerHTML">Editar</button>
+            <button type="button" class="btn btn-outline-danger"
+                    th:attr="hx-delete='/cidades/' + ${cidade.id},
+                             hx-target='#cidade-' + ${cidade.id},
+                             hx-confirm='Excluir a cidade ' + ${cidade.nome} + '?'"
+                    hx-swap="outerHTML">Excluir</button>
+        </div>
+    </td>
+</tr>
+</body>
+</html>

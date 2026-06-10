@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Cidades</title></head>
+<body>
+<main>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Cidades</h1>
+            <p class="text-muted mb-0">Origens e destinos metropolitanos</p>
+        </div>
+        <button class="btn text-white" style="background-color:#0f766e;"
+                hx-get="/cidades/nova" hx-target="#modal-container" hx-swap="innerHTML">
+            + Nova cidade
+        </button>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <input type="search" name="busca" class="form-control"
+                           placeholder="Buscar por nome..." th:value="${busca}"
+                           hx-get="/cidades/fragmento-tabela"
+                           hx-trigger="keyup changed delay:400ms, search"
+                           hx-target="#tabela-container" hx-swap="innerHTML"/>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="text-muted small" th:if="${cidades != null}">
+                        <span th:text="${cidades.totalElements}">0</span> cidade(s)
+                    </span>
+                </div>
+            </div>
+            <div id="tabela-container">
+                <th:block th:insert="~{cidades/fragments/tabela :: tabela}"></th:block>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

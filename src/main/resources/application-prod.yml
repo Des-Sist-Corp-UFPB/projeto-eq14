@@ -5,8 +5,15 @@ spring:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
+    hikari:
+      # O banco PostgreSQL é COMPARTILHADO entre as equipes da disciplina.
+      # Limitar o pool a 5 conexões evita esgotar o número máximo de conexões
+      # do servidor — sem isso, a aplicação pode falhar ao conectar.
+      maximum-pool-size: 5
   jpa:
     hibernate:
+      # validate: o Hibernate confere se as entidades batem com o schema criado
+      # pelo Flyway, mas NÃO altera o banco. Quem cria/altera tabelas é o Flyway.
       ddl-auto: validate
     show-sql: false
   flyway:
@@ -15,4 +22,4 @@ spring:
 logging:
   level:
     root: WARN
-    br.ufpb.dsc.mercado: INFO
+    br.ufpb.dsc.caladrius: INFO

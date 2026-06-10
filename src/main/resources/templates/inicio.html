@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!-- Painel inicial (dashboard). Reutiliza o layout base via th:replace no <html>. -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Início</title></head>
+<body>
+<main>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">
+                Bem-vindo(a), <span sec:authentication="principal.nomeCompleto">Usuário</span>
+            </h1>
+            <p class="text-muted mb-0">Painel de controle do CALADRIUS</p>
+        </div>
+        <a th:href="@{/viagens}" class="btn text-white" style="background-color:#0f766e;"
+           sec:authorize="hasRole('GERENTE')">
+            Ver viagens
+        </a>
+    </div>
+
+    <!-- Cartões de resumo -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Usuários</p>
+                    <p class="display-6 mb-0" th:text="${totalUsuarios}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Veículos</p>
+                    <p class="display-6 mb-0" th:text="${totalVeiculos}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Cidades</p>
+                    <p class="display-6 mb-0" th:text="${totalCidades}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Viagens</p>
+                    <p class="display-6 mb-0" th:text="${totalViagens}">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Atalhos de gestão (somente gerente) -->
+    <div sec:authorize="hasRole('GERENTE')">
+        <h2 class="h5 mb-3">Atalhos</h2>
+        <div class="row g-3">
+            <div class="col-sm-6 col-lg-3">
+                <a th:href="@{/viagens}" class="btn btn-outline-secondary w-100 py-3">Viagens</a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a th:href="@{/usuarios}" class="btn btn-outline-secondary w-100 py-3">Usuários</a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a th:href="@{/veiculos}" class="btn btn-outline-secondary w-100 py-3">Veículos</a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a th:href="@{/cidades}" class="btn btn-outline-secondary w-100 py-3">Cidades</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagem para papéis sem acesso de gestão -->
+    <div sec:authorize="!hasRole('GERENTE')" class="alert alert-info">
+        Seu perfil ainda não possui módulos de gestão. Em breve, novas funcionalidades.
+    </div>
+</main>
+</body>
+</html>

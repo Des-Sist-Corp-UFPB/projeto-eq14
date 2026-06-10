@@ -42,11 +42,16 @@ Browser                         Servidor
 ## Flyway: Gerenciamento de Schema
 
 ```
-V1__criar_tabela_produto.sql  ← aplicado na 1ª inicialização
-V2__adicionar_campo_xxx.sql   ← aplicado quando adicionado (NÃO editar V1!)
+V1__criar_tabela_produto.sql            ← boilerplate (NÃO editar — já aplicada no banco compartilhado)
+V2__criar_schema_caladrius.sql          ← schema do CALADRIUS (usuarios, veiculos, cidades, viagens...)
+V3__remover_produto_e_seed_cidades.sql  ← remove a tabela produto + cidades de referência
+V4__...                                 ← próximas alterações sempre como nova migration
 ```
 
-**Regra de ouro**: Nunca edite uma migration já aplicada. Crie sempre uma nova.
+**Regra de ouro**: Nunca edite uma migration já aplicada (o Flyway compara checksums). Crie sempre uma nova.
+
+> Em produção a app roda com `ddl-auto: validate`: o Hibernate confere se as entidades batem com o
+> schema criado pelo Flyway. Se não baterem, a aplicação **não sobe**.
 
 ## Camadas
 
@@ -60,7 +65,7 @@ V2__adicionar_campo_xxx.sql   ← aplicado quando adicionado (NÃO editar V1!)
 ### Service
 - Anotado com `@Service` e `@Transactional`
 - Contém toda a lógica de negócio
-- Lança exceções de domínio (`ProdutoNaoEncontradoException`)
+- Lança exceções de domínio (`RecursoNaoEncontradoException`, `RegraNegocioException`)
 - Usa Repository para persistência
 
 ### Repository

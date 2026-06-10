@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/mercado_dev
-    username: mercado
-    password: mercado123
+    url: jdbc:postgresql://localhost:5432/caladrius_dev
+    username: caladrius
+    password: caladrius123
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -21,5 +21,5 @@ spring:
 
 logging:
   level:
-    br.ufpb.dsc.mercado: DEBUG
+    br.ufpb.dsc.caladrius: DEBUG
     org.springframework.web: DEBUG

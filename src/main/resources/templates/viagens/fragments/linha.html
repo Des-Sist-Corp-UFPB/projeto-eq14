@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<tr th:fragment="linha" th:id="'viagem-' + ${viagem.id}">
+    <td th:text="${#temporals.format(viagem.dataViagem, 'dd/MM/yyyy')}">00/00/0000</td>
+    <td>
+        <span class="fw-semibold" th:text="${viagem.cidadeDestino.nome}">Destino</span>
+        <span class="text-muted small" th:text="${viagem.cidadeDestino.uf}">UF</span>
+    </td>
+    <td>
+        <span th:text="${viagem.veiculo.placa}">Placa</span>
+        <span class="text-muted small" th:text="${viagem.veiculo.modelo}">Modelo</span>
+    </td>
+    <td th:text="${viagem.motorista.nomeCompleto}">Motorista</td>
+    <td>
+        <span th:text="${#temporals.format(viagem.horarioSaida, 'HH:mm')}">00:00</span>
+        →
+        <span th:text="${#temporals.format(viagem.horarioChegada, 'HH:mm')}">00:00</span>
+    </td>
+    <td><span class="badge bg-info text-dark" th:text="${viagem.status.rotulo}">Status</span></td>
+    <td class="text-center">
+        <button type="button" class="btn btn-sm btn-outline-danger"
+                th:attr="hx-delete='/viagens/' + ${viagem.id},
+                         hx-target='#viagem-' + ${viagem.id},
+                         hx-confirm='Excluir esta viagem?'"
+                hx-swap="outerHTML">Excluir</button>
+    </td>
+</tr>
+</body>
+</html>

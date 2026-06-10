@@ -12,11 +12,11 @@
     </parent>
 
     <groupId>br.ufpb.dsc</groupId>
-    <artifactId>mercado</artifactId>
+    <artifactId>caladrius</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>mercado</name>
-    <description>Projeto base DSC - UFPB Campus IV</description>
+    <name>caladrius</name>
+    <description>CALADRIUS - Agendamento de transporte municipal de saude (DSC/UFPB Campus IV - eq14)</description>
 
     <properties>
         <java.version>21</java.version>

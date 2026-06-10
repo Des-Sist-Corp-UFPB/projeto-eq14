@@ -4,9 +4,10 @@
 
 ```
 V{número}__{descrição_com_underscores}.sql
-V1__criar_tabela_produto.sql
-V2__adicionar_indice_preco.sql
-V3__criar_tabela_categoria.sql
+V1__criar_tabela_produto.sql            (boilerplate — não editar)
+V2__criar_schema_caladrius.sql
+V3__remover_produto_e_seed_cidades.sql
+V4__criar_tabela_solicitacao.sql        (exemplo de próxima)
 ```
 
 - Nunca editar uma migration já commitada
@@ -16,11 +17,11 @@ V3__criar_tabela_categoria.sql
 ## Conventional Commits
 
 ```
-feat: adicionar filtro por categoria de produto
-fix: corrigir cálculo de desconto no preço
-docs: atualizar README com instruções de deploy
-refactor: extrair validação de preço para método privado
-test: adicionar teste de integração para ProdutoService
+feat: adicionar cadastro de veículos com soft-delete
+fix: corrigir validação de CPF no cadastro de usuário
+docs: atualizar README com credenciais do admin
+refactor: extrair normalização de telefone para Documentos
+test: adicionar teste unitário para VeiculoService
 chore: atualizar dependências do pom.xml
 ```
 
@@ -28,7 +29,7 @@ chore: atualizar dependências do pom.xml
 
 | Elemento | Convenção | Exemplo |
 |---|---|---|
-| Package | lowercase | `br.ufpb.dsc.mercado.service` |
+| Package | lowercase | `br.ufpb.dsc.caladrius.service` |
 | Classe | PascalCase | `ProdutoService` |
 | Método | camelCase | `buscarPorId()` |
 | Constante | UPPER_SNAKE | `MAX_NOME_LENGTH` |

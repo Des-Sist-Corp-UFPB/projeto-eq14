@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--
+  Fragmento do modal de criação/edição de veículo.
+  - veiculo == null → modo CRIAÇÃO (hx-post)
+  - veiculo != null → modo EDIÇÃO  (hx-put)
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="modal">
+    <div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color:#0f766e;">
+                    <h5 class="modal-title" th:text="${veiculo == null} ? 'Novo veículo' : 'Editar veículo'">Veículo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <form th:object="${form}"
+                      th:attr="hx-post=${veiculo == null ? '/veiculos' : null},
+                               hx-put=${veiculo != null ? '/veiculos/' + veiculo.id : null},
+                               hx-target=${veiculo == null ? '#lista-veiculos' : '#veiculo-' + veiculo.id},
+                               hx-swap=${veiculo == null ? 'beforeend' : 'outerHTML'}"
+                      hx-on--after-request="if(event.detail.successful){ bootstrap.Modal.getInstance(document.getElementById('modalForm')).hide(); }">
+                    <div class="modal-body">
+
+                        <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}">
+                            <ul class="mb-0">
+                                <li th:each="err : ${#fields.globalErrors()}" th:text="${err}">Erro</li>
+                            </ul>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Placa <span class="text-danger">*</span></label>
+                                <input type="text" th:field="*{placa}" class="form-control text-uppercase"
+                                       th:classappend="${#fields.hasErrors('placa')} ? 'is-invalid'"
+                                       placeholder="ABC1D23" maxlength="8"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('placa')}" th:errors="*{placa}">Erro</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Marca <span class="text-danger">*</span></label>
+                                <input type="text" th:field="*{marca}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('marca')} ? 'is-invalid'" placeholder="Ex.: Fiat"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('marca')}" th:errors="*{marca}">Erro</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Modelo <span class="text-danger">*</span></label>
+                                <input type="text" th:field="*{modelo}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('modelo')} ? 'is-invalid'" placeholder="Ex.: Ducato"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('modelo')}" th:errors="*{modelo}">Erro</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label fw-semibold">Ano <span class="text-danger">*</span></label>
+                                <input type="number" th:field="*{ano}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('ano')} ? 'is-invalid'" min="1950" max="2100"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('ano')}" th:errors="*{ano}">Erro</div>
+                            </div>
+                            <div class="col-md-5 mb-3">
+                                <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+                                <select th:field="*{tipo}" class="form-select"
+                                        th:classappend="${#fields.hasErrors('tipo')} ? 'is-invalid'">
+                                    <option value="">Selecione...</option>
+                                    <option th:each="t : ${tiposVeiculo}" th:value="${t}" th:text="${t.rotulo}"></option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('tipo')}" th:errors="*{tipo}">Erro</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Capacidade <span class="text-danger">*</span></label>
+                                <input type="number" th:field="*{capacidade}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('capacidade')} ? 'is-invalid'" min="1" max="100"/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('capacidade')}" th:errors="*{capacidade}">Erro</div>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" th:field="*{possuiAcessibilidade}" class="form-check-input" id="possuiAcessibilidade"/>
+                                    <label class="form-check-label" for="possuiAcessibilidade">Possui acessibilidade</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3" th:if="${veiculo != null}">
+                                <label class="form-label fw-semibold">Status</label>
+                                <select th:field="*{status}" class="form-select">
+                                    <option th:each="s : ${statusesVeiculo}" th:value="${s}" th:text="${s.rotulo}"></option>
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn text-white" style="background-color:#0f766e;">
+                            <span th:text="${veiculo == null} ? 'Salvar' : 'Atualizar'">Salvar</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

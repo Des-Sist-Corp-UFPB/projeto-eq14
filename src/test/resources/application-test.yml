@@ -16,4 +16,4 @@ spring:
 
 logging:
   level:
-    br.ufpb.dsc.mercado: DEBUG
+    br.ufpb.dsc.caladrius: DEBUG

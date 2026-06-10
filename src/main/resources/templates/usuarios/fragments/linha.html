@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<tr th:fragment="linha" th:id="'usuario-' + ${usuario.id}">
+    <td class="fw-semibold" th:text="${usuario.nomeCompleto}">Nome</td>
+    <td>
+        <div th:text="${usuario.telefone}">telefone</div>
+        <div class="text-muted small" th:if="${usuario.email != null}" th:text="${usuario.email}">email</div>
+    </td>
+    <td>
+        <span th:each="p : ${usuario.papeis}" class="badge bg-secondary me-1" th:text="${p.rotulo}">Papel</span>
+    </td>
+    <td>
+        <span class="badge"
+              th:classappend="${usuario.status.name() == 'ATIVO'} ? 'bg-success' : 'bg-secondary'"
+              th:text="${usuario.status.rotulo}">Status</span>
+    </td>
+    <td class="text-center">
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary"
+                    th:attr="hx-get='/usuarios/' + ${usuario.id} + '/editar'"
+                    hx-target="#modal-container" hx-swap="innerHTML">Editar</button>
+            <button type="button" class="btn btn-outline-danger"
+                    th:attr="hx-delete='/usuarios/' + ${usuario.id},
+                             hx-target='#usuario-' + ${usuario.id},
+                             hx-confirm='Excluir o usuário ' + ${usuario.nomeCompleto} + '?'"
+                    hx-swap="outerHTML">Excluir</button>
+        </div>
+    </td>
+</tr>
+</body>
+</html>

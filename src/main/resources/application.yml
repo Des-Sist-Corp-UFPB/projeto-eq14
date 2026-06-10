@@ -1,6 +1,6 @@
 spring:
   application:
-    name: mercado
+    name: caladrius
   profiles:
     active: dev
 
