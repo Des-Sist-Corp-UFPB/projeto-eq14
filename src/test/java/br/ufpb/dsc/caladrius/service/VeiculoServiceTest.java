@@ -1,6 +1,7 @@
 package br.ufpb.dsc.caladrius.service;
 
 import br.ufpb.dsc.caladrius.domain.Veiculo;
+import br.ufpb.dsc.caladrius.domain.enums.StatusVeiculo;
 import br.ufpb.dsc.caladrius.domain.enums.TipoVeiculo;
 import br.ufpb.dsc.caladrius.dto.VeiculoForm;
 import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
@@ -13,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,6 +33,9 @@ class VeiculoServiceTest {
     @Mock
     private VeiculoRepository veiculoRepository;
 
+    @Mock
+    private AuditoriaService auditoriaService;
+
     @InjectMocks
     private VeiculoService veiculoService;
 
@@ -43,7 +48,14 @@ class VeiculoServiceTest {
     @DisplayName("criar: normaliza a placa e salva quando não há duplicidade")
     void criar_semDuplicidade_salva() {
         when(veiculoRepository.existsByPlacaIgnoreCaseAndRemovidoEmIsNull("ABC1D23")).thenReturn(false);
-        when(veiculoRepository.save(any(Veiculo.class))).thenAnswer(inv -> inv.getArgument(0));
+        // Simula o id gerado pelo banco no save (necessário para a auditoria).
+        when(veiculoRepository.save(any(Veiculo.class))).thenAnswer(inv -> {
+            Veiculo v = inv.getArgument(0);
+            if (v.getId() == null) {
+                v.setId(UUID.randomUUID());
+            }
+            return v;
+        });
 
         Veiculo salvo = veiculoService.criar(formValido());
 
@@ -86,5 +98,18 @@ class VeiculoServiceTest {
 
         assertThat(veiculo.getRemovidoEm()).isNotNull();
         verify(veiculoRepository).save(veiculo);
+    }
+
+    @Test
+    @DisplayName("listarDisponiveis (DT-04): consulta apenas veículos ativos com status DISPONIVEL")
+    void listarDisponiveis_filtraPorStatusDisponivel() {
+        Veiculo disponivel = new Veiculo("ABC1D23", "Fiat", "Ducato", 2022, TipoVeiculo.VAN, 15, true);
+        when(veiculoRepository.findByRemovidoEmIsNullAndStatusOrderByPlacaAsc(StatusVeiculo.DISPONIVEL))
+                .thenReturn(List.of(disponivel));
+
+        List<Veiculo> resultado = veiculoService.listarDisponiveis();
+
+        assertThat(resultado).containsExactly(disponivel);
+        verify(veiculoRepository).findByRemovidoEmIsNullAndStatusOrderByPlacaAsc(StatusVeiculo.DISPONIVEL);
     }
 }

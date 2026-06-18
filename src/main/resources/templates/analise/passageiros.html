@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- Aba de análise de passageiros (GERENTE) — contagem por bairro/município (SPEC-07). -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Análise de passageiros</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Análise de passageiros</h1>
+        <p class="text-muted mb-0">Distribuição dos passageiros por bairro e município (endereços cadastrados).</p>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6 mb-3">Por bairro</h2>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light"><tr><th>Bairro</th><th class="text-end" style="width:120px">Passageiros</th></tr></thead>
+                        <tbody>
+                            <tr th:each="c : ${porBairro}">
+                                <td th:text="${c.rotulo}">Bairro</td>
+                                <td class="text-end fw-semibold" th:text="${c.total}">0</td>
+                            </tr>
+                            <tr th:if="${porBairro.empty}">
+                                <td colspan="2" class="text-center text-muted py-4">Nenhum endereço cadastrado ainda.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6 mb-3">Por município</h2>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light"><tr><th>Município</th><th class="text-end" style="width:120px">Passageiros</th></tr></thead>
+                        <tbody>
+                            <tr th:each="c : ${porMunicipio}">
+                                <td th:text="${c.rotulo}">Município</td>
+                                <td class="text-end fw-semibold" th:text="${c.total}">0</td>
+                            </tr>
+                            <tr th:if="${porMunicipio.empty}">
+                                <td colspan="2" class="text-center text-muted py-4">Nenhum endereço cadastrado ainda.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

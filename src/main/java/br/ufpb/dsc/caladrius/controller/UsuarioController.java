@@ -6,12 +6,15 @@ import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
 import br.ufpb.dsc.caladrius.dto.UsuarioForm;
 import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import br.ufpb.dsc.caladrius.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -119,12 +122,17 @@ public class UsuarioController {
 
     @DeleteMapping("/{id}")
     @ResponseBody
-    public ResponseEntity<Void> excluir(@PathVariable UUID id) {
+    public ResponseEntity<String> excluir(@PathVariable UUID id,
+                                          @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         try {
-            usuarioService.excluir(id);
+            UUID solicitanteId = autenticado != null ? autenticado.getId() : null;
+            usuarioService.excluir(id, solicitanteId);
             return ResponseEntity.ok().build();
         } catch (RecursoNaoEncontradoException e) {
             return ResponseEntity.notFound().build();
+        } catch (RegraNegocioException e) {
+            // DT-02: ex.: tentar excluir a si mesmo ou o último gerente ativo.
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
     }
 

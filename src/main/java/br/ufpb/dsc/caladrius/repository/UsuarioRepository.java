@@ -2,6 +2,7 @@ package br.ufpb.dsc.caladrius.repository;
 
 import br.ufpb.dsc.caladrius.domain.Usuario;
 import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -64,4 +65,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     /** Conta usuários ativos (para o painel inicial). */
     long countByRemovidoEmIsNull();
+
+    /**
+     * Conta usuários não removidos com um status e papel específicos
+     * (DT-02: usado para proteger o último gerente ativo).
+     */
+    @Query("""
+            select count(u) from Usuario u
+            where u.removidoEm is null and u.status = :status and :papel member of u.papeis
+            """)
+    long contarPorStatusEPapel(@Param("status") StatusUsuario status, @Param("papel") Papel papel);
 }

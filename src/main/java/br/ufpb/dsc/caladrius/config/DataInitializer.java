@@ -60,10 +60,13 @@ public class DataInitializer implements CommandLineRunner {
         admin.setEmail(ADMIN_EMAIL);
         admin.setHashSenha(passwordEncoder.encode(ADMIN_SENHA));
         admin.setStatus(StatusUsuario.ATIVO);
-        admin.setPapeis(EnumSet.of(Papel.GERENTE));
+        // Bootstrap: o administrador inicial acumula GERENTE (operação) e SYSADMIN
+        // (administração do sistema) — porta de entrada do /admin em ambiente novo.
+        // Em ambientes já semeados, conceda SYSADMIN manualmente.
+        admin.setPapeis(EnumSet.of(Papel.GERENTE, Papel.SYSADMIN));
 
         usuarioRepository.save(admin);
-        log.info("Usuário administrador (gerente) criado — telefone {} / e-mail {}.",
+        log.info("Usuário administrador (gerente + sysadmin) criado — telefone {} / e-mail {}.",
                 ADMIN_TELEFONE, ADMIN_EMAIL);
     }
 }

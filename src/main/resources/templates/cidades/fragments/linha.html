@@ -17,7 +17,7 @@
             <button type="button" class="btn btn-outline-danger"
                     th:attr="hx-delete='/cidades/' + ${cidade.id},
                              hx-target='#cidade-' + ${cidade.id},
-                             hx-confirm='Excluir a cidade ' + ${cidade.nome} + '?'"
+                             hx-confirm='Excluir a cidade ' + ${cidade.nome} + '? Atenção: todas as viagens com destino a esta cidade também serão removidas do sistema.'"
                     hx-swap="outerHTML">Excluir</button>
         </div>
     </td>

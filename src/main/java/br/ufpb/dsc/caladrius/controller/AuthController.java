@@ -1,7 +1,9 @@
 package br.ufpb.dsc.caladrius.controller;
 
+import br.ufpb.dsc.caladrius.domain.Usuario;
 import br.ufpb.dsc.caladrius.dto.RegistroForm;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.service.EnderecoService;
 import br.ufpb.dsc.caladrius.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -17,15 +19,18 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  *
  * <p>O Spring Security processa o {@code POST /login} internamente; este
  * controller apenas serve a <strong>página</strong> de login (que aceita e-mail
- * OU telefone) e cuida do auto-cadastro de passageiros.
+ * OU telefone) e cuida do auto-cadastro de passageiros (incluindo o endereço
+ * opcional — SPEC-07).
  */
 @Controller
 public class AuthController {
 
     private final UsuarioService usuarioService;
+    private final EnderecoService enderecoService;
 
-    public AuthController(UsuarioService usuarioService) {
+    public AuthController(UsuarioService usuarioService, EnderecoService enderecoService) {
         this.usuarioService = usuarioService;
+        this.enderecoService = enderecoService;
     }
 
     /** Página de login (e-mail ou telefone + senha). */
@@ -38,8 +43,10 @@ public class AuthController {
     @GetMapping("/registrar")
     public String registroForm(Model model) {
         if (!model.containsAttribute("registroForm")) {
-            model.addAttribute("registroForm", new RegistroForm(null, null, null, null, null));
+            model.addAttribute("registroForm",
+                    new RegistroForm(null, null, null, null, null, null, null, null, null, null, null, null));
         }
+        model.addAttribute("municipios", enderecoService.listarMunicipios());
         return "auth/registro";
     }
 
@@ -51,14 +58,19 @@ public class AuthController {
     @PostMapping("/registrar")
     public String registrar(@Valid @ModelAttribute("registroForm") RegistroForm form,
                             BindingResult bindingResult,
+                            Model model,
                             RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
+            model.addAttribute("municipios", enderecoService.listarMunicipios());
             return "auth/registro";
         }
         try {
-            usuarioService.registrarPassageiro(form);
+            Usuario novo = usuarioService.registrarPassageiro(form);
+            // SPEC-07: salva o endereço, se algum campo foi informado (opcional).
+            enderecoService.salvar(novo.getId(), form.paraEnderecoForm());
         } catch (RegraNegocioException e) {
             bindingResult.reject("cadastro.invalido", e.getMessage());
+            model.addAttribute("municipios", enderecoService.listarMunicipios());
             return "auth/registro";
         }
         redirectAttributes.addFlashAttribute("cadastroSucesso", true);

@@ -21,7 +21,10 @@
     <properties>
         <java.version>21</java.version>
         <!-- Versões de dependências -->
-        <testcontainers.version>1.20.4</testcontainers.version>
+        <!-- DT-11: 1.21.x negocia a API com Docker Engines novos (>= 1.40);
+             a 1.20.4 enviava a API 1.32 e era rejeitada. Sobrescreve também a
+             versão gerida pelo BOM do Spring Boot (mesmo nome de property). -->
+        <testcontainers.version>1.21.4</testcontainers.version>
         <webjars-bootstrap.version>5.3.3</webjars-bootstrap.version>
         <webjars-htmx.version>2.0.4</webjars-htmx.version>
         <!-- Versões de plugins SAST/qualidade -->

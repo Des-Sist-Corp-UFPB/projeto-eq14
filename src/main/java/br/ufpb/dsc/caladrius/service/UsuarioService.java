@@ -36,10 +36,13 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+                          AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditoriaService = auditoriaService;
     }
 
     // ===================== Consultas =====================
@@ -116,7 +119,10 @@ public class UsuarioService {
         usuario.setHashSenha(passwordEncoder.encode(form.senha()));
         usuario.setStatus(form.status() != null ? form.status() : StatusUsuario.ATIVO);
         usuario.setPapeis(papeisOuPadrao(form.papeis()));
-        return usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
+        auditoriaService.registrarOperacao("USUARIO_CRIADO", "Usuario",
+                usuario.getId().toString(), usuario.getNomeCompleto());
+        return usuario;
     }
 
     /** Atualiza um usuário existente (senha em branco mantém a atual). */
@@ -138,19 +144,61 @@ public class UsuarioService {
         if (StringUtils.hasText(form.senha())) {
             usuario.setHashSenha(passwordEncoder.encode(form.senha()));
         }
-        if (form.status() != null) {
-            usuario.setStatus(form.status());
-        }
-        usuario.setPapeis(papeisOuPadrao(form.papeis()));
-        return usuarioRepository.save(usuario);
+
+        // DT-02: antes de aplicar status/papéis, garante que não se está removendo
+        // o último gerente ativo (perda do papel GERENTE ou status != ATIVO).
+        StatusUsuario novoStatus = form.status() != null ? form.status() : usuario.getStatus();
+        Set<Papel> novosPapeis = papeisOuPadrao(form.papeis());
+        boolean continuaGerenteAtivo =
+                novoStatus == StatusUsuario.ATIVO && novosPapeis.contains(Papel.GERENTE);
+        protegerUltimoGerente(usuario, continuaGerenteAtivo);
+
+        usuario.setStatus(novoStatus);
+        usuario.setPapeis(novosPapeis);
+        usuario = usuarioRepository.save(usuario);
+        auditoriaService.registrarOperacao("USUARIO_ATUALIZADO", "Usuario",
+                usuario.getId().toString(), usuario.getNomeCompleto());
+        return usuario;
     }
 
-    /** Exclusão lógica (soft-delete): preenche {@code removidoEm}. */
+    /**
+     * Exclusão lógica (soft-delete): preenche {@code removidoEm}.
+     *
+     * <p>DT-02: a exclusão é responsabilidade de um cargo superior — um usuário
+     * não pode excluir a própria conta (deve solicitar suspensão). Também não é
+     * possível excluir o último gerente ativo do sistema.
+     *
+     * @param id            usuário a remover
+     * @param solicitanteId usuário autenticado que disparou a ação (null em fluxos internos)
+     */
     @Transactional
-    public void excluir(UUID id) {
+    public void excluir(UUID id, UUID solicitanteId) {
+        if (solicitanteId != null && solicitanteId.equals(id)) {
+            throw new RegraNegocioException(
+                    "Você não pode excluir a própria conta. Solicite a suspensão; "
+                  + "a exclusão é responsabilidade de um cargo superior.");
+        }
         Usuario usuario = buscarPorId(id);
+        protegerUltimoGerente(usuario, false);
         usuario.setRemovidoEm(Instant.now());
         usuarioRepository.save(usuario);
+        auditoriaService.registrarOperacao("USUARIO_EXCLUIDO", "Usuario",
+                id.toString(), usuario.getNomeCompleto());
+    }
+
+    /**
+     * Solicitação de suspensão da própria conta (DT-02): qualquer usuário pode
+     * suspender a si mesmo, mas a trava do último gerente impede deixar o sistema
+     * sem gestor ativo.
+     */
+    @Transactional
+    public void solicitarSuspensao(UUID id) {
+        Usuario usuario = buscarPorId(id);
+        protegerUltimoGerente(usuario, false);
+        usuario.setStatus(StatusUsuario.SUSPENSO);
+        usuarioRepository.save(usuario);
+        auditoriaService.registrarOperacao("CONTA_SUSPENSA", "Usuario",
+                id.toString(), usuario.getNomeCompleto());
     }
 
     // ===================== Helpers de validação =====================
@@ -189,6 +237,29 @@ public class UsuarioService {
         boolean mudou = atual == null || !email.equalsIgnoreCase(atual.getEmail());
         if (mudou && usuarioRepository.existsByEmailIgnoreCaseAndRemovidoEmIsNull(email)) {
             throw new RegraNegocioException("E-mail já cadastrado: " + email);
+        }
+    }
+
+    // ===================== Regras de RBAC / DT-02 =====================
+
+    /** Um usuário é "gerente ativo" se está ativo, não removido e tem o papel GERENTE. */
+    private boolean ehGerenteAtivo(Usuario u) {
+        return u.getRemovidoEm() == null
+                && u.getStatus() == StatusUsuario.ATIVO
+                && u.getPapeis().contains(Papel.GERENTE);
+    }
+
+    /**
+     * Impede que uma operação remova o ÚLTIMO gerente ativo (DT-02). Bloqueia
+     * quando o alvo é gerente ativo, deixaria de sê-lo (perda do papel, status
+     * != ATIVO ou remoção) e não há outro gerente ativo no sistema.
+     */
+    private void protegerUltimoGerente(Usuario alvo, boolean continuaGerenteAtivo) {
+        if (ehGerenteAtivo(alvo) && !continuaGerenteAtivo
+                && usuarioRepository.contarPorStatusEPapel(StatusUsuario.ATIVO, Papel.GERENTE) <= 1) {
+            throw new RegraNegocioException(
+                    "Não é possível inativar, suspender ou remover o último gerente ativo. "
+                  + "Habilite outro gerente antes.");
         }
     }
 

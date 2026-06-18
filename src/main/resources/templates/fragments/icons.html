@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- Ícones de linha (mesmos paths do protótipo /agendamento). Uso:
+     <svg th:replace="~{fragments/icons :: icon('inicio')}"></svg> -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<svg th:fragment="icon(name)" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <th:block th:switch="${name}">
+        <g th:case="'inicio'"><path d="M4 11l8-7 8 7"></path><path d="M6.5 9.5V20h11V9.5"></path></g>
+        <g th:case="'operacao'"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></g>
+        <g th:case="'cadastros'"><path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"></path></g>
+        <g th:case="'pendentes'"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></g>
+        <g th:case="'escalas'"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></g>
+        <g th:case="'viagens'"><path d="M3.5 11.2L20.5 3.8l-7.4 17-1.9-7.7-7.7-1.9z"></path></g>
+        <g th:case="'usuarios'"><circle cx="9" cy="8.5" r="3.2"></circle><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"></path><path d="M15.5 5.7a3.2 3.2 0 0 1 0 5.6M17.5 14.9c2 .8 3 2.5 3 4.6"></path></g>
+        <g th:case="'veiculos'"><rect x="3" y="9" width="18" height="7" rx="1.6"></rect><path d="M5 9l1.6-3.6A2 2 0 0 1 8.4 4h7.2a2 2 0 0 1 1.8 1.4L19 9M7 19v1.5M17 19v1.5"></path></g>
+        <g th:case="'cidades'"><path d="M12 21c-3.8-3.4-6-6.7-6-9.8A6 6 0 0 1 18 11.2c0 3.1-2.2 6.4-6 9.8z"></path><circle cx="12" cy="11" r="2.2"></circle></g>
+        <g th:case="'whatsapp'"><path d="M4 20l1.3-3.6A8 8 0 1 1 8 19.3z"></path><path d="M9 10.2c.4 2 2.3 3.8 4.4 4.2l.9-1.3 1.7.7c.1 1.1-.9 1.8-2 1.7a6.2 6.2 0 0 1-5.6-5.6c-.1-1.1.6-2.1 1.7-2l.7 1.7z"></path></g>
+        <g th:case="'recolher'"><rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect><path d="M9.5 4.5v15"></path></g>
+        <g th:case="'bell'"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"></path><path d="M10 19a2 2 0 0 0 4 0"></path></g>
+        <g th:case="'settings'"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.3l1.9-1.4-2-3.4-2.2.9a7 7 0 0 0-2.2-1.3L12 2.5 9.6 4.2a7 7 0 0 0-2.2 1.3l-2.2-.9-2 3.4L5.1 9.4a7 7 0 0 0 0 2.6l-1.9 1.4 2 3.4 2.2-.9a7 7 0 0 0 2.2 1.3L12 21.5l.4-2.3a7 7 0 0 0 2.2-1.3l2.2.9 2-3.4-1.9-1.4A7 7 0 0 0 19 12z"></path></g>
+        <g th:case="'mail'"><rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4 7l8 5.5L20 7"></path></g>
+        <g th:case="'route'"><circle cx="6" cy="6" r="2.2"></circle><circle cx="18" cy="18" r="2.2"></circle><path d="M8 6h6a4 4 0 0 1 0 8H10a4 4 0 0 0 0 8"></path></g>
+        <g th:case="'search'"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></g>
+        <g th:case="*"><path d="M4 11l8-7 8 7"></path><path d="M6.5 9.5V20h11V9.5"></path></g>
+    </th:block>
+</svg>
+</body>
+</html>

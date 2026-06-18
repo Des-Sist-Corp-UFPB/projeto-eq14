@@ -14,7 +14,8 @@ public enum Papel {
 
     PASSAGEIRO("Passageiro"),
     MOTORISTA("Motorista"),
-    GERENTE("Gerente");
+    GERENTE("Gerente"),
+    SYSADMIN("Administrador do Sistema");
 
     private final String rotulo;
 

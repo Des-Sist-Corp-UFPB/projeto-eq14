@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!-- Formulário de linha programada (SPEC-06). -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Linha programada</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1" th:text="${linha == null ? 'Nova linha programada' : 'Editar linha programada'}">Linha</h1>
+        <p class="text-muted mb-0">Origem padrão é a cidade-sede; selecione os dias da semana em que a linha opera.</p>
+    </div>
+
+    <div class="card" style="max-width: 720px;">
+        <div class="card-body">
+            <form th:action="${linha == null ? '/linhas' : '/linhas/' + linha.id + '/editar'}"
+                  th:object="${form}" method="post">
+
+                <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}">
+                    <div th:each="e : ${#fields.globalErrors()}" th:text="${e}">Erro</div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold" for="cidadeOrigemId">Origem (opcional)</label>
+                        <select class="form-select" id="cidadeOrigemId" th:field="*{cidadeOrigemId}">
+                            <option value="">— Cidade-sede —</option>
+                            <option th:each="c : ${cidades}" th:value="${c.id}" th:text="${c.nome + ' / ' + c.uf}">Cidade</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold" for="cidadeDestinoId">Destino</label>
+                        <select class="form-select" id="cidadeDestinoId" th:field="*{cidadeDestinoId}"
+                                th:classappend="${#fields.hasErrors('cidadeDestinoId')} ? 'is-invalid'">
+                            <option value="">— Selecione —</option>
+                            <option th:each="c : ${cidades}" th:value="${c.id}" th:text="${c.nome + ' / ' + c.uf}">Cidade</option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('cidadeDestinoId')}" th:errors="*{cidadeDestinoId}"></div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold" for="horarioSaida">Saída</label>
+                        <input type="time" class="form-control" id="horarioSaida" th:field="*{horarioSaida}"/>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold" for="horarioChegada">Chegada</label>
+                        <input type="time" class="form-control" id="horarioChegada" th:field="*{horarioChegada}"/>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold" for="horarioRetorno">Retorno (opcional)</label>
+                        <input type="time" class="form-control" id="horarioRetorno" th:field="*{horarioRetorno}"/>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold d-block">Dias da semana</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check" th:each="d : ${diasSemana}">
+                            <input class="form-check-input" type="checkbox" th:field="*{dias}" th:value="${d}"
+                                   th:id="'dia-' + ${d}"/>
+                            <label class="form-check-label" th:for="'dia-' + ${d}" th:text="${d.rotulo}">Dia</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="ativa" th:field="*{ativa}"/>
+                    <label class="form-check-label" for="ativa">Linha ativa</label>
+                </div>
+
+                <button type="submit" class="btn btn-cal">Salvar linha</button>
+                <a th:href="@{/linhas}" class="btn btn-outline-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

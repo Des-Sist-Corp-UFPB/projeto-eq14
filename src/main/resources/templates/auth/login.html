@@ -126,6 +126,9 @@
             <div th:if="${param.cadastro}" class="cal-alert cal-alert--ok">
                 Cadastro realizado! Faça login para continuar.
             </div>
+            <div th:if="${param.ativado}" class="cal-alert cal-alert--ok">
+                Conta ativada com sucesso! Faça login com sua nova senha.
+            </div>
 
             <form th:action="@{/login}" method="post" class="cal-fields">
                 <label class="cal-field">

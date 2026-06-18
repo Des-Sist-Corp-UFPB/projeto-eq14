@@ -81,6 +81,10 @@
 
         .cal-foot { font-size: 13.5px; color: var(--cal-muted); text-align: center; margin: 0; }
         .cal-footlink { color: var(--cal-primary); font-weight: 600; text-decoration: none; }
+        .cal-note-gestor {
+            text-align: left; background: oklch(0.95 0.025 257); color: oklch(0.47 0.17 257);
+            border-radius: 10px; padding: 13px 15px; line-height: 1.5;
+        }
 
         .cal-alert { font-size: 13.5px; padding: 10px 13px; border-radius: 8px; background: oklch(0.96 0.03 25); color: oklch(0.5 0.17 25); }
         .cal-alert ul { margin: 0; padding-left: 18px; }
@@ -169,8 +173,52 @@
                     <span class="cal-fielderr" th:if="${#fields.hasErrors('senha')}" th:errors="*{senha}"></span>
                 </label>
 
+                <div class="cal-divider"><span>Endereço de embarque (opcional)</span></div>
+
+                <label class="cal-field">
+                    <span class="cal-label">Município</span>
+                    <select class="cal-input" th:field="*{municipioId}">
+                        <option value="">— Selecione —</option>
+                        <option th:each="m : ${municipios}" th:value="${m.id}"
+                                th:text="${m.nome + ' / ' + m.uf}">Município</option>
+                    </select>
+                </label>
+
+                <label class="cal-field">
+                    <span class="cal-label">Bairro</span>
+                    <input class="cal-input" type="text" th:field="*{bairro}" placeholder="Ex.: Jatobá"/>
+                </label>
+
+                <div class="cal-grid2">
+                    <label class="cal-field">
+                        <span class="cal-label">Logradouro</span>
+                        <input class="cal-input" type="text" th:field="*{logradouro}" placeholder="Rua/Avenida"/>
+                    </label>
+                    <label class="cal-field">
+                        <span class="cal-label">Número</span>
+                        <input class="cal-input" type="text" th:field="*{numero}" placeholder="123"/>
+                    </label>
+                </div>
+
+                <div class="cal-grid2">
+                    <label class="cal-field">
+                        <span class="cal-label">CEP</span>
+                        <input class="cal-input" type="text" th:field="*{cep}" placeholder="58700-000"/>
+                    </label>
+                    <label class="cal-field">
+                        <span class="cal-label">Ponto de referência</span>
+                        <input class="cal-input" type="text" th:field="*{pontoReferencia}" placeholder="Próximo à praça"/>
+                    </label>
+                </div>
+
                 <button type="submit" class="cal-btn cal-btn--primary">Criar conta</button>
             </form>
+
+            <p class="cal-foot cal-note-gestor">
+                <strong>Conta de gestor?</strong> O acesso de gerente não é criado por aqui —
+                ele é gerado por convite de outro gestor. Motoristas também são cadastrados
+                pelo gerente na plataforma.
+            </p>
 
             <p class="cal-foot">
                 Já tem uma conta?

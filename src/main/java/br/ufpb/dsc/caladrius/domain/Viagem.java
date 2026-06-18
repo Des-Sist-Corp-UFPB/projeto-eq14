@@ -1,9 +1,9 @@
 package br.ufpb.dsc.caladrius.domain;
 
 import br.ufpb.dsc.caladrius.domain.enums.StatusViagem;
+import br.ufpb.dsc.caladrius.domain.enums.TipoViagem;
 import jakarta.persistence.*;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
@@ -41,6 +41,25 @@ public class Viagem {
     @JoinColumn(name = "cidade_destino", nullable = false)
     private Cidade cidadeDestino;
 
+    /** Origem (cidade-sede por padrão); pode ser nula em favor de {@link #origemImprovisada}. */
+    @ManyToOne
+    @JoinColumn(name = "cidade_origem")
+    private Cidade cidadeOrigem;
+
+    /** Local de partida improvisado (texto livre), para imprevistas fora da sede. */
+    @Column(name = "origem_improvisada", length = 180)
+    private String origemImprovisada;
+
+    /** Tipo da viagem (rotineira deriva de uma linha; imprevista é avulsa). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false, length = 20)
+    private TipoViagem tipo;
+
+    /** Linha que originou a viagem rotineira (nula para imprevista). */
+    @ManyToOne
+    @JoinColumn(name = "linha_programada")
+    private LinhaProgramada linhaProgramada;
+
     @Column(name = "data_viagem", nullable = false)
     private LocalDate dataViagem;
 
@@ -50,8 +69,9 @@ public class Viagem {
     @Column(name = "horario_chegada", nullable = false)
     private LocalTime horarioChegada;
 
-    @Column(name = "retorno_previsto")
-    private Instant retornoPrevisto;
+    /** Horário previsto de saída da volta (DT-09). */
+    @Column(name = "horario_retorno")
+    private LocalTime horarioRetorno;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -69,6 +89,9 @@ public class Viagem {
     protected void prePersist() {
         if (this.status == null) {
             this.status = StatusViagem.PLANEJADA;
+        }
+        if (this.tipo == null) {
+            this.tipo = TipoViagem.IMPREVISTA;
         }
     }
 
@@ -128,12 +151,44 @@ public class Viagem {
         this.horarioChegada = horarioChegada;
     }
 
-    public Instant getRetornoPrevisto() {
-        return retornoPrevisto;
+    public Cidade getCidadeOrigem() {
+        return cidadeOrigem;
     }
 
-    public void setRetornoPrevisto(Instant retornoPrevisto) {
-        this.retornoPrevisto = retornoPrevisto;
+    public void setCidadeOrigem(Cidade cidadeOrigem) {
+        this.cidadeOrigem = cidadeOrigem;
+    }
+
+    public String getOrigemImprovisada() {
+        return origemImprovisada;
+    }
+
+    public void setOrigemImprovisada(String origemImprovisada) {
+        this.origemImprovisada = origemImprovisada;
+    }
+
+    public TipoViagem getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoViagem tipo) {
+        this.tipo = tipo;
+    }
+
+    public LinhaProgramada getLinhaProgramada() {
+        return linhaProgramada;
+    }
+
+    public void setLinhaProgramada(LinhaProgramada linhaProgramada) {
+        this.linhaProgramada = linhaProgramada;
+    }
+
+    public LocalTime getHorarioRetorno() {
+        return horarioRetorno;
+    }
+
+    public void setHorarioRetorno(LocalTime horarioRetorno) {
+        this.horarioRetorno = horarioRetorno;
     }
 
     public StatusViagem getStatus() {

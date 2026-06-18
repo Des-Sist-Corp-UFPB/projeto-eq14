@@ -1,5 +1,7 @@
 package br.ufpb.dsc.caladrius.config;
 
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
+import br.ufpb.dsc.caladrius.service.AuditoriaService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -45,20 +47,26 @@ public class SecurityConfig {
      * @throws Exception em erro de configuração
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           AuditoriaService auditoriaService) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         // Rotas públicas: login, cadastro, health check e estáticos.
                         // /ping é o contrato público exigido pela disciplina (200 JSON).
                         .requestMatchers(
-                                "/login", "/registrar",
+                                "/login", "/registrar", "/ativar",
                                 "/ping", "/actuator/health",
                                 "/webjars/**", "/css/**", "/js/**"
                         ).permitAll()
+                        // Administração do sistema — exclusiva do SYSADMIN (papel isolado).
+                        .requestMatchers("/admin/**").hasRole("SYSADMIN")
+                        // Visão do motorista — exclusiva do MOTORISTA.
+                        .requestMatchers("/minhas-viagens/**").hasRole("MOTORISTA")
                         // Módulos de gestão — exclusivos do gerente.
                         .requestMatchers(
                                 "/veiculos/**", "/cidades/**",
-                                "/usuarios/**", "/viagens/**"
+                                "/usuarios/**", "/viagens/**", "/linhas/**",
+                                "/historico/**", "/analise/**", "/whatsapp/**"
                         ).hasRole("GERENTE")
                         // Qualquer outra rota exige apenas estar autenticado.
                         .anyRequest().authenticated()
@@ -74,6 +82,14 @@ public class SecurityConfig {
 
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
+                        // Auditoria de logout (#19, categoria SEGURANCA).
+                        .addLogoutHandler((request, response, authentication) -> {
+                            if (authentication != null
+                                    && authentication.getPrincipal() instanceof UsuarioAutenticado u) {
+                                auditoriaService.registrarSeguranca("LOGOUT", "SUCESSO",
+                                        u.getId(), u.getNomeCompleto(), request.getRemoteAddr());
+                            }
+                        })
                         .permitAll()
                 )
 

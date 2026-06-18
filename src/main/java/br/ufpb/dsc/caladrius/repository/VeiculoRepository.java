@@ -1,6 +1,7 @@
 package br.ufpb.dsc.caladrius.repository;
 
 import br.ufpb.dsc.caladrius.domain.Veiculo;
+import br.ufpb.dsc.caladrius.domain.enums.StatusVeiculo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,6 +27,12 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, UUID> {
 
     /** Lista todos os veículos ativos ordenados por placa (para selects). */
     List<Veiculo> findByRemovidoEmIsNullOrderByPlacaAsc();
+
+    /**
+     * Lista veículos ativos com um status específico, ordenados por placa
+     * (DT-04: alimentar o select de viagens apenas com veículos DISPONÍVEL).
+     */
+    List<Veiculo> findByRemovidoEmIsNullAndStatusOrderByPlacaAsc(StatusVeiculo status);
 
     /** Busca um veículo ativo pelo id. */
     Optional<Veiculo> findByIdAndRemovidoEmIsNull(UUID id);

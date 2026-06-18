@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!-- Ativação de conta por convite: o convidado define a senha pelo token. -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Ativar conta — CALADRIUS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --cal-font: 'Instrument Sans', system-ui, sans-serif;
+            --cal-primary: oklch(0.55 0.17 257);
+            --cal-bg: oklch(0.98 0.004 250);
+            --cal-surface: #ffffff;
+            --cal-border: oklch(0.92 0.008 250);
+            --cal-text: oklch(0.26 0.03 257);
+            --cal-muted: oklch(0.55 0.02 257);
+            --cal-danger: oklch(0.55 0.17 25);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; font-family: var(--cal-font); background: var(--cal-bg); color: var(--cal-text);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        }
+        .card {
+            width: 400px; max-width: 92vw; background: var(--cal-surface);
+            border: 1px solid var(--cal-border); border-radius: 14px; padding: 32px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .logo { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: .09em; }
+        .logo .dot { width: 16px; height: 16px; border-radius: 5px; background: var(--cal-primary); }
+        h1 { font-size: 22px; margin: 0; }
+        p.sub { font-size: 14px; color: var(--cal-muted); margin: 0; }
+        label { font-size: 13.5px; font-weight: 600; display: block; margin-bottom: 6px; }
+        input {
+            width: 100%; font-family: var(--cal-font); font-size: 14.5px; padding: 11px 13px;
+            border-radius: 8px; border: 1px solid var(--cal-border); outline: none;
+        }
+        input:focus { border-color: var(--cal-primary); }
+        button {
+            width: 100%; font-weight: 600; font-size: 14.5px; padding: 11px 16px; border-radius: 8px;
+            border: none; background: var(--cal-primary); color: #fff; cursor: pointer;
+        }
+        .alert { font-size: 13.5px; padding: 10px 13px; border-radius: 8px;
+            background: oklch(0.96 0.03 25); color: oklch(0.5 0.17 25); }
+        a { color: var(--cal-primary); text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <span class="logo"><span class="dot"></span>CALADRIUS</span>
+    <div>
+        <h1>Ativar sua conta</h1>
+        <p class="sub">Defina uma senha para concluir seu acesso.</p>
+    </div>
+
+    <div th:if="${erro}" class="alert" th:text="${erro}">Erro</div>
+
+    <form th:action="@{/ativar}" method="post" th:if="${token != null and !token.isEmpty()}">
+        <input type="hidden" name="token" th:value="${token}"/>
+        <div>
+            <label for="senha">Nova senha</label>
+            <input type="password" id="senha" name="senha" required minlength="6"
+                   placeholder="Mínimo de 6 caracteres" autocomplete="new-password"/>
+        </div>
+        <div style="margin-top:18px;">
+            <button type="submit">Ativar e definir senha</button>
+        </div>
+    </form>
+
+    <p class="sub" th:if="${token == null or token.isEmpty()}">
+        Link de ativação inválido. Solicite um novo convite ao gestor.
+    </p>
+
+    <p class="sub">Já ativou? <a th:href="@{/login}">Entrar</a></p>
+</div>
+</body>
+</html>

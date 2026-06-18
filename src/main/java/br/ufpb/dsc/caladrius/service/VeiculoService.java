@@ -27,9 +27,11 @@ import java.util.UUID;
 public class VeiculoService {
 
     private final VeiculoRepository veiculoRepository;
+    private final AuditoriaService auditoriaService;
 
-    public VeiculoService(VeiculoRepository veiculoRepository) {
+    public VeiculoService(VeiculoRepository veiculoRepository, AuditoriaService auditoriaService) {
         this.veiculoRepository = veiculoRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     /** Lista/busca veículos ativos paginados. Busca vazia retorna todos. */
@@ -46,9 +48,14 @@ public class VeiculoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Veículo", id));
     }
 
-    /** Lista todos os veículos ativos (para selects de viagem). */
-    public List<Veiculo> listarAtivos() {
-        return veiculoRepository.findByRemovidoEmIsNullOrderByPlacaAsc();
+    /**
+     * Lista os veículos <strong>disponíveis</strong> para alocação em viagens
+     * (DT-04): ativos (não removidos) <em>e</em> com status {@code DISPONIVEL}.
+     * Assim, veículos em {@code MANUTENCAO}/{@code EM_VIAGEM}/{@code INATIVO} não
+     * aparecem no select de viagens.
+     */
+    public List<Veiculo> listarDisponiveis() {
+        return veiculoRepository.findByRemovidoEmIsNullAndStatusOrderByPlacaAsc(StatusVeiculo.DISPONIVEL);
     }
 
     /** Cria um novo veículo a partir do formulário. */
@@ -66,7 +73,10 @@ public class VeiculoService {
         if (form.status() != null) {
             veiculo.setStatus(form.status());
         }
-        return veiculoRepository.save(veiculo);
+        veiculo = veiculoRepository.save(veiculo);
+        auditoriaService.registrarOperacao("VEICULO_CRIADO", "Veiculo",
+                veiculo.getId().toString(), veiculo.getPlaca());
+        return veiculo;
     }
 
     /** Atualiza um veículo existente. */
@@ -85,7 +95,10 @@ public class VeiculoService {
         veiculo.setCapacidade(form.capacidade());
         veiculo.setPossuiAcessibilidade(form.possuiAcessibilidade());
         veiculo.setStatus(form.status() != null ? form.status() : StatusVeiculo.DISPONIVEL);
-        return veiculoRepository.save(veiculo);
+        veiculo = veiculoRepository.save(veiculo);
+        auditoriaService.registrarOperacao("VEICULO_ATUALIZADO", "Veiculo",
+                veiculo.getId().toString(), veiculo.getPlaca());
+        return veiculo;
     }
 
     /** Exclusão lógica (soft-delete): marca {@code removidoEm}, não apaga a linha. */
@@ -94,6 +107,8 @@ public class VeiculoService {
         Veiculo veiculo = buscarPorId(id);
         veiculo.setRemovidoEm(Instant.now());
         veiculoRepository.save(veiculo);
+        auditoriaService.registrarOperacao("VEICULO_EXCLUIDO", "Veiculo",
+                id.toString(), veiculo.getPlaca());
     }
 
     private String normalizarPlaca(String placa) {

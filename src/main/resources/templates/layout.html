@@ -1,15 +1,8 @@
 <!DOCTYPE html>
 <!--
-  Layout base do CALADRIUS — todas as páginas internas o reutilizam.
-
-  Mecânica Thymeleaf:
-  - th:fragment="layout(content)" no <html> define o layout.
-  - As páginas filhas usam th:replace="~{layout :: layout(~{::main})}" no <html>
-    e fornecem seu conteúdo dentro de um único <main>.
-  - O conteúdo é injetado onde aparece th:replace="${content}".
-
-  A sidebar segue o redesenho v3 (seções OPERAÇÃO e CADASTROS) e só aparece para
-  quem está autenticado; os itens de gestão exigem o papel GERENTE.
+  Layout base do CALADRIUS — shell fiel ao protótipo /agendamento (v4):
+  topbar clara com botão de recolher + sidebar CLARA com grupos expansíveis.
+  As páginas filhas usam th:replace="~{layout :: layout(~{::main})}" no <html>.
 -->
 <html lang="pt-BR"
       xmlns:th="http://www.thymeleaf.org"
@@ -19,128 +12,189 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title th:text="${titulo != null ? titulo + ' — CALADRIUS' : 'CALADRIUS'}">CALADRIUS</title>
-
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}"/>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-
-    <style>
-        :root {
-            /* Paleta oficial do CALADRIUS (design/agendamento) — azul moderno */
-            --cal-font: 'Instrument Sans', system-ui, sans-serif;
-            --cal-primary: oklch(0.55 0.17 257);
-            --cal-primary-dark: oklch(0.47 0.17 257);
-            --cal-sidebar: oklch(0.27 0.055 262);
-        }
-        body { background-color: oklch(0.98 0.004 250); font-family: var(--cal-font); }
-        .navbar-cal {
-            background: linear-gradient(135deg, var(--cal-primary), var(--cal-primary-dark));
-        }
-        .navbar-cal .navbar-brand { font-weight: 700; letter-spacing: .5px; }
-        /* Sidebar */
-        .sidebar {
-            background-color: var(--cal-sidebar);
-            min-height: calc(100vh - 56px);
-            padding: 1rem .75rem;
-        }
-        .sidebar .nav-section {
-            color: #6b8a90; font-size: .72rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .08em;
-            padding: 1rem .75rem .25rem;
-        }
-        .sidebar .nav-link {
-            color: #cde3e1; border-radius: .5rem; padding: .55rem .75rem;
-            margin-bottom: .15rem; display: flex; align-items: center; gap: .6rem;
-        }
-        .sidebar .nav-link:hover { background-color: rgba(255,255,255,.06); color: #fff; }
-        .sidebar .nav-link.active { background-color: var(--cal-primary); color: #fff; }
-        .main-content { padding: 1.5rem; }
-        .htmx-indicator { display: none; }
-        .htmx-request .htmx-indicator { display: inline-block; }
-        .htmx-request.htmx-indicator { display: inline-block; }
-        .table-hover tbody tr:hover { background-color: #eef4f3; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/caladrius.css}"/>
 </head>
 <body>
 
-<!-- ===================== Barra superior ===================== -->
-<nav class="navbar navbar-expand navbar-dark navbar-cal px-3">
-    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"
-             viewBox="0 0 16 16" class="bi bi-bus-front">
-            <path d="M5 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0m8 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0M3 4v3h10V4zm10.5-1A1.5 1.5 0 0 1 15 4.5V11a1 1 0 0 1-1 1v1.5a.5.5 0 0 1-1 0V12H3v1.5a.5.5 0 0 1-1 0V12a1 1 0 0 1-1-1V4.5A1.5 1.5 0 0 1 2.5 3z"/>
-        </svg>
-        CALADRIUS
-    </a>
+<div class="cal-shell" id="cal-shell">
 
-    <ul class="navbar-nav ms-auto" sec:authorize="isAuthenticated()">
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#"
-               data-bs-toggle="dropdown" aria-expanded="false">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-                     class="bi bi-person-circle" viewBox="0 0 16 16">
-                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
-                    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
-                </svg>
-                <span sec:authentication="principal.nomeCompleto">Usuário</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><span class="dropdown-item-text small text-muted">
-                    <span sec:authentication="principal.telefone">—</span>
-                </span></li>
-                <li><hr class="dropdown-divider"/></li>
-                <li>
-                    <form th:action="@{/logout}" method="post" class="d-inline">
-                        <button type="submit" class="dropdown-item text-danger">Sair</button>
-                    </form>
-                </li>
-            </ul>
-        </li>
-    </ul>
-</nav>
+    <!-- ===================== Topbar ===================== -->
+    <header class="cal-topbar">
+        <div class="cal-topbar__left">
+            <button class="cal-iconbtn" type="button" id="cal-toggle" title="Recolher menu" aria-label="Recolher menu">
+                <svg th:replace="~{fragments/icons :: icon('recolher')}"></svg>
+            </button>
+            <a class="cal-logo" th:href="@{/}"><span class="dot"></span>CALADRIUS</a>
+        </div>
 
-<div class="container-fluid">
-    <div class="row">
-
-        <!-- ===================== Sidebar ===================== -->
-        <aside class="col-12 col-md-3 col-lg-2 sidebar" sec:authorize="isAuthenticated()">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link" th:href="@{/}"
-                       th:classappend="${requestURI == '/'} ? 'active'">Início</a>
-                </li>
-            </ul>
-
-            <div sec:authorize="hasRole('GERENTE')">
-                <div class="nav-section">Operação</div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/viagens}"
-                           th:classappend="${requestURI != null and requestURI.startsWith('/viagens')} ? 'active'">Viagens</a>
+        <div class="cal-topbar__right" sec:authorize="isAuthenticated()">
+            <!-- Sino de notificações -->
+            <div class="dropdown">
+                <button class="cal-iconbtn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações">
+                    <svg th:replace="~{fragments/icons :: icon('bell')}"></svg>
+                    <span class="cal-bell__dot" th:if="${notificacoes != null and !notificacoes.empty}"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
+                    <li class="d-flex justify-content-between align-items-center px-3 pt-2">
+                        <h6 class="dropdown-header px-0 mb-0">Notificações</h6>
+                        <form th:if="${notificacoes != null and !notificacoes.empty}"
+                              th:action="@{/notificacoes/marcar-lidas}" method="post" class="m-0">
+                            <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">Marcar lidas</button>
+                        </form>
                     </li>
-                </ul>
-
-                <div class="nav-section">Cadastros</div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/usuarios}"
-                           th:classappend="${requestURI != null and requestURI.startsWith('/usuarios')} ? 'active'">Usuários</a>
+                    <li><hr class="dropdown-divider"/></li>
+                    <li th:if="${notificacoes == null or notificacoes.empty}">
+                        <div class="cal-notif-empty">Você não tem notificações.</div>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/veiculos}"
-                           th:classappend="${requestURI != null and requestURI.startsWith('/veiculos')} ? 'active'">Veículos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/cidades}"
-                           th:classappend="${requestURI != null and requestURI.startsWith('/cidades')} ? 'active'">Cidades</a>
+                    <li th:each="n : ${notificacoes}">
+                        <div class="dropdown-item-text" style="white-space: normal;">
+                            <div class="fw-semibold small" th:text="${n.titulo}">Título</div>
+                            <div class="small text-muted" th:text="${n.mensagem}">Mensagem</div>
+                        </div>
                     </li>
                 </ul>
             </div>
+
+            <!-- Usuário -->
+            <div class="dropdown">
+                <button class="cal-user" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="cal-avatar"
+                          th:text="${#strings.toUpperCase(#strings.substring(#authentication.principal.nomeCompleto, 0, 1))}">A</span>
+                    <span class="cal-user__name" sec:authentication="principal.nomeCompleto">Usuário</span>
+                    <svg width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">
+                        <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                    </svg>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 240px;">
+                    <li class="px-3 py-2">
+                        <div class="fw-semibold" sec:authentication="principal.nomeCompleto">Usuário</div>
+                        <div class="small text-muted" sec:authentication="principal.telefone">—</div>
+                    </li>
+                    <li><hr class="dropdown-divider"/></li>
+                    <li><a class="dropdown-item" th:href="@{/perfil}">Meu perfil</a></li>
+                    <li><hr class="dropdown-divider"/></li>
+                    <li>
+                        <form th:action="@{/logout}" method="post" class="d-inline">
+                            <button type="submit" class="dropdown-item text-danger">Sair</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================== Corpo ===================== -->
+    <div class="cal-shell__body">
+
+        <aside class="cal-sidebar" sec:authorize="isAuthenticated()">
+
+            <a class="cal-nav" th:href="@{/}" th:classappend="${requestURI == '/'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: icon('inicio')}"></svg>
+                <span class="cal-nav__label">Início</span>
+            </a>
+
+            <!-- Motorista -->
+            <a sec:authorize="hasRole('MOTORISTA')" class="cal-nav" th:href="@{/minhas-viagens}"
+               th:classappend="${requestURI != null and requestURI.startsWith('/minhas-viagens')} ? 'active'">
+                <svg th:replace="~{fragments/icons :: icon('viagens')}"></svg>
+                <span class="cal-nav__label">Minhas viagens</span>
+            </a>
+
+            <!-- Gerente -->
+            <div sec:authorize="hasRole('GERENTE')">
+                <!-- Operação -->
+                <div class="cal-group"
+                     th:classappend="${requestURI != null and (requestURI.startsWith('/viagens') or requestURI.startsWith('/linhas') or requestURI.startsWith('/historico') or requestURI.startsWith('/analise'))} ? 'open'">
+                    <button type="button" class="cal-nav cal-group__btn" onclick="calToggleGroup(this)">
+                        <svg th:replace="~{fragments/icons :: icon('operacao')}"></svg>
+                        <span class="cal-nav__label">Operação</span>
+                        <svg class="cal-group__chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                            <path d="M4 2.5L7.5 6 4 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>
+                    <div class="cal-group__children">
+                        <a class="cal-nav cal-nav--child" th:href="@{/viagens/semana}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/viagens/semana')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Painel da semana</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/linhas}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/linhas')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Linhas</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/viagens}"
+                           th:classappend="${requestURI != null and requestURI == '/viagens'} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Viagens</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/historico}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/historico')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Histórico</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/analise}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/analise')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Análise</span></a>
+                    </div>
+                </div>
+
+                <!-- Cadastros -->
+                <div class="cal-group"
+                     th:classappend="${requestURI != null and (requestURI.startsWith('/usuarios') or requestURI.startsWith('/veiculos') or requestURI.startsWith('/cidades'))} ? 'open'">
+                    <button type="button" class="cal-nav cal-group__btn" onclick="calToggleGroup(this)">
+                        <svg th:replace="~{fragments/icons :: icon('cadastros')}"></svg>
+                        <span class="cal-nav__label">Cadastros</span>
+                        <svg class="cal-group__chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                            <path d="M4 2.5L7.5 6 4 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>
+                    <div class="cal-group__children">
+                        <a class="cal-nav cal-nav--child" th:href="@{/usuarios}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/usuarios')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Usuários</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/veiculos}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/veiculos')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Veículos</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/cidades}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/cidades')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Cidades</span></a>
+                    </div>
+                </div>
+
+                <!-- WhatsApp (seção do gerente) -->
+                <a class="cal-nav" th:href="@{/whatsapp}"
+                   th:classappend="${requestURI != null and requestURI.startsWith('/whatsapp')} ? 'active'">
+                    <svg th:replace="~{fragments/icons :: icon('whatsapp')}"></svg>
+                    <span class="cal-nav__label">WhatsApp</span>
+                </a>
+            </div>
+
+            <!-- Administração (sysadmin) -->
+            <div sec:authorize="hasRole('SYSADMIN')">
+                <div class="cal-group" th:classappend="${requestURI != null and requestURI.startsWith('/admin')} ? 'open'">
+                    <button type="button" class="cal-nav cal-group__btn" onclick="calToggleGroup(this)">
+                        <svg th:replace="~{fragments/icons :: icon('settings')}"></svg>
+                        <span class="cal-nav__label">Administração</span>
+                        <svg class="cal-group__chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                            <path d="M4 2.5L7.5 6 4 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </button>
+                    <div class="cal-group__children">
+                        <a class="cal-nav cal-nav--child" th:href="@{/admin}"
+                           th:classappend="${requestURI != null and requestURI == '/admin'} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Painel admin</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/admin/configuracoes}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/admin/configuracoes')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Configurações</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/admin/auditoria}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/admin/auditoria')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Auditoria</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/admin/convites}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/admin/convites')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Convites</span></a>
+                    </div>
+                </div>
+            </div>
         </aside>
 
-        <!-- ===================== Conteúdo ===================== -->
-        <div class="col main-content">
+        <div class="cal-main">
             <th:block th:replace="${content}">
                 <!-- Conteúdo da página filha é injetado aqui -->
             </th:block>
@@ -151,20 +205,39 @@
 <!-- ===================== Scripts ===================== -->
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}"></script>
-
-<!-- Container onde o HTMX injeta os modais de formulário -->
 <div id="modal-container"></div>
 
 <script>
-    // Abre automaticamente qualquer modal injetado no #modal-container pelo HTMX.
+    // Modal HTMX
     document.body.addEventListener('htmx:afterSwap', function (evt) {
         if (evt.detail.target.id === 'modal-container') {
             var modalEl = evt.detail.target.querySelector('.modal');
-            if (modalEl) {
-                new bootstrap.Modal(modalEl).show();
-            }
+            if (modalEl) { new bootstrap.Modal(modalEl).show(); }
         }
     });
+    // Mensagem de erro de regra de negócio (ex.: DT-02)
+    document.body.addEventListener('htmx:responseError', function (evt) {
+        var msg = evt.detail.xhr.responseText;
+        if (msg) { alert(msg); }
+    });
+
+    // Grupos expansíveis da sidebar
+    function calToggleGroup(btn) {
+        btn.closest('.cal-group').classList.toggle('open');
+    }
+    // Recolher/expandir a sidebar (persistido)
+    (function () {
+        var shell = document.getElementById('cal-shell');
+        var KEY = 'cal-sidebar-collapsed';
+        if (localStorage.getItem(KEY) === '1') { shell.classList.add('cal-shell--collapsed'); }
+        var toggle = document.getElementById('cal-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', function () {
+                shell.classList.toggle('cal-shell--collapsed');
+                localStorage.setItem(KEY, shell.classList.contains('cal-shell--collapsed') ? '1' : '0');
+            });
+        }
+    })();
 </script>
 
 </body>

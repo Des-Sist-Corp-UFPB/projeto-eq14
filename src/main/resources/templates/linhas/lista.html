@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!-- Lista de linhas programadas (SPEC-06). -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Linhas programadas</title></head>
+<body>
+<main>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Linhas programadas</h1>
+            <p class="text-muted mb-0">Viagens recorrentes (template). Designe veículo/motorista no painel da semana.</p>
+        </div>
+        <a th:href="@{/linhas/nova}" class="btn btn-cal">+ Nova linha</a>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Trajeto</th><th>Horários</th><th>Dias</th><th>Situação</th><th class="text-center" style="width:230px">Ações</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="l : ${linhas}">
+                        <td class="fw-semibold">
+                            <span th:text="${l.cidadeOrigem != null ? l.cidadeOrigem.nome : 'Sede'}">Origem</span>
+                            → <span th:text="${l.cidadeDestino.nome}">Destino</span>
+                        </td>
+                        <td class="small">
+                            <span th:text="${l.horarioSaida}">08:00</span> – <span th:text="${l.horarioChegada}">10:00</span>
+                            <span class="text-muted" th:if="${l.horarioRetorno != null}"
+                                  th:text="'(volta ' + ${l.horarioRetorno} + ')'">(volta 16:00)</span>
+                        </td>
+                        <td class="small">
+                            <span th:each="d : ${l.dias}" class="badge bg-secondary me-1" th:text="${d.rotulo}">Dia</span>
+                        </td>
+                        <td>
+                            <span class="badge" th:classappend="${l.ativa} ? 'bg-success' : 'bg-secondary'"
+                                  th:text="${l.ativa} ? 'Ativa' : 'Desabilitada'">Ativa</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-1">
+                                <a th:href="@{'/linhas/' + ${l.id} + '/editar'}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                                <form th:action="@{'/linhas/' + ${l.id} + '/alternar'}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary"
+                                            th:text="${l.ativa} ? 'Desabilitar' : 'Habilitar'">Alternar</button>
+                                </form>
+                                <form th:action="@{'/linhas/' + ${l.id} + '/excluir'}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Excluir esta linha?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${linhas.empty}">
+                        <td colspan="5" class="text-center text-muted py-5">Nenhuma linha programada ainda.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

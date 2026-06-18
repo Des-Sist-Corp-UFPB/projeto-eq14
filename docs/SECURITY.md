@@ -40,8 +40,8 @@ semgrep --config=p/java src/ --severity WARNING
 docker compose -f docker/docker-compose.dev.yml --profile scan up trivy
 
 # Scan da imagem Docker de produção
-docker build -f docker/Dockerfile -t mercado:latest .
-docker run --rm aquasec/trivy image mercado:latest --severity HIGH,CRITICAL
+docker build -f docker/Dockerfile -t caladrius:latest .
+docker run --rm aquasec/trivy image caladrius:latest --severity HIGH,CRITICAL
 ```
 
 ## OWASP Dependency-Check
@@ -78,7 +78,10 @@ mvn versions:display-dependency-updates -Pversions
 ## Configuração de Segurança do Spring
 
 Ver `SecurityConfig.java`:
-- CSRF habilitado (desabilitado apenas para endpoints HTMX)
-- Usuário em memória para desenvolvimento (trocar em produção)
+- CSRF habilitado (desabilitado apenas para endpoints HTMX de mutação)
+- **Autenticação no banco** via `CaladriusUserDetailsService` (PostgreSQL), com login por
+  e-mail **ou** telefone — substitui o `InMemoryUserDetailsManager` do boilerplate
 - BCrypt como algoritmo de hash de senhas
-- Toda URL protegida exceto `/login` e recursos estáticos
+- Rotas públicas: `/login`, `/registrar`, `/ping`, `/actuator/health` e estáticos; módulos de
+  gestão (`/usuarios|veiculos|cidades|viagens/**`) exigem o papel `GERENTE`; o restante exige
+  autenticação

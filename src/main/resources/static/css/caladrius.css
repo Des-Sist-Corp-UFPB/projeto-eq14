@@ -1,0 +1,126 @@
+/* =============================================================================
+ * caladrius.css — shell do redesign v4 (fiel ao protótipo /agendamento)
+ * Topbar clara com botão de recolher + sidebar CLARA com grupos expansíveis.
+ * ========================================================================== */
+
+:root {
+    --cal-font: 'Instrument Sans', system-ui, sans-serif;
+    --cal-primary: oklch(0.55 0.17 257);
+    --cal-primary-dark: oklch(0.47 0.17 257);
+    --cal-primary-soft: oklch(0.95 0.025 257);
+    --cal-bg: oklch(0.98 0.004 250);
+    --cal-surface: #ffffff;
+    --cal-border: oklch(0.92 0.008 250);
+    --cal-text: oklch(0.26 0.03 257);
+    --cal-muted: oklch(0.55 0.02 257);
+    --cal-faint: oklch(0.68 0.015 257);
+    --cal-danger: oklch(0.55 0.17 25);
+    --cal-ok: oklch(0.55 0.14 155);
+    --cal-sidebar-w: 244px;
+    --cal-sidebar-w-collapsed: 64px;
+    --cal-topbar-h: 56px;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background-color: var(--cal-bg); font-family: var(--cal-font); color: var(--cal-text); }
+
+/* ----------------------------------------------------------------- shell */
+.cal-shell { display: flex; flex-direction: column; height: 100vh; }
+.cal-shell__body { flex: 1; display: flex; min-height: 0; }
+.cal-main { flex: 1; padding: 30px 38px; overflow: auto; }
+
+/* ------------------------------------------------------------------- topbar */
+.cal-topbar {
+    height: var(--cal-topbar-h); flex-shrink: 0; background: var(--cal-surface);
+    border-bottom: 1px solid var(--cal-border); display: flex; align-items: center;
+    justify-content: space-between; padding: 0 18px 0 12px; position: relative; z-index: 5;
+}
+.cal-topbar__left { display: flex; align-items: center; gap: 10px; }
+.cal-topbar__right { display: flex; align-items: center; gap: 4px; }
+.cal-iconbtn {
+    width: 34px; height: 34px; border-radius: 8px; cursor: pointer; color: var(--cal-muted);
+    background: transparent; border: 1px solid transparent; position: relative;
+    display: flex; align-items: center; justify-content: center;
+}
+.cal-iconbtn:hover { background: var(--cal-bg); color: var(--cal-text); }
+.cal-logo { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: .09em;
+    font-size: 16px; color: var(--cal-text); text-decoration: none; }
+.cal-logo .dot { width: 15px; height: 15px; border-radius: 5px; background: var(--cal-primary); display: inline-block; }
+
+.cal-bell__dot { position: absolute; top: 7px; right: 8px; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--cal-danger); border: 1.5px solid #fff; }
+.cal-notif-empty { padding: 18px 14px; text-align: center; color: var(--cal-faint); font-size: 13px; }
+
+/* área do usuário (pílula com avatar + nome) */
+.cal-user { display: flex; align-items: center; gap: 9px; cursor: pointer; background: transparent;
+    border: 1px solid transparent; border-radius: 999px; padding: 3px 10px 3px 4px; }
+.cal-user:hover, .cal-user[aria-expanded="true"] { background: var(--cal-bg); }
+.cal-user__name { font-size: 13.5px; font-weight: 600; color: var(--cal-text); }
+.cal-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--cal-primary-soft);
+    color: var(--cal-primary-dark); display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px; flex-shrink: 0; }
+
+/* ------------------------------------------------------------------ sidebar */
+.cal-sidebar {
+    width: var(--cal-sidebar-w); flex-shrink: 0; background: var(--cal-surface);
+    border-right: 1px solid var(--cal-border); padding: 16px 14px;
+    display: flex; flex-direction: column; gap: 4px; overflow-y: auto;
+    transition: width .15s ease;
+}
+.cal-navsec { color: var(--cal-faint); font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; padding: 12px 12px 4px; }
+
+/* item simples */
+.cal-nav {
+    font-size: 14px; font-weight: 500; color: var(--cal-muted); background: transparent;
+    padding: 9px 12px; border-radius: 8px; text-decoration: none; cursor: pointer;
+    display: flex; align-items: center; gap: 11px; border: none; width: 100%; text-align: left;
+}
+.cal-nav:hover { background: var(--cal-bg); color: var(--cal-text); }
+.cal-nav.active { color: var(--cal-primary-dark); background: var(--cal-primary-soft); font-weight: 600; }
+.cal-nav__label { flex: 1; white-space: nowrap; overflow: hidden; }
+.cal-nav__badge { font-size: 11.5px; font-weight: 700; background: var(--cal-primary-soft);
+    color: var(--cal-primary-dark); padding: 1px 8px; border-radius: 999px; }
+.cal-nav svg { flex-shrink: 0; }
+
+/* grupo expansível */
+.cal-group { display: flex; flex-direction: column; gap: 2px; }
+.cal-group__btn { font-weight: 600; color: var(--cal-text); }
+.cal-group__chev { transition: transform .15s ease; }
+.cal-group.open > .cal-group__btn .cal-group__chev { transform: rotate(90deg); }
+.cal-group__children { display: flex; flex-direction: column; gap: 2px; }
+.cal-group:not(.open) > .cal-group__children { display: none; }
+
+/* filho indentado com bolinha */
+.cal-nav--child { padding: 8px 12px 8px 40px; position: relative; }
+.cal-nav--child .cal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cal-border); flex-shrink: 0; }
+.cal-nav--child.active .cal-dot { background: var(--cal-primary); }
+
+/* --------------------------------------------------------- modo recolhido */
+.cal-shell--collapsed .cal-sidebar { width: var(--cal-sidebar-w-collapsed); padding: 16px 10px; align-items: stretch; }
+.cal-shell--collapsed .cal-nav { justify-content: center; padding: 10px 0; gap: 0; }
+.cal-shell--collapsed .cal-nav__label,
+.cal-shell--collapsed .cal-nav__badge,
+.cal-shell--collapsed .cal-group__chev,
+.cal-shell--collapsed .cal-navsec { display: none; }
+.cal-shell--collapsed .cal-group__children { display: none !important; }
+.cal-shell--collapsed .cal-nav--child { display: none; }   /* filhos ficam ocultos quando recolhido */
+
+/* ------------------------------------------------------------------ conteúdo */
+.cal-card { background: var(--cal-surface); border: 1px solid var(--cal-border); border-radius: 14px; padding: 20px; }
+.card { border: 1px solid var(--cal-border); border-radius: 14px; }
+.table-hover tbody tr:hover { background-color: var(--cal-primary-soft); }
+
+.btn-cal { background-color: var(--cal-primary); border: 1px solid var(--cal-primary); color: #fff;
+    font-weight: 600; border-radius: 9px; }
+.btn-cal:hover, .btn-cal:focus { background-color: var(--cal-primary-dark); border-color: var(--cal-primary-dark); color: #fff; }
+
+/* HTMX */
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator { display: inline-block; }
+
+@media (max-width: 768px) {
+    .cal-sidebar { position: absolute; z-index: 20; height: calc(100vh - var(--cal-topbar-h)); }
+    .cal-shell--collapsed .cal-sidebar { transform: translateX(-100%); width: var(--cal-sidebar-w); }
+}

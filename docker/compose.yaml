@@ -1,0 +1,19 @@
+# =============================================================================
+#  compose.yaml — atalho de DESENVOLVIMENTO
+# -----------------------------------------------------------------------------
+#  Arquivo de nome padrão (o Docker Compose o carrega automaticamente). Serve
+#  só para você poder, de dentro de docker/, rodar UM comando:
+#
+#      docker compose up --build -d        # sobe postgres + app + adminer
+#      docker compose logs -f app          # acompanha o boot
+#      docker compose down                 # derruba tudo
+#      docker compose down -v              # derruba e apaga o volume do banco
+#
+#  Ele apenas INCLUI o docker-compose.dev.yml (a fonte da verdade do dev),
+#  que permanece intocado para as referências existentes. O ambiente de
+#  PRODUÇÃO continua separado (docker-compose.prod.yml) e o deploy do GitHub
+#  NÃO usa este arquivo.
+# =============================================================================
+
+include:
+  - docker-compose.dev.yml

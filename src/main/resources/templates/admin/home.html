@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- Painel de administração do sistema (SYSADMIN). Reutiliza o layout base. -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Administração</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Administração do sistema</h1>
+        <p class="text-muted mb-0">Configurações técnicas do CALADRIUS — separadas da operação de negócio.</p>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-sm-6 col-lg-4">
+            <a th:href="@{/admin/configuracoes}" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h6 mb-1">Configurações do sistema</h2>
+                    <p class="text-muted small mb-0">Tempo de sessão e parâmetros gerais (cidade sede).</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <a th:href="@{/admin/auditoria}" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h6 mb-1">Logs de auditoria</h2>
+                    <p class="text-muted small mb-0">Trilha completa de acessos e alterações do sistema.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <a th:href="@{/admin/convites}" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h6 mb-1">Convites de gestor</h2>
+                    <p class="text-muted small mb-0">Gere convites por token para novos gerentes.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</main>
+</body>
+</html>

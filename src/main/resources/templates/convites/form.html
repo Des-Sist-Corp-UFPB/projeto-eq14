@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- Formulário de convite por token (gestor ou motorista). Reutiliza o layout base. -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Convidar</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1" th:text="${titulo}">Convidar</h1>
+        <p class="text-muted mb-0">
+            O usuário nasce <strong>pendente</strong> e recebe um token para definir a senha
+            (papel: <span th:text="${papelRotulo}">—</span>).
+        </p>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+    <div class="card" style="max-width: 560px;">
+        <div class="card-body">
+            <form th:action="@{${acao}}" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="nome">Nome completo</label>
+                    <input type="text" class="form-control" id="nome" name="nome" required
+                           placeholder="Nome do convidado"/>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold" for="telefone">Telefone</label>
+                        <input type="tel" class="form-control" id="telefone" name="telefone" required
+                               placeholder="(83) 99999-9999"/>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold" for="email">E-mail (opcional)</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               placeholder="convidado@exemplo.com"/>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-cal">Gerar convite</button>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

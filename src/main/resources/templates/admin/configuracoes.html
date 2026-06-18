@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Configurações do sistema (SYSADMIN) — sessão dinâmica + cidade-sede. -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Configurações do sistema</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Configurações do sistema</h1>
+        <p class="text-muted mb-0">Parâmetros aplicados em runtime, sem redeploy.</p>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+
+    <div class="card" style="max-width: 640px;">
+        <div class="card-body">
+            <form th:action="@{/admin/configuracoes}" method="post">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="timeoutMinutos">Tempo de sessão (minutos)</label>
+                    <input type="number" class="form-control" id="timeoutMinutos" name="timeoutMinutos"
+                           min="1" max="1440" th:value="${timeoutMinutos}" required/>
+                    <div class="form-text">
+                        Inatividade até o logout automático. Vale para os próximos logins (1–1440).
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="cidadeSedeId">Cidade-sede (origem padrão)</label>
+                    <select class="form-select" id="cidadeSedeId" name="cidadeSedeId">
+                        <option value="">— Não definida —</option>
+                        <option th:each="c : ${cidades}"
+                                th:value="${c.id}"
+                                th:text="${c.nome + ' / ' + c.uf}"
+                                th:selected="${cidadeSedeId != null and cidadeSedeId == c.id}">Cidade</option>
+                    </select>
+                    <div class="form-text">Município onde a secretaria de saúde está situada (SPEC-06).</div>
+                </div>
+
+                <button type="submit" class="btn btn-cal">Salvar configurações</button>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

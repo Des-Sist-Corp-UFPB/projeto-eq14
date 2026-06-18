@@ -5,6 +5,9 @@
 # Diário local de deploy em markdown (anotações de troubleshooting — não versionar)
 .deploy-changes*
 
+# Permissões locais do Claude Code (allowlist pessoal — não versionar)
+.claude/settings.local.json
+
 # ---------------------------------------------------------------------------
 # Maven
 # ---------------------------------------------------------------------------

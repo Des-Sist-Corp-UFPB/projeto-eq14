@@ -10,10 +10,13 @@
             <h1 class="h3 mb-1">Usuários</h1>
             <p class="text-muted mb-0">Gerencie os usuários e seus papéis</p>
         </div>
-        <button class="btn text-white" style="background-color:var(--cal-primary);"
-                hx-get="/usuarios/novo" hx-target="#modal-container" hx-swap="innerHTML">
-            + Novo usuário
-        </button>
+        <div class="d-flex gap-2">
+            <a th:href="@{/usuarios/convidar}" class="btn btn-outline-secondary">Convidar motorista</a>
+            <button class="btn btn-cal"
+                    hx-get="/usuarios/novo" hx-target="#modal-container" hx-swap="innerHTML">
+                + Novo usuário
+            </button>
+        </div>
     </div>
 
     <div class="card shadow-sm">

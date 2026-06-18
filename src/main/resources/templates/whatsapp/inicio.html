@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- Seção WhatsApp (gerente) — espaço reservado; features em avaliação. -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>WhatsApp</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1">WhatsApp</h1>
+        <p class="text-muted mb-0">Integração de mensageria (Evolution API) — exclusiva do gerente.</p>
+    </div>
+
+    <div class="card" style="max-width: 720px;">
+        <div class="card-body">
+            <h2 class="h6">Em avaliação</h2>
+            <p class="text-muted mb-2">
+                As funcionalidades desta seção ainda estão sendo definidas. A ideia é, no futuro:
+            </p>
+            <ul class="text-muted">
+                <li>Notificar passageiros e motoristas sobre viagens.</li>
+                <li>Possivelmente receber solicitações de transporte por WhatsApp.</li>
+                <li>Configurar a conexão (Evolution API) e o número usado pela secretaria.</li>
+            </ul>
+            <p class="text-muted mb-0">
+                Nada é enviado por aqui ainda — o canal de WhatsApp do <code>NotificacaoService</code>
+                está como <em>stub</em> até esta seção ser implementada.
+            </p>
+        </div>
+    </div>
+</main>
+</body>
+</html>

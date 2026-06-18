@@ -2,6 +2,8 @@ package br.ufpb.dsc.caladrius.controller;
 
 import br.ufpb.dsc.caladrius.domain.Viagem;
 import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusViagem;
+import br.ufpb.dsc.caladrius.dto.DesignacaoForm;
 import br.ufpb.dsc.caladrius.dto.ViagemForm;
 import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
@@ -13,13 +15,16 @@ import br.ufpb.dsc.caladrius.service.ViagemService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -100,6 +105,50 @@ public class ViagemController {
         }
     }
 
+    // ===================== SPEC-06: painel semanal =====================
+
+    @GetMapping("/semana")
+    public String painelSemana(@RequestParam(name = "ref", required = false)
+                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ref,
+                               Model model) {
+        model.addAttribute("painel", viagemService.painelSemana(ref));
+        model.addAttribute("designacao", new DesignacaoForm(null, null, null, null));
+        carregarOpcoes(model);
+        model.addAttribute("titulo", "Painel da semana");
+        return "viagens/semana";
+    }
+
+    @PostMapping("/designar")
+    public String designar(@Valid @ModelAttribute("designacao") DesignacaoForm form,
+                           BindingResult bindingResult,
+                           @AuthenticationPrincipal UsuarioAutenticado usuarioLogado,
+                           RedirectAttributes redirect) {
+        try {
+            if (bindingResult.hasErrors()) {
+                throw new RegraNegocioException("Selecione veículo e motorista para designar.");
+            }
+            viagemService.designar(form, usuarioLogado.getId());
+            redirect.addFlashAttribute("sucesso", "Viagem designada.");
+        } catch (RegraNegocioException | RecursoNaoEncontradoException e) {
+            redirect.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/viagens/semana?ref=" + form.dataViagem();
+    }
+
+    @PostMapping("/{id}/status")
+    public String alterarStatus(@PathVariable UUID id,
+                                @RequestParam("status") StatusViagem status,
+                                @AuthenticationPrincipal UsuarioAutenticado usuarioLogado,
+                                RedirectAttributes redirect) {
+        try {
+            viagemService.alterarStatus(id, status, usuarioLogado.getId(), true);
+            redirect.addFlashAttribute("sucesso", "Status atualizado.");
+        } catch (RegraNegocioException e) {
+            redirect.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/viagens";
+    }
+
     // ===================== Helpers =====================
 
     private void carregarPagina(int pagina, Model model) {
@@ -111,7 +160,7 @@ public class ViagemController {
 
     /** Alimenta os selects do formulário (veículos, motoristas, cidades). */
     private void carregarOpcoes(Model model) {
-        model.addAttribute("veiculosDisponiveis", veiculoService.listarAtivos());
+        model.addAttribute("veiculosDisponiveis", veiculoService.listarDisponiveis());
         model.addAttribute("motoristas", usuarioService.listarPorPapel(Papel.MOTORISTA));
         model.addAttribute("cidades", cidadeService.listarTodas());
     }
