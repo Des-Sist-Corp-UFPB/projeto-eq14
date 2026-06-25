@@ -6,7 +6,7 @@
 | **Repositório** | https://github.com/des-sist-corp-ufpb/projeto-eq14 |
 | **Aplicação** | https://eq14.dsc.rodrigor.com |
 | **Período de atividade** | 2026-06-25 → 2026-06-25 |
-| **Total de commits** (sem merges) | 1 |
+| **Total de commits** (sem merges, branch main) | 2 |
 | **Integrantes** | Luiz Eduardo De Lima Neves (@Edwdilima) |
 
 ---
@@ -161,9 +161,14 @@
 
 ### Resumo
 
-| Usuário | Commits | % commits | Linhas adicionadas | Linhas no código atual | % código atual |
-|---------|---------|-----------|-------------------|----------------------|----------------|
-| Luiz Eduardo De Lima Neves (@Edwdilima) | 1 | 100% | 16.054 | 12.093 | 100% |
+| Usuário | Commits (main) | Commits (GitHub API) | Linhas adicionadas | Linhas no código atual | % código atual |
+|---------|---------------|---------------------|-------------------|----------------------|----------------|
+| Luiz Eduardo De Lima Neves (@Edwdilima) | 1 | **17** ⚠️ | 16.054 | 12.093 | 100% |
+| *(sem login GitHub)* | 1 | 50% | — | — | — |
+
+> **⚠️ Divergência entre commits locais e GitHub API:**
+> - **@Edwdilima**: 1 commit(s) na branch `main` vs **17** registrados na API GitHub (commits em branches não mergeadas ou absorvidos via squash-merge sem preservação de autoria).
+>
 
 ### Contribuição por Camada
 
