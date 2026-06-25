@@ -6,7 +6,7 @@
 | **Repositório** | https://github.com/des-sist-corp-ufpb/projeto-eq14 |
 | **Aplicação** | https://eq14.dsc.rodrigor.com |
 | **Período de atividade** | 2026-06-25 → 2026-06-25 |
-| **Total de commits** (sem merges, branch main) | 2 |
+| **Total de commits** (sem merges, branch main) | 3 |
 | **Integrantes** | Luiz Eduardo De Lima Neves (@Edwdilima) |
 
 ---
@@ -145,7 +145,7 @@
 | Aspecto | Status | Observação |
 |---------|--------|-----------|
 | Arquitetura em camadas | ✅ | controller=✅  service=✅  repository=✅ |
-| Testes automatizados | ✅ | 20 arquivo(s) de teste |
+| Testes automatizados | ✅ | 21 Java, 0 JS/TS, 0 Python |
 | Migrations versionadas | ✅ | 10 migration(s) |
 | Logging | ✅ | @Slf4j / LoggerFactory / logging.getLogger detectado |
 | Autenticação / Segurança | ✅ | Spring Security / JWT / decorator detectado |
@@ -163,11 +163,11 @@
 
 | Usuário | Commits (main) | Commits (GitHub API) | Linhas adicionadas | Linhas no código atual | % código atual |
 |---------|---------------|---------------------|-------------------|----------------------|----------------|
-| Luiz Eduardo De Lima Neves (@Edwdilima) | 1 | **17** ⚠️ | 16.054 | 12.093 | 100% |
-| *(sem login GitHub)* | 1 | 50% | — | — | — |
+| Luiz Eduardo De Lima Neves (@Edwdilima) | 1 | **18** ⚠️ | 16.054 | 12.093 | 100% |
+| *(sem login GitHub)* | 2 | 67% | — | — | — |
 
 > **⚠️ Divergência entre commits locais e GitHub API:**
-> - **@Edwdilima**: 1 commit(s) na branch `main` vs **17** registrados na API GitHub (commits em branches não mergeadas ou absorvidos via squash-merge sem preservação de autoria).
+> - **@Edwdilima**: 1 commit(s) na branch `main` vs **18** registrados na API GitHub (commits em branches não mergeadas ou absorvidos via squash-merge sem preservação de autoria).
 >
 
 ### Contribuição por Camada
