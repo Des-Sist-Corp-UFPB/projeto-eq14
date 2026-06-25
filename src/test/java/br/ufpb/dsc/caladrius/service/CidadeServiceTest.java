@@ -2,6 +2,7 @@ package br.ufpb.dsc.caladrius.service;
 
 import br.ufpb.dsc.caladrius.domain.Cidade;
 import br.ufpb.dsc.caladrius.domain.enums.TipoCidade;
+import br.ufpb.dsc.caladrius.dto.CidadeForm;
 import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
 import br.ufpb.dsc.caladrius.repository.CidadeRepository;
 import br.ufpb.dsc.caladrius.repository.ViagemRepository;
@@ -89,5 +90,46 @@ class CidadeServiceTest {
         when(viagemRepository.countByCidadeDestino_Id(id)).thenReturn(5L);
 
         assertThat(cidadeService.contarViagensVinculadas(id)).isEqualTo(5L);
+    }
+
+    @Test
+    @DisplayName("criar: faz trim do nome e normaliza a UF para maiúsculas")
+    void criar_normaliza() {
+        when(cidadeRepository.save(any(Cidade.class))).thenAnswer(inv -> {
+            Cidade c = inv.getArgument(0);
+            c.setId(UUID.randomUUID());
+            return c;
+        });
+
+        Cidade salva = cidadeService.criar(new CidadeForm("  João Pessoa  ", "pb", TipoCidade.METROPOLITANA));
+
+        assertThat(salva.getNome()).isEqualTo("João Pessoa");
+        assertThat(salva.getUf()).isEqualTo("PB");
+        assertThat(salva.getTipo()).isEqualTo(TipoCidade.METROPOLITANA);
+    }
+
+    @Test
+    @DisplayName("atualizar: grava os novos dados da cidade")
+    void atualizar_gravaDados() {
+        UUID id = UUID.randomUUID();
+        Cidade cidade = new Cidade("Patos", "PB", TipoCidade.ORIGEM);
+        cidade.setId(id);
+        when(cidadeRepository.findById(id)).thenReturn(Optional.of(cidade));
+        when(cidadeRepository.save(any(Cidade.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Cidade salva = cidadeService.atualizar(id, new CidadeForm("Sousa", "pb", TipoCidade.METROPOLITANA));
+
+        assertThat(salva.getNome()).isEqualTo("Sousa");
+        assertThat(salva.getTipo()).isEqualTo(TipoCidade.METROPOLITANA);
+    }
+
+    @Test
+    @DisplayName("buscarPorId: cidade inexistente lança RecursoNaoEncontradoException")
+    void buscarPorId_inexistente_lanca() {
+        UUID id = UUID.randomUUID();
+        when(cidadeRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> cidadeService.buscarPorId(id))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
     }
 }

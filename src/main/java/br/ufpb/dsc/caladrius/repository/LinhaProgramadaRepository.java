@@ -19,6 +19,9 @@ public interface LinhaProgramadaRepository extends JpaRepository<LinhaProgramada
     /** Todas as linhas (gestão), ordenadas por horário de saída. */
     List<LinhaProgramada> findAllByOrderByHorarioSaidaAsc();
 
+    /** Linhas ativas (disponíveis ao passageiro — SPEC-09), por horário de saída. */
+    List<LinhaProgramada> findByAtivaTrueOrderByHorarioSaidaAsc();
+
     /** Linhas ativas que operam num dia da semana (painel semanal). */
     @Query("""
             select l from LinhaProgramada l

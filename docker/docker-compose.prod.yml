@@ -19,7 +19,7 @@
 #   DB_NETWORK=<nome da rede Docker do professor onde o "postgres" está>
 #
 # A app é publicada em 127.0.0.1:8114 (somente localhost); o Caddy, já
-# configurado no servidor, faz o proxy https://eq14.dsc.rodrigr.com → :8114.
+# configurado no servidor, faz o proxy https://eq14.dsc.rodrigor.com → :8114.
 # =============================================================================
 
 # Nome do projeto Compose. Fixado para isolar a app por time mesmo o arquivo
@@ -45,7 +45,7 @@ services:
       # Login social com Google (SPEC-08) — opcional. Defina no .env do servidor
       # para ativar; o default vazio mantém o login social desligado (o app sobe só
       # com senha). Cadastre também o redirect URI de produção no Google Console:
-      #   https://eq14.dsc.rodrigr.com/login/oauth2/code/google
+      #   https://eq14.dsc.rodrigor.com/login/oauth2/code/google
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     # A app escuta em 8080 dentro do container; publicamos APENAS em

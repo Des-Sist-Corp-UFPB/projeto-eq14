@@ -21,9 +21,11 @@ organiza **viagens**, **veículos**, **motoristas** e **cidades**. Sistema basea
 (configuração de sessão dinâmica, auditoria, convites); onboarding por convite/token +
 `NotificacaoService` (in-app/e-mail/whatsapp-stub); **viagens rotineiras/imprevistas** (linhas
 programadas, painel semanal, designação, conflito, ciclo de status, visão do motorista);
-**endereço estruturado do passageiro** (municípios PB) + aba de análise; redesign do shell.
-**Ainda fora do escopo:** solicitação de transporte (passageiro), alocação/assentos, escalas de
-motorista, perfil/CNH do motorista, integração WhatsApp real (Evolution API).
+**endereço estruturado do passageiro** (municípios PB) + aba de análise; redesign do shell;
+**solicitação de transporte do passageiro via sistema** (linhas disponíveis + minhas viagens, com
+alocação automática e isolamento — SPEC-09).
+**Ainda fora do escopo:** solicitação via WhatsApp (Evolution API), aprovação/recusa pelo gestor,
+alocação/assentos (capacidade), escalas de motorista, perfil/CNH do motorista.
 
 ## Stack Técnica
 | Camada | Tecnologia | Versão |
@@ -43,12 +45,12 @@ br.ufpb.dsc.caladrius
 ├── config/          # Security, GlobalModelAttributes, DataInitializer, SessaoConfig (sessão dinâmica),
 │                    #   AuditoriaSecurityListener (login/logout), GlobalExceptionHandler
 ├── controller/      # Auth, Home, Veiculo, Cidade, Usuario, Viagem (+semana/designar/status),
-│                    #   Linha, MotoristaViagem, Admin, Configuracao, Auditoria, Convite, Ativacao,
-│                    #   Conta, Notificacao, Perfil, Analise, Whatsapp, Ping
-├── domain/          # Usuario, Veiculo, Cidade, Viagem, LinhaProgramada, Endereco, Municipio,
-│   │                #   ConfiguracaoSistema, LogAuditoria, Notificacao, TokenAtivacao
+│                    #   Linha, MotoristaViagem, Solicitacao (passageiro), Admin, Configuracao,
+│                    #   Auditoria, Convite, Ativacao, Conta, Notificacao, Perfil, Analise, Whatsapp, Ping
+├── domain/          # Usuario, Veiculo, Cidade, Viagem, LinhaProgramada, SolicitacaoViagem, Endereco,
+│   │                #   Municipio, ConfiguracaoSistema, LogAuditoria, Notificacao, TokenAtivacao
 │   └── enums/       # Papel(+SYSADMIN), StatusUsuario, Tipo/StatusVeiculo, TipoCidade, StatusViagem,
-│                    #   TipoViagem, DiaSemana, CategoriaAuditoria
+│                    #   TipoViagem, StatusSolicitacao, DiaSemana, CategoriaAuditoria
 ├── dto/             # Records de formulário (ViagemForm, LinhaProgramadaForm, DesignacaoForm,
 │                    #   EnderecoForm, PainelSemana, ...)
 ├── notificacao/     # CanalNotificacao (interface) + InApp/Email/Whatsapp (stub) + CanalTipo
@@ -56,7 +58,7 @@ br.ufpb.dsc.caladrius
 ├── repository/      # Interfaces Spring Data JPA
 ├── security/        # UsuarioAutenticado (UserDetails), CaladriusUserDetailsService
 ├── service/         # Lógica de negócio (@Transactional): Usuario/Veiculo/Cidade/Viagem,
-│                    #   LinhaProgramada, Configuracao, Auditoria, Convite, Notificacao, Endereco
+│                    #   LinhaProgramada, SolicitacaoViagem, Configuracao, Auditoria, Convite, Notificacao, Endereco
 └── util/            # Documentos (CPF, normalização de telefone, detecção de e-mail)
 ```
 
@@ -127,6 +129,7 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 - `V7` tokens_ativacao + notificacoes · `V8` municipios (seed PB) + enderecos (drop JSONB)
 - `V9` linhas_programadas + linha_dias + evolução de viagens (tipo, FK linha, origem, horario_retorno)
 - `V10` identidades_oauth (login social Google) + `usuarios.perfil_incompleto` + telefone nullable
+- `V11` solicitacoes_viagem (solicitação de transporte do passageiro — SPEC-09)
 
 > **Política em banco compartilhado:** ver [`docs/sdd/02-plano-tecnico.md` §2.5](docs/sdd/02-plano-tecnico.md).
 > Migrations aditivas, sem extensões/superusuário; backup próprio (`pg_dump`) antes de alterações sensíveis.
@@ -149,36 +152,37 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 ## Documentação Técnica
 | Documento | Conteúdo |
 |-----------|----------|
-| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..07), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
+| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..09), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
 | [README.md](README.md) | Visão geral, como rodar, acesso, estrutura |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Camadas, HTMX, Flyway |
 | [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | Migrations, nomenclatura, validação, Conventional Commits |
 | [docs/SECURITY.md](docs/SECURITY.md) | SAST, OWASP, configuração do Spring Security |
 
 ## Estado atual e como retomar (ponto de restauração)
-> **Atualizado em 2026-06-18.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
+> **Atualizado em 2026-06-25.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
 > (em especial o [roadmap](docs/sdd/03-tarefas-e-roadmap.md), que rastreia o estado por capacidade e as
 > dívidas técnicas DT-01..DT-11). Este `CLAUDE.md` é carregado automaticamente em todo chat.
 
-- **Último marco**: commit `feat: gestão avançada, viagens rotineiras, endereços e redesign do shell`
-  (na `main`, já no GitHub e implantado). Migrations até **V9**. **Testes verdes** (35: 34 unidade +
-  1 de contexto Testcontainers que aplica V1→V9 e valida o schema). `mvn test` funciona localmente.
-- **Specs implementadas (✅)**: SPEC-01..07 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
+- **Último marco**: **login Google em produção funcionando** (`https://eq14.dsc.rodrigor.com`) +
+  **solicitação de transporte do passageiro via sistema** (SPEC-09). Migrations até **V11**.
+  **Testes verdes** (115, incl. 1 de contexto Testcontainers que aplica V1→V11 e valida o schema).
+  `mvn test` funciona localmente.
+- **Specs implementadas (✅)**: SPEC-01..09 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
 - **Pontos de atenção / dívidas em aberto** (do roadmap):
-  - **Passageiro**: hoje só faz cadastro + perfil (endereço). **Falta a função-fim**: *solicitar
-    transporte* e *ver suas viagens alocadas* (dependem de `solicitacoes_transporte`/`assentos_viagem`).
+  - **Passageiro**: solicita transporte (`/solicitacoes`) e vê viagens alocadas ✅ (SPEC-09).
+    **Falta**: solicitação via **WhatsApp**, **aprovação/recusa** pelo gestor, **assentos/capacidade**.
   - **Motorista**: `/minhas-viagens` (ver + status) funciona; **falta** perfil/CNH (`perfis_motorista`)
     e a visão de "Veículos".
   - **Home (`/`)**: ainda mostra os totais do sistema para **qualquer** papel — ajustar para esconder
     de não-gerentes e dar landing por papel.
   - **WhatsApp**: seção do gerente (`/whatsapp`) é placeholder; canal WhatsApp do `NotificacaoService`
-    é stub (Evolution API em avaliação).
+    é stub (Evolution API em avaliação) — é a próxima etapa da solicitação do passageiro.
   - **DT-03** (carga horária do motorista via `escalas_motorista`) e **imprevista** com campos de
     origem improvisada/horário de retorno na UI ainda pendentes.
 
 ## Próximos Passos Sugeridos
-1. **Solicitação de transporte (passageiro)** + alocação/assentos → completa a jornada do passageiro.
-2. **Perfil/CNH do motorista** (`perfis_motorista`) e visão de veículos.
-3. **Home por papel** (esconder totais de não-gerente; atalhos por papel).
-4. **Escalas de motorista** (`escalas_motorista`) → carga horária (DT-03 v2).
-5. **WhatsApp** real via Evolution API (quando as features forem definidas).
+1. **Solicitação via WhatsApp** (Evolution API) — reaproveita o `SolicitacaoViagemService` (SPEC-09).
+2. **Aprovação/recusa** das solicitações pelo gestor + **assentos/capacidade** (`assentos_viagem`).
+3. **Perfil/CNH do motorista** (`perfis_motorista`) e visão de veículos.
+4. **Home por papel** (esconder totais de não-gerente; atalhos por papel).
+5. **Escalas de motorista** (`escalas_motorista`) → carga horária (DT-03 v2).

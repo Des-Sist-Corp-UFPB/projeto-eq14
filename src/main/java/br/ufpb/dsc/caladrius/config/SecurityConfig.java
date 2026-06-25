@@ -68,6 +68,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("SYSADMIN")
                         // Visão do motorista — exclusiva do MOTORISTA.
                         .requestMatchers("/minhas-viagens/**").hasRole("MOTORISTA")
+                        // Visão do passageiro (solicitar transporte) — exclusiva do PASSAGEIRO.
+                        .requestMatchers("/solicitacoes/**").hasRole("PASSAGEIRO")
                         // Módulos de gestão — exclusivos do gerente.
                         .requestMatchers(
                                 "/veiculos/**", "/cidades/**",

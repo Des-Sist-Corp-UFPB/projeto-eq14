@@ -8,7 +8,9 @@ import br.ufpb.dsc.caladrius.domain.Viagem;
 import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
 import br.ufpb.dsc.caladrius.domain.enums.Papel;
 import br.ufpb.dsc.caladrius.domain.enums.StatusViagem;
+import br.ufpb.dsc.caladrius.domain.enums.TipoViagem;
 import br.ufpb.dsc.caladrius.dto.DesignacaoForm;
+import br.ufpb.dsc.caladrius.dto.PainelSemana;
 import br.ufpb.dsc.caladrius.dto.ViagemForm;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
 import br.ufpb.dsc.caladrius.repository.CidadeRepository;
@@ -26,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -178,5 +181,215 @@ class ViagemServiceTest {
                 .hasMessageContaining("Veículo indisponível");
 
         verify(viagemRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("criar: caminho feliz salva uma viagem IMPREVISTA PLANEJADA")
+    void criar_valido_salvaImprevista() {
+        UUID veiculoId = UUID.randomUUID();
+        UUID motoristaId = UUID.randomUUID();
+        UUID cidadeId = UUID.randomUUID();
+        UUID criadoPorId = UUID.randomUUID();
+        LocalDate data = LocalDate.of(2026, 6, 23);
+
+        Veiculo veiculo = new Veiculo();
+        veiculo.setId(veiculoId);
+        when(veiculoRepository.findByIdAndRemovidoEmIsNull(veiculoId)).thenReturn(Optional.of(veiculo));
+        when(usuarioRepository.findByIdAndRemovidoEmIsNull(motoristaId)).thenReturn(Optional.of(motorista(motoristaId)));
+        when(cidadeRepository.findById(cidadeId)).thenReturn(Optional.of(new Cidade("João Pessoa", "PB", null)));
+        when(usuarioRepository.findById(criadoPorId)).thenReturn(Optional.of(new Usuario()));
+        when(viagemRepository.contarConflitosMotorista(any(), any(), any(), any(), any())).thenReturn(0L);
+        when(viagemRepository.contarConflitosVeiculo(any(), any(), any(), any(), any())).thenReturn(0L);
+        when(configuracaoService.getCidadeSedeId()).thenReturn(Optional.empty());
+        when(viagemRepository.save(any(Viagem.class))).thenAnswer(inv -> {
+            Viagem v = inv.getArgument(0);
+            v.setId(UUID.randomUUID());
+            return v;
+        });
+
+        ViagemForm form = new ViagemForm(veiculoId, motoristaId, cidadeId, data,
+                LocalTime.of(8, 0), LocalTime.of(10, 0));
+
+        Viagem v = viagemService.criar(form, criadoPorId);
+
+        assertThat(v.getTipo()).isEqualTo(TipoViagem.IMPREVISTA);
+        assertThat(v.getStatus()).isEqualTo(StatusViagem.PLANEJADA);
+        verify(viagemRepository).save(any(Viagem.class));
+    }
+
+    @Test
+    @DisplayName("criar: motorista sem o papel MOTORISTA é rejeitado")
+    void criar_motoristaSemPapel_bloqueia() {
+        UUID veiculoId = UUID.randomUUID();
+        UUID motoristaId = UUID.randomUUID();
+        Veiculo veiculo = new Veiculo();
+        veiculo.setId(veiculoId);
+        Usuario semPapel = new Usuario();
+        semPapel.setId(motoristaId);
+        semPapel.setPapeis(EnumSet.noneOf(Papel.class));
+        when(veiculoRepository.findByIdAndRemovidoEmIsNull(veiculoId)).thenReturn(Optional.of(veiculo));
+        when(usuarioRepository.findByIdAndRemovidoEmIsNull(motoristaId)).thenReturn(Optional.of(semPapel));
+
+        ViagemForm form = new ViagemForm(veiculoId, motoristaId, UUID.randomUUID(),
+                LocalDate.of(2026, 6, 23), LocalTime.of(8, 0), LocalTime.of(10, 0));
+
+        assertThatThrownBy(() -> viagemService.criar(form, UUID.randomUUID()))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("papel de motorista");
+        verify(viagemRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("criar: horário de chegada não posterior ao de saída é rejeitado")
+    void criar_chegadaAntesDaSaida_bloqueia() {
+        UUID veiculoId = UUID.randomUUID();
+        UUID motoristaId = UUID.randomUUID();
+        UUID cidadeId = UUID.randomUUID();
+        UUID criadoPorId = UUID.randomUUID();
+        Veiculo veiculo = new Veiculo();
+        veiculo.setId(veiculoId);
+        when(veiculoRepository.findByIdAndRemovidoEmIsNull(veiculoId)).thenReturn(Optional.of(veiculo));
+        when(usuarioRepository.findByIdAndRemovidoEmIsNull(motoristaId)).thenReturn(Optional.of(motorista(motoristaId)));
+        when(cidadeRepository.findById(cidadeId)).thenReturn(Optional.of(new Cidade("João Pessoa", "PB", null)));
+        when(usuarioRepository.findById(criadoPorId)).thenReturn(Optional.of(new Usuario()));
+
+        ViagemForm form = new ViagemForm(veiculoId, motoristaId, cidadeId,
+                LocalDate.of(2026, 6, 23), LocalTime.of(10, 0), LocalTime.of(8, 0));
+
+        assertThatThrownBy(() -> viagemService.criar(form, criadoPorId))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("chegada deve ser após");
+        verify(viagemRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("designar: caminho feliz materializa viagem ROTINEIRA com origem da linha")
+    void designar_valido_salvaRotineira() {
+        LocalDate data = LocalDate.of(2026, 6, 23);
+        UUID linhaId = UUID.randomUUID();
+        UUID veiculoId = UUID.randomUUID();
+        UUID motoristaId = UUID.randomUUID();
+        UUID criadoPorId = UUID.randomUUID();
+
+        LinhaProgramada linha = new LinhaProgramada();
+        linha.setAtiva(true);
+        linha.setCidadeOrigem(new Cidade("Patos", "PB", null));
+        linha.setCidadeDestino(new Cidade("João Pessoa", "PB", null));
+        linha.setHorarioSaida(LocalTime.of(8, 0));
+        linha.setHorarioChegada(LocalTime.of(10, 0));
+        linha.setDias(EnumSet.of(DiaSemana.de(data.getDayOfWeek())));
+
+        Veiculo veiculo = new Veiculo();
+        veiculo.setId(veiculoId);
+
+        when(linhaRepository.findById(linhaId)).thenReturn(Optional.of(linha));
+        when(viagemRepository.findByLinhaProgramada_IdAndDataViagem(any(), eq(data))).thenReturn(Optional.empty());
+        when(veiculoRepository.findByIdAndRemovidoEmIsNull(veiculoId)).thenReturn(Optional.of(veiculo));
+        when(usuarioRepository.findByIdAndRemovidoEmIsNull(motoristaId)).thenReturn(Optional.of(motorista(motoristaId)));
+        when(usuarioRepository.findById(criadoPorId)).thenReturn(Optional.of(new Usuario()));
+        when(viagemRepository.contarConflitosMotorista(any(), any(), any(), any(), any())).thenReturn(0L);
+        when(viagemRepository.contarConflitosVeiculo(any(), any(), any(), any(), any())).thenReturn(0L);
+        when(viagemRepository.save(any(Viagem.class))).thenAnswer(inv -> {
+            Viagem v = inv.getArgument(0);
+            v.setId(UUID.randomUUID());
+            return v;
+        });
+
+        DesignacaoForm form = new DesignacaoForm(linhaId, data, veiculoId, motoristaId);
+
+        Viagem v = viagemService.designar(form, criadoPorId);
+
+        assertThat(v.getTipo()).isEqualTo(TipoViagem.ROTINEIRA);
+        assertThat(v.getCidadeOrigem().getNome()).isEqualTo("Patos");
+        assertThat(v.getCidadeDestino().getNome()).isEqualTo("João Pessoa");
+        verify(viagemRepository).save(any(Viagem.class));
+    }
+
+    @Test
+    @DisplayName("designar: linha que não opera no dia da semana é rejeitada")
+    void designar_naoOperaNoDia_bloqueia() {
+        LocalDate data = LocalDate.of(2026, 6, 23);
+        UUID linhaId = UUID.randomUUID();
+        LinhaProgramada linha = new LinhaProgramada();
+        linha.setAtiva(true);
+        linha.setDias(EnumSet.noneOf(DiaSemana.class)); // não opera em nenhum dia
+        when(linhaRepository.findById(linhaId)).thenReturn(Optional.of(linha));
+
+        DesignacaoForm form = new DesignacaoForm(linhaId, data, UUID.randomUUID(), UUID.randomUUID());
+
+        assertThatThrownBy(() -> viagemService.designar(form, UUID.randomUUID()))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("não opera neste dia");
+        verify(viagemRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("designar: linha já designada nesta data é rejeitada")
+    void designar_jaDesignada_bloqueia() {
+        LocalDate data = LocalDate.of(2026, 6, 23);
+        UUID linhaId = UUID.randomUUID();
+        LinhaProgramada linha = new LinhaProgramada();
+        linha.setAtiva(true);
+        linha.setDias(EnumSet.of(DiaSemana.de(data.getDayOfWeek())));
+        when(linhaRepository.findById(linhaId)).thenReturn(Optional.of(linha));
+        when(viagemRepository.findByLinhaProgramada_IdAndDataViagem(any(), eq(data)))
+                .thenReturn(Optional.of(new Viagem()));
+
+        DesignacaoForm form = new DesignacaoForm(linhaId, data, UUID.randomUUID(), UUID.randomUUID());
+
+        assertThatThrownBy(() -> viagemService.designar(form, UUID.randomUUID()))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("já foi designada");
+        verify(viagemRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("alterarStatus: o gerente pode alterar o status de qualquer viagem")
+    void alterarStatus_gerente_alteraQualquer() {
+        UUID viagemId = UUID.randomUUID();
+        Viagem v = new Viagem();
+        v.setMotorista(motorista(UUID.randomUUID()));
+        when(viagemRepository.findById(viagemId)).thenReturn(Optional.of(v));
+
+        viagemService.alterarStatus(viagemId, StatusViagem.CONFIRMADA, UUID.randomUUID(), true);
+
+        assertThat(v.getStatus()).isEqualTo(StatusViagem.CONFIRMADA);
+        verify(viagemRepository).save(v);
+    }
+
+    @Test
+    @DisplayName("excluir: remove a viagem e registra auditoria")
+    void excluir_removeViagem() {
+        UUID id = UUID.randomUUID();
+        Viagem v = new Viagem();
+        v.setCidadeDestino(new Cidade("João Pessoa", "PB", null));
+        v.setDataViagem(LocalDate.of(2026, 6, 23));
+        when(viagemRepository.findById(id)).thenReturn(Optional.of(v));
+
+        viagemService.excluir(id);
+
+        verify(viagemRepository).delete(v);
+        verify(auditoriaService).registrarOperacao(eq("VIAGEM_EXCLUIDA"), eq("Viagem"), eq(id.toString()), any());
+    }
+
+    @Test
+    @DisplayName("listarDoMotorista: delega ao repositório")
+    void listarDoMotorista_delega() {
+        UUID motoristaId = UUID.randomUUID();
+        when(viagemRepository.listarDoMotorista(motoristaId)).thenReturn(List.of(new Viagem()));
+
+        assertThat(viagemService.listarDoMotorista(motoristaId)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("painelSemana: monta os 7 dias (domingo→sábado)")
+    void painelSemana_seteDias() {
+        when(viagemRepository.listarDaSemana(any(), any())).thenReturn(List.of());
+        when(linhaRepository.ativasNoDia(any())).thenReturn(List.of());
+
+        PainelSemana painel = viagemService.painelSemana(LocalDate.of(2026, 6, 24));
+
+        assertThat(painel.dias()).hasSize(7);
+        assertThat(painel.inicio().getDayOfWeek()).isEqualTo(java.time.DayOfWeek.SUNDAY);
     }
 }

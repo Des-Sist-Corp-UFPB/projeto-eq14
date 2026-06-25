@@ -16,6 +16,10 @@
     --cal-faint: oklch(0.68 0.015 257);
     --cal-danger: oklch(0.55 0.17 25);
     --cal-ok: oklch(0.55 0.14 155);
+    /* Tipo de viagem: pré-definida (rotineira) = azul (primary); imprevista = laranja. */
+    --cal-imprevista: oklch(0.70 0.17 55);
+    --cal-imprevista-dark: oklch(0.62 0.17 55);
+    --cal-imprevista-soft: oklch(0.96 0.04 70);
     --cal-sidebar-w: 244px;
     --cal-sidebar-w-collapsed: 64px;
     --cal-topbar-h: 56px;
@@ -114,6 +118,40 @@ body { margin: 0; background-color: var(--cal-bg); font-family: var(--cal-font);
 .btn-cal { background-color: var(--cal-primary); border: 1px solid var(--cal-primary); color: #fff;
     font-weight: 600; border-radius: 9px; }
 .btn-cal:hover, .btn-cal:focus { background-color: var(--cal-primary-dark); border-color: var(--cal-primary-dark); color: #fff; }
+
+/* Botão laranja — solicitação de viagem imprevista (par do btn-cal azul) */
+.btn-cal-laranja { background-color: var(--cal-imprevista); border: 1px solid var(--cal-imprevista); color: #fff;
+    font-weight: 600; border-radius: 9px; }
+.btn-cal-laranja:hover, .btn-cal-laranja:focus { background-color: var(--cal-imprevista-dark); border-color: var(--cal-imprevista-dark); color: #fff; }
+
+/* -------------------------------------------------- etiqueta de tipo (faixa no topo do card) */
+/* Faixa colorida no topo do card distinguindo o tipo de viagem. */
+.card--tipo-azul    { border-top: 4px solid var(--cal-primary); }
+.card--tipo-laranja { border-top: 4px solid var(--cal-imprevista); }
+.cal-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .02em; padding: 2px 9px; border-radius: 999px; }
+.cal-tag--azul    { background: var(--cal-primary-soft);    color: var(--cal-primary-dark); }
+.cal-tag--laranja { background: var(--cal-imprevista-soft); color: var(--cal-imprevista-dark); }
+
+/* -------------------------------------------------- grade semanal (estilo grade de horários) */
+.cal-grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.cal-dia { border: 1px solid var(--cal-border); border-radius: 12px; overflow: hidden; background: var(--cal-surface); }
+.cal-dia--sel { border-color: var(--cal-primary); box-shadow: 0 0 0 2px var(--cal-primary-soft); }
+.cal-dia__head { width: 100%; border: 0; background: var(--cal-bg); cursor: pointer;
+    padding: 8px 6px; font-size: 12.5px; font-weight: 700; color: var(--cal-text);
+    display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cal-dia--sel .cal-dia__head { background: var(--cal-primary-soft); color: var(--cal-primary-dark); }
+.cal-dia__head:hover { background: var(--cal-primary-soft); }
+.cal-dia__count { font-size: 10.5px; font-weight: 700; color: var(--cal-muted); }
+.cal-dia__linhas { padding: 6px; display: flex; flex-direction: column; gap: 5px; min-height: 38px; }
+.cal-dia__item { font-size: 11.5px; line-height: 1.25; color: var(--cal-text);
+    border-left: 3px solid var(--cal-primary); padding: 2px 0 2px 6px; }
+.cal-dia__item .hora { color: var(--cal-muted); font-variant-numeric: tabular-nums; }
+.cal-dia__empty { font-size: 11px; color: var(--cal-faint); text-align: center; }
+
+@media (max-width: 768px) {
+    .cal-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 /* HTMX */
 .htmx-indicator { display: none; }

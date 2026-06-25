@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<!-- Visão do passageiro: linhas disponíveis (calendário + grade) + minhas viagens (SPEC-09). -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Transporte</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Transporte</h1>
+        <p class="text-muted mb-0">
+            Veja as linhas disponíveis e solicite o seu transporte. O veículo busca você no seu endereço.
+        </p>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+    <!-- ===================== Abas ===================== -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" th:classappend="${aba != 'minhas'} ? 'active'"
+                    id="tab-linhas-btn" data-bs-toggle="tab" data-bs-target="#tab-linhas"
+                    type="button" role="tab">
+                Linhas disponíveis
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" th:classappend="${aba == 'minhas'} ? 'active'"
+                    id="tab-minhas-btn" data-bs-toggle="tab" data-bs-target="#tab-minhas"
+                    type="button" role="tab">
+                Minhas viagens
+                <span class="badge bg-secondary ms-1" th:text="${#lists.size(solicitacoes)}">0</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ----------------- Aba 1: Linhas disponíveis ----------------- -->
+        <div class="tab-pane fade" th:classappend="${aba != 'minhas'} ? 'show active'"
+             id="tab-linhas" role="tabpanel">
+
+            <!-- Calendário: escolha do dia (filtra as linhas que operam na data) -->
+            <form id="form-data" method="get" th:action="@{/solicitacoes}"
+                  class="card mb-3"><div class="card-body py-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-sm-auto">
+                        <label for="cal-data" class="form-label small mb-1 fw-semibold">Quero viajar em</label>
+                        <input type="date" id="cal-data" name="data" class="form-control"
+                               th:value="${#temporals.format(dataSelecionada, 'yyyy-MM-dd')}"
+                               th:min="${#temporals.format(hoje, 'yyyy-MM-dd')}"
+                               onchange="this.form.submit()"/>
+                    </div>
+                    <div class="col-12 col-sm">
+                        <p class="text-muted small mb-0 mt-2 mt-sm-0">
+                            Mostrando linhas de
+                            <span class="fw-semibold text-body" th:text="${diaSelecionado.rotulo}">Segunda</span>,
+                            <span class="fw-semibold text-body" th:text="${#temporals.format(dataSelecionada, 'dd/MM/yyyy')}">01/06/2026</span>.
+                            Use a grade abaixo para pular para outro dia.
+                        </p>
+                    </div>
+                </div>
+            </div></form>
+
+            <!-- Grade semanal (panorama): clique num dia para saltar o calendário -->
+            <div class="cal-grade mb-4">
+                <div class="cal-dia" th:each="g : ${grade}"
+                     th:classappend="${g.dia == diaSelecionado} ? 'cal-dia--sel'">
+                    <button type="button" class="cal-dia__head"
+                            th:attr="onclick=|calIrParaDia(${g.dia.diaJava.value % 7})|">
+                        <span th:text="${g.dia.rotulo}">Dia</span>
+                        <span class="cal-dia__count" th:text="${#lists.size(g.linhas)} + ' linha(s)'">0 linha(s)</span>
+                    </button>
+                    <div class="cal-dia__linhas">
+                        <div class="cal-dia__item" th:each="l : ${g.linhas}">
+                            <div th:text="${l.cidadeDestino.nome}">Destino</div>
+                            <div class="hora" th:text="${#temporals.format(l.horarioSaida, 'HH:mm')}">08:00</div>
+                        </div>
+                        <div class="cal-dia__empty" th:if="${#lists.isEmpty(g.linhas)}">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linhas que operam na data selecionada → solicitáveis -->
+            <h2 class="h6 text-muted mb-3">
+                Solicitar para <span th:text="${#temporals.format(dataSelecionada, 'dd/MM/yyyy')}">01/06</span>
+            </h2>
+
+            <div th:if="${#lists.isEmpty(linhasDoDia)}" class="text-center text-muted py-4">
+                Nenhuma linha opera nesta data. Escolha outro dia no calendário ou na grade acima.
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-lg-6" th:each="l : ${linhasDoDia}">
+                    <!-- Linha programada = viagem PRÉ-DEFINIDA (azul) -->
+                    <div class="card h-100 card--tipo-azul">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h3 class="h5 mb-0" th:text="${l.cidadeDestino.nome + ' / ' + l.cidadeDestino.uf}">Destino</h3>
+                                <span class="cal-tag cal-tag--azul">Pré-definida</span>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-light text-dark border">
+                                    <span th:text="${#temporals.format(l.horarioSaida, 'HH:mm')}">08:00</span>
+                                    – <span th:text="${#temporals.format(l.horarioChegada, 'HH:mm')}">10:00</span>
+                                </span>
+                                <span class="small text-muted" th:if="${l.horarioRetorno != null}">
+                                    retorno <span th:text="${#temporals.format(l.horarioRetorno, 'HH:mm')}">16:00</span>
+                                </span>
+                            </div>
+
+                            <div class="mb-3">
+                                <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis me-1"
+                                      th:each="d : ${l.dias}" th:text="${d.rotulo}">Seg</span>
+                            </div>
+
+                            <form th:action="@{/solicitacoes}" method="post" class="row g-2 align-items-end">
+                                <input type="hidden" name="linhaId" th:value="${l.id}"/>
+                                <input type="hidden" name="data" th:value="${#temporals.format(dataSelecionada, 'yyyy-MM-dd')}"/>
+                                <div class="col-12 col-sm-8">
+                                    <label class="form-label small mb-1">Observação <span class="text-muted">(opcional)</span></label>
+                                    <input type="text" name="observacao" class="form-control form-control-sm"
+                                           maxlength="280" placeholder="ex.: cadeirante"/>
+                                </div>
+                                <div class="col-12 col-sm-4 d-grid">
+                                    <button type="submit" class="btn btn-sm btn-cal">Solicitar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ----------------- Aba 2: Minhas viagens ----------------- -->
+        <div class="tab-pane fade" th:classappend="${aba == 'minhas'} ? 'show active'"
+             id="tab-minhas" role="tabpanel">
+
+            <div th:if="${#lists.isEmpty(solicitacoes)}" class="text-center text-muted py-5">
+                Você ainda não fez nenhuma solicitação. Vá em "Linhas disponíveis" para começar.
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-lg-6" th:each="s : ${solicitacoes}"
+                     th:with="imprevista=${s.viagem != null and s.viagem.tipo.name() == 'IMPREVISTA'}">
+                    <!-- Faixa: imprevista = laranja; pré-definida (linha/rotineira) = azul -->
+                    <div class="card h-100" th:classappend="${imprevista} ? 'card--tipo-laranja' : 'card--tipo-azul'">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h3 class="h5 mb-0" th:text="${s.linha.cidadeDestino.nome + ' / ' + s.linha.cidadeDestino.uf}">Destino</h3>
+                                <span class="badge" th:classappend="'bg-' + ${s.status.cor}" th:text="${s.status.rotulo}">Status</span>
+                            </div>
+
+                            <div class="mb-2">
+                                <span class="cal-tag" th:classappend="${imprevista} ? 'cal-tag--laranja' : 'cal-tag--azul'"
+                                      th:text="${imprevista} ? 'Imprevista' : 'Pré-definida'">Pré-definida</span>
+                            </div>
+
+                            <p class="small text-muted mb-3">
+                                Data: <span class="fw-semibold" th:text="${#temporals.format(s.dataDesejada, 'dd/MM/yyyy')}">01/06/2026</span>
+                            </p>
+
+                            <!-- Alocada: dados da VIAGEM (sem dados de outros passageiros) -->
+                            <div th:if="${s.alocada}" class="border rounded p-3 bg-light-subtle mb-3">
+                                <div class="row g-2 small">
+                                    <div class="col-6">
+                                        <div class="text-muted">Motorista</div>
+                                        <div class="fw-semibold" th:text="${s.viagem.motorista.nomeCompleto}">Motorista</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted">Veículo</div>
+                                        <div class="fw-semibold">
+                                            <span th:text="${s.viagem.veiculo.modelo}">Modelo</span>
+                                            <span class="text-muted" th:text="'(' + ${s.viagem.veiculo.placa} + ')'">(ABC1D23)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted">Horário</div>
+                                        <div class="fw-semibold">
+                                            <span th:text="${#temporals.format(s.viagem.horarioSaida, 'HH:mm')}">08:00</span>
+                                            – <span th:text="${#temporals.format(s.viagem.horarioChegada, 'HH:mm')}">10:00</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted">Situação da viagem</div>
+                                        <div class="fw-semibold" th:text="${s.viagem.status.rotulo}">Planejada</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pendente: aguardando a designação do gestor -->
+                            <p th:if="${s.status.name() == 'PENDENTE'}" class="small text-muted mb-3">
+                                <span th:text="${#temporals.format(s.linha.horarioSaida, 'HH:mm')}">08:00</span>
+                                – <span th:text="${#temporals.format(s.linha.horarioChegada, 'HH:mm')}">10:00</span>.
+                                Aguardando a designação de veículo e motorista pelo gestor.
+                            </p>
+
+                            <p th:if="${s.observacao != null}" class="small fst-italic text-muted mb-3"
+                               th:text="'“' + ${s.observacao} + '”'">obs</p>
+
+                            <!-- Cancelar (apenas pendente/alocada) -->
+                            <form th:if="${s.status.name() != 'CANCELADA'}"
+                                  th:action="@{'/solicitacoes/' + ${s.id} + '/cancelar'}" method="post">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Cancelar esta solicitação?');">Cancelar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salta o calendário para a próxima ocorrência do dia da semana clicado na grade. -->
+    <script>
+        function calIrParaDia(jsday) {
+            var input = document.getElementById('cal-data');
+            if (!input) return;
+            var d = new Date(); d.setHours(0, 0, 0, 0);
+            for (var i = 0; i < 7; i++) {
+                if (d.getDay() === jsday) break;
+                d.setDate(d.getDate() + 1);
+            }
+            var mes = String(d.getMonth() + 1).padStart(2, '0');
+            var dia = String(d.getDate()).padStart(2, '0');
+            input.value = d.getFullYear() + '-' + mes + '-' + dia;
+            document.getElementById('form-data').submit();
+        }
+    </script>
+</main>
+</body>
+</html>

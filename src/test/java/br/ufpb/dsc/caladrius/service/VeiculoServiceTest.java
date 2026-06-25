@@ -112,4 +112,60 @@ class VeiculoServiceTest {
         assertThat(resultado).containsExactly(disponivel);
         verify(veiculoRepository).findByRemovidoEmIsNullAndStatusOrderByPlacaAsc(StatusVeiculo.DISPONIVEL);
     }
+
+    @Test
+    @DisplayName("criar: remove o hífen e respeita o status informado")
+    void criar_normalizaHifenERespeitaStatus() {
+        VeiculoForm form = new VeiculoForm("abc-1d23", "Fiat", "Ducato", 2022,
+                TipoVeiculo.VAN, 15, true, StatusVeiculo.MANUTENCAO);
+        when(veiculoRepository.existsByPlacaIgnoreCaseAndRemovidoEmIsNull("ABC1D23")).thenReturn(false);
+        when(veiculoRepository.save(any(Veiculo.class))).thenAnswer(inv -> {
+            Veiculo v = inv.getArgument(0);
+            v.setId(UUID.randomUUID());
+            return v;
+        });
+
+        Veiculo salvo = veiculoService.criar(form);
+
+        assertThat(salvo.getPlaca()).isEqualTo("ABC1D23");
+        assertThat(salvo.getStatus()).isEqualTo(StatusVeiculo.MANUTENCAO);
+    }
+
+    @Test
+    @DisplayName("atualizar: rejeita placa de outro veículo ativo")
+    void atualizar_placaDeOutro_lancaExcecao() {
+        UUID id = UUID.randomUUID();
+        Veiculo veiculo = new Veiculo("ABC1D23", "Fiat", "Ducato", 2022, TipoVeiculo.VAN, 15, true);
+        when(veiculoRepository.findByIdAndRemovidoEmIsNull(id)).thenReturn(Optional.of(veiculo));
+        when(veiculoRepository.existsByPlacaIgnoreCaseAndRemovidoEmIsNullAndIdNot("XYZ1234", id)).thenReturn(true);
+
+        VeiculoForm form = new VeiculoForm("xyz1234", "VW", "Kombi", 2015,
+                TipoVeiculo.VAN, 9, false, null);
+
+        assertThatThrownBy(() -> veiculoService.atualizar(id, form))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("outro veículo");
+        verify(veiculoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("atualizar: aplica os campos e usa DISPONIVEL quando o status não é informado")
+    void atualizar_statusNulo_assumeDisponivel() {
+        UUID id = UUID.randomUUID();
+        Veiculo veiculo = new Veiculo("ABC1D23", "Fiat", "Ducato", 2022, TipoVeiculo.VAN, 15, true);
+        veiculo.setId(id);
+        veiculo.setStatus(StatusVeiculo.MANUTENCAO);
+        when(veiculoRepository.findByIdAndRemovidoEmIsNull(id)).thenReturn(Optional.of(veiculo));
+        when(veiculoRepository.existsByPlacaIgnoreCaseAndRemovidoEmIsNullAndIdNot("ABC1D23", id)).thenReturn(false);
+        when(veiculoRepository.save(any(Veiculo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        VeiculoForm form = new VeiculoForm("abc1d23", "Fiat", "Ducato Maxi", 2023,
+                TipoVeiculo.VAN, 16, true, null);
+
+        Veiculo salvo = veiculoService.atualizar(id, form);
+
+        assertThat(salvo.getModelo()).isEqualTo("Ducato Maxi");
+        assertThat(salvo.getCapacidade()).isEqualTo(16);
+        assertThat(salvo.getStatus()).isEqualTo(StatusVeiculo.DISPONIVEL);
+    }
 }

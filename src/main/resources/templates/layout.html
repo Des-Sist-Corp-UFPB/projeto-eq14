@@ -97,6 +97,13 @@
                 <span class="cal-nav__label">Início</span>
             </a>
 
+            <!-- Passageiro -->
+            <a sec:authorize="hasRole('PASSAGEIRO')" class="cal-nav" th:href="@{/solicitacoes}"
+               th:classappend="${requestURI != null and requestURI.startsWith('/solicitacoes')} ? 'active'">
+                <svg th:replace="~{fragments/icons :: icon('viagens')}"></svg>
+                <span class="cal-nav__label">Transporte</span>
+            </a>
+
             <!-- Motorista -->
             <a sec:authorize="hasRole('MOTORISTA')" class="cal-nav" th:href="@{/minhas-viagens}"
                th:classappend="${requestURI != null and requestURI.startsWith('/minhas-viagens')} ? 'active'">
