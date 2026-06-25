@@ -5,23 +5,31 @@ import br.ufpb.dsc.caladrius.domain.enums.Papel;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Adapta um {@link Usuario} do domínio para o contrato {@link UserDetails} do
  * Spring Security.
  *
- * <p>Expõe campos extras ({@link #getId()}, {@link #getNomeCompleto()}) usados
- * nos templates — por exemplo, a navbar mostra o nome do usuário logado via
- * {@code sec:authentication="principal.nomeCompleto"}.
+ * <p><strong>Principal único (SPEC-08):</strong> esta classe implementa também
+ * {@link OidcUser}, de modo que tanto o login por senha ({@code formLogin}) quanto
+ * o login social ({@code oauth2Login}) produzem o <em>mesmo</em> tipo de principal.
+ * Assim, {@code @AuthenticationPrincipal UsuarioAutenticado} e
+ * {@code sec:authentication="principal.nomeCompleto"} continuam funcionando para
+ * ambos os fluxos. No login por senha, os dados OIDC ({@link #idToken}/{@link #userInfo})
+ * são nulos/vazios.
  *
- * <p>{@link #getUsername()} devolve o telefone (identificador canônico, sempre
- * presente), independentemente de o login ter sido feito por e-mail ou telefone.
+ * <p>Expõe campos extras ({@link #getId()}, {@link #getNomeCompleto()}) usados nos
+ * templates — por exemplo, a navbar mostra o nome do usuário logado.
  */
-public class UsuarioAutenticado implements UserDetails {
+public class UsuarioAutenticado implements UserDetails, OidcUser {
 
     private final UUID id;
     private final String nomeCompleto;
@@ -29,20 +37,32 @@ public class UsuarioAutenticado implements UserDetails {
     private final String email;
     private final String hashSenha;
     private final boolean ativo;
+    private final boolean perfilIncompleto;
     private final List<GrantedAuthority> authorities;
 
+    /** Dados OIDC — presentes apenas no login social; nulos no login por senha. */
+    private final OidcIdToken idToken;
+    private final OidcUserInfo userInfo;
+
     public UsuarioAutenticado(Usuario usuario) {
+        this(usuario, null, null);
+    }
+
+    public UsuarioAutenticado(Usuario usuario, OidcIdToken idToken, OidcUserInfo userInfo) {
         this.id = usuario.getId();
         this.nomeCompleto = usuario.getNomeCompleto();
         this.telefone = usuario.getTelefone();
         this.email = usuario.getEmail();
         this.hashSenha = usuario.getHashSenha();
         this.ativo = usuario.isAtivo();
+        this.perfilIncompleto = usuario.isPerfilIncompleto();
         this.authorities = usuario.getPapeis().stream()
                 .map(Papel::getAuthority)
                 .map(SimpleGrantedAuthority::new)
                 .map(GrantedAuthority.class::cast)
                 .toList();
+        this.idToken = idToken;
+        this.userInfo = userInfo;
     }
 
     // ===================== Contrato UserDetails =====================
@@ -57,9 +77,17 @@ public class UsuarioAutenticado implements UserDetails {
         return hashSenha;
     }
 
+    /**
+     * Identificador canônico para o Spring Security. Normalmente o telefone; quando
+     * nulo (conta de login social com perfil incompleto), recai no e-mail e, por fim,
+     * no id — garantindo um username não-nulo.
+     */
     @Override
     public String getUsername() {
-        return telefone;
+        if (telefone != null) {
+            return telefone;
+        }
+        return email != null ? email : String.valueOf(id);
     }
 
     @Override
@@ -82,6 +110,34 @@ public class UsuarioAutenticado implements UserDetails {
         return ativo;
     }
 
+    // ===================== Contrato OidcUser / OAuth2User =====================
+
+    @Override
+    public Map<String, Object> getClaims() {
+        return idToken != null ? idToken.getClaims() : Map.of();
+    }
+
+    @Override
+    public OidcUserInfo getUserInfo() {
+        return userInfo;
+    }
+
+    @Override
+    public OidcIdToken getIdToken() {
+        return idToken;
+    }
+
+    @Override
+    public Map<String, Object> getAttributes() {
+        return getClaims();
+    }
+
+    /** Nome único do principal para o Spring (estável): o id do usuário. */
+    @Override
+    public String getName() {
+        return String.valueOf(id);
+    }
+
     // ===================== Extras para a aplicação =====================
 
     public UUID getId() {
@@ -98,5 +154,10 @@ public class UsuarioAutenticado implements UserDetails {
 
     public String getEmail() {
         return email;
+    }
+
+    /** {@code true} se faltam dados obrigatórios (telefone) — ver SPEC-08. */
+    public boolean isPerfilIncompleto() {
+        return perfilIncompleto;
     }
 }

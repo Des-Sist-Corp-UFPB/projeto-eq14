@@ -47,8 +47,13 @@ public class Usuario {
     @Column(name = "email", length = 160)
     private String email;
 
-    /** Telefone (somente dígitos). Obrigatório, único entre ativos. */
-    @Column(name = "telefone", nullable = false, length = 20)
+    /**
+     * Telefone (somente dígitos). Único entre ativos. Em geral obrigatório (cadastro
+     * público e criação pelo gerente exigem na camada de serviço), mas aceita
+     * {@code NULL} para contas criadas por login social que ainda não o informaram
+     * (perfil incompleto — SPEC-08).
+     */
+    @Column(name = "telefone", length = 20)
     private String telefone;
 
     /** Hash BCrypt da senha. Pode ser nulo (ex.: usuário criado sem senha). */
@@ -65,6 +70,14 @@ public class Usuario {
     /** Timestamp de exclusão lógica (soft-delete). {@code null} = usuário ativo. */
     @Column(name = "removido_em")
     private Instant removidoEm;
+
+    /**
+     * Marcador (ortogonal ao {@link #status}) de conta criada por login social que
+     * ainda não preencheu os dados obrigatórios (telefone). Enquanto {@code true},
+     * o usuário é redirecionado a {@code /conta/completar} — SPEC-08.
+     */
+    @Column(name = "perfil_incompleto", nullable = false)
+    private boolean perfilIncompleto = false;
 
     /**
      * Papéis do usuário (RBAC). Mapeados para {@code papeis_usuario(usuario, papel)}.
@@ -191,6 +204,14 @@ public class Usuario {
 
     public void setPapeis(Set<Papel> papeis) {
         this.papeis = papeis;
+    }
+
+    public boolean isPerfilIncompleto() {
+        return perfilIncompleto;
+    }
+
+    public void setPerfilIncompleto(boolean perfilIncompleto) {
+        this.perfilIncompleto = perfilIncompleto;
     }
 
     @Override

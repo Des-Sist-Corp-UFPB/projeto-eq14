@@ -95,6 +95,28 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
+    /**
+     * Completa o perfil de uma conta criada por login social (SPEC-08): grava o
+     * telefone obrigatório (validado e único) e remove o marcador de perfil
+     * incompleto. Idempotente em relação ao status (não altera papéis/status).
+     *
+     * @param id          usuário autenticado
+     * @param telefoneRaw telefone informado (qualquer formatação)
+     * @return o usuário atualizado
+     */
+    @Transactional
+    public Usuario completarPerfil(UUID id, String telefoneRaw) {
+        Usuario usuario = buscarPorId(id);
+        String telefone = Documentos.apenasDigitos(telefoneRaw);
+        validarTelefone(telefone, usuario);
+        usuario.setTelefone(telefone);
+        usuario.setPerfilIncompleto(false);
+        usuario = usuarioRepository.save(usuario);
+        auditoriaService.registrarOperacao("PERFIL_COMPLETADO", "Usuario",
+                usuario.getId().toString(), usuario.getNomeCompleto());
+        return usuario;
+    }
+
     // ===================== Gestão (gerente) =====================
 
     /** Cria um usuário pelo gerente (senha obrigatória). */

@@ -1,14 +1,18 @@
 package br.ufpb.dsc.caladrius.config;
 
+import br.ufpb.dsc.caladrius.security.CaladriusOidcUserService;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import br.ufpb.dsc.caladrius.service.AuditoriaService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 /**
  * Configuração de segurança do CALADRIUS (Spring Security 6).
@@ -48,7 +52,9 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           AuditoriaService auditoriaService) throws Exception {
+                                           AuditoriaService auditoriaService,
+                                           CaladriusOidcUserService oidcUserService,
+                                           ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         // Rotas públicas: login, cadastro, health check e estáticos.
@@ -103,6 +109,21 @@ public class SecurityConfig {
                                 "/usuarios/**", "/viagens/**"
                         )
                 );
+
+        // Login social (Google/OIDC) — SPEC-08. Só é ativado quando há credenciais
+        // configuradas (GOOGLE_CLIENT_ID/SECRET); sem elas, o Boot não cria o
+        // ClientRegistrationRepository e o app sobe normalmente apenas com o formLogin.
+        if (clientRegistrationRepository.getIfAvailable() != null) {
+            http.oauth2Login(oauth -> oauth
+                    .loginPage("/login")
+                    .defaultSuccessUrl("/", true)
+                    .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
+            );
+        }
+
+        // Após a autenticação/autorização, barra a navegação de contas com perfil
+        // incompleto (login social sem telefone), levando-as a /conta/completar.
+        http.addFilterAfter(new PerfilIncompletoFilter(), AuthorizationFilter.class);
 
         return http.build();
     }

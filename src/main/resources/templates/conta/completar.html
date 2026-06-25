@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  Completar cadastro (SPEC-08) — tela exibida a contas criadas por login social
+  (Google) que ainda não informaram o telefone obrigatório. Standalone (sem o shell
+  de navegação), pois o usuário só libera o sistema após completar o perfil.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Completar cadastro — CALADRIUS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --cal-font: 'Instrument Sans', system-ui, sans-serif;
+            --cal-primary: oklch(0.55 0.17 257);
+            --cal-surface: #ffffff;
+            --cal-border: oklch(0.92 0.008 250);
+            --cal-text: oklch(0.26 0.03 257);
+            --cal-muted: oklch(0.55 0.02 257);
+            --cal-faint: oklch(0.68 0.015 257);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: var(--cal-font); background: oklch(0.98 0.004 250); color: var(--cal-text);
+               min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px; }
+        .cal-card { width: 420px; max-width: 100%; background: var(--cal-surface);
+                    border: 1px solid var(--cal-border); border-radius: 14px; padding: 34px; }
+        .cal-logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 17px;
+                    letter-spacing: 0.09em; color: var(--cal-text); margin-bottom: 22px; }
+        .cal-logo .dot { width: 16px; height: 16px; border-radius: 5px; background: var(--cal-primary); }
+        h1 { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+        .cal-sub { font-size: 14px; color: var(--cal-muted); margin: 0 0 24px; }
+        .cal-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+        .cal-label { font-size: 13.5px; font-weight: 600; }
+        .cal-input { font-family: var(--cal-font); font-size: 14.5px; color: var(--cal-text);
+                     padding: 11px 13px; border-radius: 8px; border: 1px solid var(--cal-border);
+                     background: var(--cal-surface); outline: none; width: 100%; }
+        .cal-input:focus { border-color: var(--cal-primary); }
+        .cal-hint { font-size: 12px; color: var(--cal-faint); }
+        .cal-btn { font-family: var(--cal-font); font-weight: 600; cursor: pointer; font-size: 14.5px;
+                   padding: 11px 16px; border-radius: 8px; border: 1px solid transparent; width: 100%;
+                   background: var(--cal-primary); color: #fff; }
+        .cal-alert { font-size: 13.5px; padding: 10px 13px; border-radius: 8px; margin-bottom: 18px;
+                     background: oklch(0.96 0.03 25); color: oklch(0.5 0.17 25); }
+        .cal-foot { font-size: 13px; color: var(--cal-muted); text-align: center; margin: 18px 0 0; }
+        .cal-foot a { color: var(--cal-primary); font-weight: 600; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="cal-card">
+    <span class="cal-logo"><span class="dot"></span>CALADRIUS</span>
+
+    <h1>Quase lá<span th:if="${nomeCompleto}" th:text="', ' + ${nomeCompleto}">, Fulano</span>!</h1>
+    <p class="cal-sub">Para concluir seu acesso, informe um telefone de contato. Ele é usado para
+        organizar suas viagens.</p>
+
+    <div th:if="${erro}" class="cal-alert" th:text="${erro}">Erro</div>
+
+    <form th:action="@{/conta/completar}" method="post">
+        <div class="cal-field">
+            <label class="cal-label" for="telefone">Telefone</label>
+            <input class="cal-input" type="tel" id="telefone" name="telefone"
+                   th:value="${telefone}" placeholder="(83) 99999-9999"
+                   autocomplete="tel" required autofocus/>
+            <span class="cal-hint">Com DDD. Detectamos apenas os dígitos.</span>
+        </div>
+        <button type="submit" class="cal-btn">Concluir e entrar</button>
+    </form>
+
+    <p class="cal-foot">Não é você? <a th:href="@{/logout}">Sair</a></p>
+</div>
+</body>
+</html>

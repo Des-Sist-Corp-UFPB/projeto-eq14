@@ -19,6 +19,13 @@ spring:
   flyway:
     enabled: true
 
+# Atrás do proxy reverso Caddy (TLS termina nele): o Spring precisa honrar os
+# cabeçalhos X-Forwarded-* para reconstruir a URL pública original
+# (https://eq14.dsc.rodrigr.com). Sem isto, o redirect_uri do login Google sairia
+# como http://localhost:8080/... e o Google recusaria (redirect_uri_mismatch) — SPEC-08.
+server:
+  forward-headers-strategy: framework
+
 logging:
   level:
     root: WARN

@@ -94,6 +94,16 @@ docker build -f docker/Dockerfile -t caladrius:latest .
 para dígitos) e carrega o usuário do PostgreSQL. Substitui o `InMemoryUserDetailsManager` do
 boilerplate. Conforme o redesenho v3 da equipe. Senhas com BCrypt.
 
+### Login social com Google (OAuth2/OIDC) — SPEC-08
+`oauth2Login` nativo do Spring Security coexiste com o `formLogin` (mantém o modelo stateful/sessão).
+O `CaladriusOidcUserService` resolve a identidade em 3 passos (vínculo `identidades_oauth` →
+e-mail verificado → auto-provisão de PASSAGEIRO) e devolve um `UsuarioAutenticado` — que agora também
+implementa `OidcUser`, mantendo **um único tipo de principal** para ambos os fluxos. O
+`ClientRegistrationRepository` é criado por um bean **condicional** a `GOOGLE_CLIENT_ID`
+(`OAuth2ClientConfig`); sem a variável, o app sobe só com senha e o botão "Continuar com Google" some.
+Conta criada por Google nasce com `perfil_incompleto = true` (não tem telefone, que passou a ser
+nullable) e é levada a `/conta/completar` por um filtro até informar o telefone.
+
 ### Enums como VARCHAR (não enum nativo do PostgreSQL)
 As colunas de enum são `VARCHAR` mapeadas com `@Enumerated(EnumType.STRING)` (valores = nomes das
 enums Java, em MAIÚSCULAS, com `CHECK` nas tabelas centrais). É a opção mais robusta com o Hibernate
@@ -116,6 +126,7 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 - `V4` papel SYSADMIN · `V5` configuracoes_sistema · `V6` log_auditoria
 - `V7` tokens_ativacao + notificacoes · `V8` municipios (seed PB) + enderecos (drop JSONB)
 - `V9` linhas_programadas + linha_dias + evolução de viagens (tipo, FK linha, origem, horario_retorno)
+- `V10` identidades_oauth (login social Google) + `usuarios.perfil_incompleto` + telefone nullable
 
 > **Política em banco compartilhado:** ver [`docs/sdd/02-plano-tecnico.md` §2.5](docs/sdd/02-plano-tecnico.md).
 > Migrations aditivas, sem extensões/superusuário; backup próprio (`pg_dump`) antes de alterações sensíveis.

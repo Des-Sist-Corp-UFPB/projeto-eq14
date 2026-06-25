@@ -3,6 +3,12 @@ spring:
     name: caladrius
   profiles:
     active: dev
+  # Login social com Google (OAuth2/OIDC) — SPEC-08.
+  # O registro do Google NÃO fica aqui de propósito: uma chave de registro vazia
+  # faz o Spring Boot falhar na validação ("Client id must not be empty"). Em vez
+  # disso, o ClientRegistrationRepository é criado por um bean condicional a
+  # GOOGLE_CLIENT_ID (ver OAuth2ClientConfig). Sem a variável, o app sobe só com o
+  # login por senha e o botão "Continuar com Google" fica oculto.
 
 # Actuator - monitoramento da aplicação
 # Acesse: http://localhost:8080/actuator/health

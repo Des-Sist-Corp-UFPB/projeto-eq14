@@ -4,7 +4,9 @@ import br.ufpb.dsc.caladrius.domain.Notificacao;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import br.ufpb.dsc.caladrius.service.NotificacaoService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -24,9 +26,22 @@ import java.util.List;
 public class GlobalModelAttributes {
 
     private final NotificacaoService notificacaoService;
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository;
 
-    public GlobalModelAttributes(NotificacaoService notificacaoService) {
+    public GlobalModelAttributes(NotificacaoService notificacaoService,
+                                 ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository) {
         this.notificacaoService = notificacaoService;
+        this.clientRegistrationRepository = clientRegistrationRepository;
+    }
+
+    /**
+     * {@code true} quando o login social com Google está configurado (há
+     * credenciais e, portanto, um {@code ClientRegistrationRepository}). Usado na
+     * tela de login para exibir/ocultar o botão "Continuar com Google" — SPEC-08.
+     */
+    @ModelAttribute("googleHabilitado")
+    public boolean googleHabilitado() {
+        return clientRegistrationRepository.getIfAvailable() != null;
     }
 
     /**
