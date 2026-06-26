@@ -5,6 +5,64 @@ Projeto da disciplina **Desenvolvimento de Sistemas Corporativos** — equipe **
 
 ---
 
+## 📦 Primeira Entrega — guia de avaliação
+
+Esta seção aponta **onde no código** estão os itens solicitados para a avaliação:
+**(1) logs de auditoria**, **(2) conexão com serviços externos** e **(3) cobertura de testes**.
+
+### 1. Logs de auditoria
+
+| Item | Localização |
+|---|---|
+| Serviço que grava os logs (categorias `SEGURANCA` / `OPERACAO` / `SISTEMA`) | [`service/AuditoriaService.java`](src/main/java/br/ufpb/dsc/caladrius/service/AuditoriaService.java) |
+| Entidade + tabela | [`domain/LogAuditoria.java`](src/main/java/br/ufpb/dsc/caladrius/domain/LogAuditoria.java) · migration [`V6__criar_log_auditoria.sql`](src/main/resources/db/migration/V6__criar_log_auditoria.sql) |
+| Auditoria **automática** de login/logout | [`config/AuditoriaSecurityListener.java`](src/main/java/br/ufpb/dsc/caladrius/config/AuditoriaSecurityListener.java) |
+| Controller das telas | [`controller/AuditoriaController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/AuditoriaController.java) |
+| **Tela da trilha completa (SYSADMIN)** | rota **`GET /admin/auditoria`** |
+| Tela do histórico de operação (GERENTE) | rota `GET /historico` |
+| RBAC das rotas | [`config/SecurityConfig.java`](src/main/java/br/ufpb/dsc/caladrius/config/SecurityConfig.java) (`/admin/** → SYSADMIN`) |
+| Testes | [`service/AuditoriaServiceTest.java`](src/test/java/br/ufpb/dsc/caladrius/service/AuditoriaServiceTest.java) (unit) · [`web/PaginasAutenticadasTest.java`](src/test/java/br/ufpb/dsc/caladrius/web/PaginasAutenticadasTest.java) (rota com sysadmin → 200) |
+
+> ⚠️ **Para visualizar a trilha de auditoria do sistema (`/admin/auditoria`) é preciso o papel
+> `SYSADMIN`.** O professor pode **criar a própria conta normalmente** (cadastro ou login com
+> Google), mas o papel **SYSADMIN não é auto-concedido** — por segurança, **somente o dono do
+> projeto (eq14) pode atribuí-lo** a uma conta existente. Para avaliar essa parte, **crie a conta
+> e me informe o telefone/e-mail dela** que eu concedo o papel. (Sem SYSADMIN, um GERENTE ainda
+> enxerga o `/historico` de operação.)
+
+### 2. Conexão com serviços externos — Login social com Google (OAuth2 / OIDC)
+
+| Item | Localização |
+|---|---|
+| Registro do cliente OAuth (bean condicional a `GOOGLE_CLIENT_ID`/`SECRET`) | [`config/OAuth2ClientConfig.java`](src/main/java/br/ufpb/dsc/caladrius/config/OAuth2ClientConfig.java) |
+| Ativação do `oauth2Login` na cadeia de segurança | [`config/SecurityConfig.java`](src/main/java/br/ufpb/dsc/caladrius/config/SecurityConfig.java) |
+| Resolução da identidade Google (vínculo → e-mail verificado → auto-provisão) | [`security/CaladriusOidcUserService.java`](src/main/java/br/ufpb/dsc/caladrius/security/CaladriusOidcUserService.java) |
+| Vínculo conta ↔ provedor | [`domain/IdentidadeOauth.java`](src/main/java/br/ufpb/dsc/caladrius/domain/IdentidadeOauth.java) · [`service/IdentidadeOauthService.java`](src/main/java/br/ufpb/dsc/caladrius/service/IdentidadeOauthService.java) · migration [`V10__criar_identidades_oauth.sql`](src/main/resources/db/migration/V10__criar_identidades_oauth.sql) |
+| Botão "Continuar com Google" | [`templates/auth/login.html`](src/main/resources/templates/auth/login.html) → `GET /oauth2/authorization/google` |
+| Especificação | [`docs/sdd/specs/SPEC-08-login-social-google.md`](docs/sdd/specs/SPEC-08-login-social-google.md) |
+| Teste | [`service/IdentidadeOauthServiceTest.java`](src/test/java/br/ufpb/dsc/caladrius/service/IdentidadeOauthServiceTest.java) |
+
+O login social está **ativo em produção** (`https://eq14.dsc.rodrigor.com`). Sem as variáveis
+`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, a aplicação sobe normalmente só com senha e o botão
+some. *(O canal WhatsApp do `NotificacaoService` é um stub — a Evolution API é escopo futuro.)*
+
+### 3. Cobertura de testes
+
+- **Suíte:** `src/test/java/...` — JUnit 5 + Mockito (unitários de regra de negócio) e
+  Testcontainers (integração HTTP com PostgreSQL real).
+- **Rodar + gerar o relatório de cobertura (JaCoCo):**
+  ```bash
+  mvn verify          # requer Docker (Testcontainers)
+  # relatório HTML em: target/site/jacoco/index.html
+  ```
+- **Estado atual:** a **camada de negócio (`service`) está em ~96%** de cobertura de linha (todos
+  os serviços ≥ 86%). A cobertura **global** é de **~72%** de linha — o restante é infraestrutura
+  (controllers, wiring de config/segurança, canais de notificação e o `DevSeed` de demonstração,
+  que não roda no perfil de teste). **A meta de 85% global está em elevação** com testes de
+  integração das demais rotas.
+
+---
+
 ## Sobre o projeto
 
 O **CALADRIUS** organiza as solicitações de transporte de pacientes que precisam ir a
