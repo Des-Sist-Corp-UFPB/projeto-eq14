@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!-- Painel do gerente: avaliar solicitações de transporte sob demanda (SPEC-11). -->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Solicitações sob demanda</title></head>
+<body>
+<main>
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Solicitações sob demanda</h1>
+        <p class="text-muted mb-0">
+            Pedidos de transporte feitos pelos passageiros (WhatsApp) aguardando avaliação.
+            Aprovar aloca o passageiro a uma viagem; recusar exige um motivo. Em ambos, ele é avisado.
+        </p>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+    <div th:if="${solicitacoes.empty}" class="card">
+        <div class="card-body text-center text-muted py-5">
+            Nenhuma solicitação pendente no momento. 🎉
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-6" th:each="s : ${solicitacoes}">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="fw-semibold" th:text="${s.passageiro.nomeCompleto}">Passageiro</div>
+                            <div class="small text-muted" th:text="${s.passageiro.telefone}">83999999999</div>
+                        </div>
+                        <span class="badge bg-warning text-dark">Sob demanda</span>
+                    </div>
+
+                    <dl class="row mb-2 small">
+                        <dt class="col-4 text-muted">Destino</dt>
+                        <dd class="col-8" th:text="${s.destino != null ? s.destino.nome : '—'}">João Pessoa</dd>
+                        <dt class="col-4 text-muted">Data</dt>
+                        <dd class="col-8" th:text="${#temporals.format(s.dataDesejada, 'dd/MM/yyyy')}">01/06/2026</dd>
+                        <dt class="col-4 text-muted">Horário</dt>
+                        <dd class="col-8" th:text="${s.horarioDesejado != null ? #temporals.format(s.horarioDesejado, 'HH:mm') : '—'}">14:00</dd>
+                        <dt class="col-4 text-muted">Condições</dt>
+                        <dd class="col-8" th:text="${s.condicoes != null ? s.condicoes : 'Nenhuma informada'}">—</dd>
+                    </dl>
+
+                    <!-- Aprovar: carrega as viagens candidatas por HTMX -->
+                    <div class="border-top pt-3">
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                th:attr="hx-get=@{/gestao/solicitacoes/{id}/candidatas(id=${s.id})},hx-target='#candidatas-' + ${s.id}"
+                                hx-swap="innerHTML">
+                            Aprovar — escolher viagem
+                        </button>
+                        <div th:id="'candidatas-' + ${s.id}" class="mt-2"></div>
+                    </div>
+
+                    <!-- Recusar: motivo obrigatório -->
+                    <form class="border-top pt-3 mt-3" method="post"
+                          th:action="@{/gestao/solicitacoes/{id}/recusar(id=${s.id})}"
+                          onsubmit="return confirm('Recusar esta solicitação? O passageiro será avisado.');">
+                        <label class="form-label small text-muted mb-1">Recusar com motivo</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" name="motivo"
+                                   placeholder="Ex.: sem veículo disponível na data" required maxlength="280"/>
+                            <button type="submit" class="btn btn-outline-danger">Recusar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

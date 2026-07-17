@@ -47,6 +47,9 @@ class SolicitacaoViagemServiceTest {
     @Mock private LinhaProgramadaRepository linhaRepository;
     @Mock private ViagemRepository viagemRepository;
     @Mock private UsuarioRepository usuarioRepository;
+    @Mock private br.ufpb.dsc.caladrius.repository.CidadeRepository cidadeRepository;
+    @Mock private NotificacaoService notificacaoService;
+    @Mock private WhatsappService whatsappService;
 
     @InjectMocks private SolicitacaoViagemService service;
 
@@ -326,5 +329,110 @@ class SolicitacaoViagemServiceTest {
         assertThatThrownBy(() -> service.solicitar(passageiroId, linhaId, LocalDate.now().plusDays(1), null))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
         verify(solicitacaoRepository, never()).save(any());
+    }
+
+    // ===================== SPEC-11 — sob demanda =====================
+
+    private br.ufpb.dsc.caladrius.domain.Cidade cidadeComId(UUID id, String nome) {
+        br.ufpb.dsc.caladrius.domain.Cidade c = new br.ufpb.dsc.caladrius.domain.Cidade(nome, "PB", null);
+        ReflectionTestUtils.setField(c, "id", id);
+        return c;
+    }
+
+    @Test
+    @DisplayName("solicitarSobDemanda: sem linha, nasce SOB_DEMANDA + PENDENTE com destino/horário")
+    void solicitarSobDemanda_ok() {
+        UUID passageiroId = UUID.randomUUID();
+        UUID cidadeId = UUID.randomUUID();
+        LocalDate data = LocalDate.now().plusDays(5);
+        when(usuarioRepository.findByIdAndRemovidoEmIsNull(passageiroId))
+                .thenReturn(Optional.of(passageiro(passageiroId)));
+        when(cidadeRepository.findById(cidadeId)).thenReturn(Optional.of(cidadeComId(cidadeId, "João Pessoa")));
+        when(solicitacaoRepository.existsByPassageiro_IdAndCidadeDestino_IdAndDataDesejadaAndStatusNot(
+                passageiroId, cidadeId, data, StatusSolicitacao.CANCELADA)).thenReturn(false);
+        when(solicitacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        SolicitacaoViagem s = service.solicitarSobDemanda(
+                passageiroId, cidadeId, data, LocalTime.of(14, 0), "cadeirante");
+
+        assertThat(s.getTipo()).isEqualTo(br.ufpb.dsc.caladrius.domain.enums.TipoSolicitacao.SOB_DEMANDA);
+        assertThat(s.getStatus()).isEqualTo(StatusSolicitacao.PENDENTE);
+        assertThat(s.getLinha()).isNull();
+        assertThat(s.getCidadeDestino().getId()).isEqualTo(cidadeId);
+        assertThat(s.getHorarioDesejado()).isEqualTo(LocalTime.of(14, 0));
+        assertThat(s.getCondicoes()).isEqualTo("cadeirante");
+    }
+
+    @Test
+    @DisplayName("solicitarSobDemanda: duplicata (mesmo destino+data ativa) é rejeitada (RN-AVU-07)")
+    void solicitarSobDemanda_duplicata() {
+        UUID passageiroId = UUID.randomUUID();
+        UUID cidadeId = UUID.randomUUID();
+        LocalDate data = LocalDate.now().plusDays(5);
+        when(usuarioRepository.findByIdAndRemovidoEmIsNull(passageiroId))
+                .thenReturn(Optional.of(passageiro(passageiroId)));
+        when(cidadeRepository.findById(cidadeId)).thenReturn(Optional.of(cidadeComId(cidadeId, "João Pessoa")));
+        when(solicitacaoRepository.existsByPassageiro_IdAndCidadeDestino_IdAndDataDesejadaAndStatusNot(
+                passageiroId, cidadeId, data, StatusSolicitacao.CANCELADA)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.solicitarSobDemanda(passageiroId, cidadeId, data, null, null))
+                .isInstanceOf(RegraNegocioException.class);
+        verify(solicitacaoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("aprovar: aloca a viagem, marca ALOCADA e notifica o passageiro (RN-AVU-03)")
+    void aprovar_ok() {
+        UUID cidadeId = UUID.randomUUID();
+        br.ufpb.dsc.caladrius.domain.Cidade destino = cidadeComId(cidadeId, "João Pessoa");
+
+        SolicitacaoViagem solicitacao = new SolicitacaoViagem();
+        solicitacao.setTipo(br.ufpb.dsc.caladrius.domain.enums.TipoSolicitacao.SOB_DEMANDA);
+        solicitacao.setPassageiro(passageiro(UUID.randomUUID()));
+        solicitacao.setCidadeDestino(destino);
+        solicitacao.setDataDesejada(LocalDate.now().plusDays(3));
+        solicitacao.setStatus(StatusSolicitacao.PENDENTE);
+        UUID solId = UUID.randomUUID();
+        UUID viagemId = UUID.randomUUID();
+
+        Viagem viagem = new Viagem();
+        viagem.setCidadeDestino(destino);
+        viagem.setHorarioSaida(LocalTime.of(8, 0));
+
+        when(solicitacaoRepository.findById(solId)).thenReturn(Optional.of(solicitacao));
+        when(viagemRepository.findById(viagemId)).thenReturn(Optional.of(viagem));
+        when(solicitacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.aprovar(solId, viagemId);
+
+        assertThat(solicitacao.getStatus()).isEqualTo(StatusSolicitacao.ALOCADA);
+        assertThat(solicitacao.getViagem()).isSameAs(viagem);
+        verify(notificacaoService).enviar(any(), eq("Transporte aprovado"), any(),
+                any(br.ufpb.dsc.caladrius.notificacao.CanalTipo[].class));
+    }
+
+    @Test
+    @DisplayName("recusar: motivo em branco é rejeitado; com motivo marca RECUSADA e notifica")
+    void recusar_ok() {
+        SolicitacaoViagem solicitacao = new SolicitacaoViagem();
+        solicitacao.setTipo(br.ufpb.dsc.caladrius.domain.enums.TipoSolicitacao.SOB_DEMANDA);
+        solicitacao.setPassageiro(passageiro(UUID.randomUUID()));
+        solicitacao.setCidadeDestino(cidadeComId(UUID.randomUUID(), "João Pessoa"));
+        solicitacao.setDataDesejada(LocalDate.now().plusDays(3));
+        solicitacao.setStatus(StatusSolicitacao.PENDENTE);
+        UUID solId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> service.recusar(solId, "  "))
+                .isInstanceOf(RegraNegocioException.class);
+
+        when(solicitacaoRepository.findById(solId)).thenReturn(Optional.of(solicitacao));
+        when(solicitacaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.recusar(solId, "Sem veículo disponível");
+
+        assertThat(solicitacao.getStatus()).isEqualTo(StatusSolicitacao.RECUSADA);
+        assertThat(solicitacao.getMotivoRecusa()).isEqualTo("Sem veículo disponível");
+        verify(notificacaoService).enviar(any(), eq("Transporte não aprovado"), any(),
+                any(br.ufpb.dsc.caladrius.notificacao.CanalTipo[].class));
     }
 }

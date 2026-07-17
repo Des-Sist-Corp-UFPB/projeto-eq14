@@ -1,19 +1,27 @@
 package br.ufpb.dsc.caladrius.notificacao;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import br.ufpb.dsc.caladrius.service.WhatsappService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
- * Canal de WhatsApp. <strong>Stub</strong> — a integração (Evolution API) ainda
- * está fora do escopo. Mantido como bean para que o despacho já contemple o
- * canal; a implementação real entra depois sem alterar os chamadores.
+ * Canal de WhatsApp do {@code NotificacaoService} (SPEC-10). Delega o envio à
+ * fachada {@link WhatsappService}, que fala com a porta {@code ProvedorWhatsapp}
+ * e registra o log — a interface {@link CanalNotificacao} e todos os chamadores
+ * ficaram intactos em relação à fase de stub.
+ *
+ * <p>Sem a integração configurada, o envio é no-op (RN-WPP-02); falha do
+ * provedor nunca derruba o chamador (RN-WPP-01) — ambas garantidas dentro do
+ * {@code WhatsappService}.
  */
 @Component
 public class NotificacaoWhatsappCanal implements CanalNotificacao {
 
-    private static final Logger log = LoggerFactory.getLogger(NotificacaoWhatsappCanal.class);
+    private final WhatsappService whatsappService;
+
+    public NotificacaoWhatsappCanal(WhatsappService whatsappService) {
+        this.whatsappService = whatsappService;
+    }
 
     @Override
     public CanalTipo tipo() {
@@ -25,8 +33,6 @@ public class NotificacaoWhatsappCanal implements CanalNotificacao {
         if (!StringUtils.hasText(destino.telefone())) {
             return;
         }
-        // Integração futura (Evolution API). Por ora, não envia — apenas registra.
-        log.info("[WHATSAPP/stub — não implementado] para {} — {}: {}",
-                destino.telefone(), titulo, mensagem);
+        whatsappService.enviarTexto(destino.telefone(), "*" + titulo + "*\n" + mensagem);
     }
 }

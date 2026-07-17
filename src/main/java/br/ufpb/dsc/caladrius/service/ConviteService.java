@@ -112,6 +112,32 @@ public class ConviteService {
         return link;
     }
 
+    /**
+     * "Acesso à plataforma" (SPEC-11): gera um token de ativação para um usuário
+     * <strong>já existente</strong> (ex.: passageiro auto-cadastrado pelo WhatsApp,
+     * sem senha) definir a sua senha e passar a logar na web. Reaproveita a mesma
+     * engine de token do convite (ADR-11); não cria mecanismo de segurança novo.
+     *
+     * @return o link relativo de definição de senha (o chamador o entrega)
+     */
+    @Transactional
+    public String gerarAcessoPlataforma(UUID usuarioId) {
+        Usuario usuario = usuarioRepository.findByIdAndRemovidoEmIsNull(usuarioId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", usuarioId));
+
+        String raw = gerarTokenCru();
+        TokenAtivacao token = new TokenAtivacao();
+        token.setTokenHash(hash(raw));
+        token.setUsuarioId(usuario.getId());
+        token.setCriadoPorId(usuario.getId());
+        token.setExpiraEm(Instant.now().plus(VALIDADE_DIAS, ChronoUnit.DAYS));
+        tokenRepository.save(token);
+
+        auditoriaService.registrarOperacao("ACESSO_PLATAFORMA_TOKEN", "Usuario",
+                usuario.getId().toString(), "Token de acesso à plataforma (WhatsApp)");
+        return "/ativar?token=" + raw;
+    }
+
     /** Redime o token: valida, define a senha e ativa a conta. */
     @Transactional
     public void ativar(String rawToken, String novaSenha) {

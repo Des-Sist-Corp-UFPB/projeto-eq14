@@ -60,6 +60,20 @@ public interface ViagemRepository extends JpaRepository<Viagem, UUID> {
     /** Ocorrência já materializada de uma linha numa data (evita duplicar designação). */
     Optional<Viagem> findByLinhaProgramada_IdAndDataViagem(UUID linhaId, LocalDate data);
 
+    /**
+     * Viagens candidatas para alocar uma solicitação sob demanda (SPEC-11): mesmo
+     * destino e data, não canceladas, com veículo/motorista carregados.
+     */
+    @Query("""
+            select v from Viagem v
+            join fetch v.veiculo join fetch v.motorista join fetch v.cidadeDestino
+            where v.cidadeDestino.id = :cidadeDestinoId and v.dataViagem = :data
+              and v.status <> br.ufpb.dsc.caladrius.domain.enums.StatusViagem.CANCELADA
+            order by v.horarioSaida asc
+            """)
+    List<Viagem> candidatasParaDemanda(@Param("cidadeDestinoId") UUID cidadeDestinoId,
+                                       @Param("data") LocalDate data);
+
     /** Conta as viagens (ocorrências) originadas de uma linha (proteção na exclusão). */
     long countByLinhaProgramada_Id(UUID linhaId);
 

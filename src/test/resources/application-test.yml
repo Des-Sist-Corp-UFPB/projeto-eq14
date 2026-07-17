@@ -17,3 +17,7 @@ spring:
 logging:
   level:
     br.ufpb.dsc.caladrius: DEBUG
+
+# Segredo do webhook WhatsApp (SPEC-10) — permite exercer o POST /webhooks/whatsapp
+# nos testes de integração sem variável de ambiente.
+WHATSAPP_WEBHOOK_TOKEN: token-de-teste

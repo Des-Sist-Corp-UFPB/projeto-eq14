@@ -64,6 +64,9 @@ public class SecurityConfig {
                                 "/ping", "/actuator/health",
                                 "/webjars/**", "/css/**", "/js/**"
                         ).permitAll()
+                        // Webhook da Evolution (SPEC-10): chamada servidor-a-servidor,
+                        // autenticada pelo header X-Webhook-Token no controller (RN-WPP-03).
+                        .requestMatchers("/webhooks/whatsapp").permitAll()
                         // Administração do sistema — exclusiva do SYSADMIN (papel isolado).
                         .requestMatchers("/admin/**").hasRole("SYSADMIN")
                         // Visão do motorista — exclusiva do MOTORISTA.
@@ -74,7 +77,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/veiculos/**", "/cidades/**",
                                 "/usuarios/**", "/viagens/**", "/linhas/**",
-                                "/historico/**", "/analise/**", "/whatsapp/**"
+                                "/historico/**", "/analise/**", "/whatsapp/**",
+                                // Avaliação das solicitações sob demanda (SPEC-11).
+                                "/gestao/**"
                         ).hasRole("GERENTE")
                         // Qualquer outra rota exige apenas estar autenticado.
                         .anyRequest().authenticated()
@@ -108,7 +113,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
                                 "/veiculos/**", "/cidades/**",
-                                "/usuarios/**", "/viagens/**"
+                                "/usuarios/**", "/viagens/**",
+                                // Webhook servidor-a-servidor (SPEC-10): sem sessão/token
+                                // CSRF — a autenticação é o X-Webhook-Token.
+                                "/webhooks/whatsapp"
                         )
                 );
 

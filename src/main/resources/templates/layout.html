@@ -115,7 +115,7 @@
             <div sec:authorize="hasRole('GERENTE')">
                 <!-- Operação -->
                 <div class="cal-group"
-                     th:classappend="${requestURI != null and (requestURI.startsWith('/viagens') or requestURI.startsWith('/linhas') or requestURI.startsWith('/historico') or requestURI.startsWith('/analise'))} ? 'open'">
+                     th:classappend="${requestURI != null and (requestURI.startsWith('/viagens') or requestURI.startsWith('/linhas') or requestURI.startsWith('/historico') or requestURI.startsWith('/analise') or requestURI.startsWith('/gestao'))} ? 'open'">
                     <button type="button" class="cal-nav cal-group__btn" onclick="calToggleGroup(this)">
                         <svg th:replace="~{fragments/icons :: icon('operacao')}"></svg>
                         <span class="cal-nav__label">Operação</span>
@@ -127,6 +127,9 @@
                         <a class="cal-nav cal-nav--child" th:href="@{/viagens/semana}"
                            th:classappend="${requestURI != null and requestURI.startsWith('/viagens/semana')} ? 'active'">
                             <span class="cal-dot"></span><span class="cal-nav__label">Painel da semana</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/gestao/solicitacoes}"
+                           th:classappend="${requestURI != null and requestURI.startsWith('/gestao/solicitacoes')} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Solicitações</span></a>
                         <a class="cal-nav cal-nav--child" th:href="@{/linhas}"
                            th:classappend="${requestURI != null and requestURI.startsWith('/linhas')} ? 'active'">
                             <span class="cal-dot"></span><span class="cal-nav__label">Linhas</span></a>

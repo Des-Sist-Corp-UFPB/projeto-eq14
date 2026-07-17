@@ -32,6 +32,40 @@ public final class Documentos {
     }
 
     /**
+     * Extrai o telefone brasileiro de um JID do WhatsApp
+     * (ex.: {@code "5583999999999@s.whatsapp.net"} → {@code "83999999999"}):
+     * descarta o sufixo após o {@code @} e remove o DDI {@code 55} quando
+     * presente. O resultado fica no formato de {@code usuarios.telefone}
+     * (apenas dígitos, DDD + número) — SPEC-10 §4.5.
+     */
+    public static String telefoneDeJid(String jid) {
+        if (jid == null) {
+            return "";
+        }
+        int arroba = jid.indexOf('@');
+        String digitos = apenasDigitos(arroba >= 0 ? jid.substring(0, arroba) : jid);
+        // DDI 55 + DDD (2) + número (8 ou 9 dígitos) = 12 ou 13 dígitos.
+        if (digitos.startsWith("55") && (digitos.length() == 12 || digitos.length() == 13)) {
+            return digitos.substring(2);
+        }
+        return digitos;
+    }
+
+    /**
+     * Variantes de um telefone brasileiro para busca: JIDs antigos do WhatsApp
+     * podem vir <em>sem</em> o 9º dígito após o DDD. Devolve o telefone como
+     * veio e, quando tem 10 dígitos (DDD + 8), também a variante com o {@code 9}
+     * inserido — SPEC-10 §4.5.
+     */
+    public static java.util.List<String> variantesTelefoneBr(String telefone) {
+        String digitos = apenasDigitos(telefone);
+        if (digitos.length() == 10) {
+            return java.util.List.of(digitos, digitos.substring(0, 2) + "9" + digitos.substring(2));
+        }
+        return java.util.List.of(digitos);
+    }
+
+    /**
      * Valida um CPF brasileiro: 11 dígitos, não todos iguais e com os dois
      * dígitos verificadores corretos. Aceita CPF com ou sem formatação.
      *

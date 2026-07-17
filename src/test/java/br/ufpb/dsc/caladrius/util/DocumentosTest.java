@@ -30,6 +30,24 @@ class DocumentosTest {
     }
 
     @Test
+    @DisplayName("telefoneDeJid: extrai o telefone do JID do WhatsApp (SPEC-10)")
+    void telefoneDeJid() {
+        assertThat(Documentos.telefoneDeJid("5583999999999@s.whatsapp.net")).isEqualTo("83999999999");
+        assertThat(Documentos.telefoneDeJid("558399998888@s.whatsapp.net")).isEqualTo("8399998888"); // sem o 9º dígito
+        assertThat(Documentos.telefoneDeJid("83999999999")).isEqualTo("83999999999");                // sem DDI nem sufixo
+        assertThat(Documentos.telefoneDeJid(null)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("variantesTelefoneBr: 10 dígitos gera também a variante com o 9º dígito")
+    void variantesTelefoneBr() {
+        assertThat(Documentos.variantesTelefoneBr("8399998888"))
+                .containsExactly("8399998888", "83999998888");
+        assertThat(Documentos.variantesTelefoneBr("83999999999"))
+                .containsExactly("83999999999");
+    }
+
+    @Test
     @DisplayName("cpfValido: aceita CPF válido com ou sem máscara")
     void cpfValido_aceitaValido() {
         assertThat(Documentos.cpfValido("52998224725")).isTrue();

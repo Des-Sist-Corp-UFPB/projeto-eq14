@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!-- Fragmento HTMX: viagens candidatas para alocar uma solicitação sob demanda. -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="candidatas">
+    <!-- Sem viagens para o destino/data: orienta a criar uma imprevista antes -->
+    <div th:if="${viagens.empty}" class="alert alert-warning py-2 px-3 small mb-0">
+        Nenhuma viagem para este destino nesta data.
+        <a th:href="@{/viagens}" class="alert-link">Crie uma viagem imprevista</a> e volte para aprovar.
+    </div>
+
+    <form th:unless="${viagens.empty}" method="post"
+          th:action="@{/gestao/solicitacoes/{id}/aprovar(id=${solicitacaoId})}"
+          class="input-group input-group-sm">
+        <select class="form-select" name="viagemId" required>
+            <option value="" disabled selected>Escolha a viagem…</option>
+            <option th:each="v : ${viagens}" th:value="${v.id}"
+                    th:text="${#temporals.format(v.horarioSaida, 'HH:mm') + ' — ' + v.veiculo.placa + ' — ' + v.motorista.nomeCompleto}">
+                08:00 — ABC1D23 — João
+            </option>
+        </select>
+        <button type="submit" class="btn btn-success">Aprovar</button>
+    </form>
+</div>
+</body>
+</html>

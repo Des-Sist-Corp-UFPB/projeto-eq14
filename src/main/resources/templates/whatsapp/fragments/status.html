@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!-- Card de conexão do WhatsApp (SPEC-10/11): QR à esquerda, status + instruções +
+     ações à direita. Enquanto aguarda a leitura do QR, o fragmento se atualiza por
+     polling HTMX (~3 s); ao conectar (ou desistir), troca sozinho e o polling para. -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="status" id="whatsapp-status"
+     th:attr="hx-get=${conexao.status().name() == 'AGUARDANDO_QR'} ? @{/whatsapp/status} : null,
+              hx-trigger=${conexao.status().name() == 'AGUARDANDO_QR'} ? 'every 3s' : null,
+              hx-swap=${conexao.status().name() == 'AGUARDANDO_QR'} ? 'outerHTML' : null">
+    <div class="d-flex gap-3 flex-column flex-sm-row align-items-stretch align-items-sm-start">
+
+        <!-- Caixa do QR (à esquerda) -->
+        <div class="flex-shrink-0 d-flex align-items-center justify-content-center border rounded bg-body-tertiary"
+             style="width:150px; height:150px;">
+            <img th:if="${conexao.qrCodeBase64() != null}"
+                 th:src="${#strings.startsWith(conexao.qrCodeBase64(), 'data:') ? conexao.qrCodeBase64() : 'data:image/png;base64,' + conexao.qrCodeBase64()}"
+                 alt="QR code de pareamento do WhatsApp" style="max-width:100%; max-height:100%;"/>
+            <svg th:if="${conexao.qrCodeBase64() == null}" width="48" height="48" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="1.5" class="text-secondary" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                <path d="M14 14h3v3M20 14v0M17 20h0M20 17v3"></path>
+            </svg>
+        </div>
+
+        <!-- Detalhes (à direita) -->
+        <div class="flex-grow-1">
+
+            <!-- Linha de status -->
+            <div class="fw-semibold mb-1" th:switch="${conexao.status().name()}">
+                <span th:case="'CONECTADO'"><span style="color:#22c55e">●</span> Conectado</span>
+                <span th:case="'AGUARDANDO_QR'"><span style="color:#f59e0b">●</span> Aguardando leitura do QR</span>
+                <span th:case="*"><span th:style="${configurada} ? 'color:#ef4444' : 'color:#9ca3af'">●</span>
+                    <span th:text="${configurada} ? 'Desconectado' : 'Integração não configurada'">Desconectado</span></span>
+            </div>
+
+            <!-- Integração ausente (RN-WPP-02) -->
+            <p th:unless="${configurada}" class="text-muted small mb-0">
+                O servidor de WhatsApp ainda não foi configurado neste ambiente. A configuração
+                (variáveis de ambiente) é feita pela administração no deploy — sem ela, as
+                notificações por WhatsApp ficam desativadas e o restante do sistema segue normal.
+            </p>
+
+            <div th:if="${configurada}">
+                <!-- Conectado: dados da conta -->
+                <div th:if="${conexao.status().name() == 'CONECTADO'}">
+                    <p class="text-muted small mb-2" th:if="${conta != null}">
+                        <span class="fw-semibold text-body" th:text="${conta.nomePerfil() ?: 'Conta conectada'}">Secretaria</span>
+                        <span th:text="'· ' + ${conta.numero()}">· 83999999999</span>
+                    </p>
+                    <p class="text-muted small mb-2" th:if="${conta == null}">Conta conectada. O bot e as notificações estão ativos.</p>
+                    <form th:action="@{/whatsapp/desconectar}" method="post" class="m-0"
+                          onsubmit="return confirm('Desconectar a conta WhatsApp? O bot e as notificações param até novo pareamento.');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Desconectar</button>
+                    </form>
+                </div>
+
+                <!-- Desconectado ou aguardando: instruções + ações -->
+                <div th:unless="${conexao.status().name() == 'CONECTADO'}">
+                    <p class="text-muted small mb-3">
+                        Abra o WhatsApp no seu celular → <strong>Aparelhos conectados</strong> →
+                        <strong>Conectar um aparelho</strong> e aponte para o código ao lado.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <form th:action="@{/whatsapp/conectar}" method="post" class="m-0">
+                            <button type="submit" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
+                                <svg th:replace="~{fragments/icons :: icon('whatsapp')}"></svg>
+                                <span th:text="${conexao.status().name() == 'AGUARDANDO_QR'} ? 'Reconectar' : 'Conectar número'">Conectar número</span>
+                            </button>
+                        </form>
+                        <form th:action="@{/whatsapp/conectar}" method="post" class="m-0">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Gerar novo código</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

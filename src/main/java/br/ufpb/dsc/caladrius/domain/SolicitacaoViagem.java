@@ -1,6 +1,7 @@
 package br.ufpb.dsc.caladrius.domain;
 
 import br.ufpb.dsc.caladrius.domain.enums.StatusSolicitacao;
+import br.ufpb.dsc.caladrius.domain.enums.TipoSolicitacao;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,6 +16,7 @@ import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 /**
@@ -45,12 +47,35 @@ public class SolicitacaoViagem {
     @JoinColumn(name = "passageiro", nullable = false)
     private Usuario passageiro;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "linha_programada", nullable = false)
+    /** Tipo da solicitação: por linha (SPEC-09) ou sob demanda (SPEC-11). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false, length = 20)
+    private TipoSolicitacao tipo = TipoSolicitacao.POR_LINHA;
+
+    /** Linha escolhida — obrigatória em {@code POR_LINHA}, nula em {@code SOB_DEMANDA}. */
+    @ManyToOne
+    @JoinColumn(name = "linha_programada")
     private LinhaProgramada linha;
+
+    /** Destino informado — obrigatório em {@code SOB_DEMANDA}, nulo em {@code POR_LINHA}. */
+    @ManyToOne
+    @JoinColumn(name = "cidade_destino")
+    private Cidade cidadeDestino;
 
     @Column(name = "data_desejada", nullable = false)
     private LocalDate dataDesejada;
+
+    /** Horário desejado da viagem/consulta (sob demanda). */
+    @Column(name = "horario_desejado")
+    private LocalTime horarioDesejado;
+
+    /** Condições de saúde (comorbidade/deficiência) que informam a prioridade. */
+    @Column(name = "condicoes", length = 280)
+    private String condicoes;
+
+    /** Motivo preenchido quando o gestor recusa a solicitação sob demanda. */
+    @Column(name = "motivo_recusa", length = 280)
+    private String motivoRecusa;
 
     /** Viagem materializada da linha+data (preenchida na alocação); nula enquanto pendente. */
     @ManyToOne
@@ -78,11 +103,65 @@ public class SolicitacaoViagem {
         if (this.status == null) {
             this.status = StatusSolicitacao.PENDENTE;
         }
+        if (this.tipo == null) {
+            this.tipo = TipoSolicitacao.POR_LINHA;
+        }
     }
 
     /** {@code true} se a solicitação já tem uma viagem designada (alocada). */
     public boolean isAlocada() {
         return viagem != null && status == StatusSolicitacao.ALOCADA;
+    }
+
+    /**
+     * Cidade de destino da solicitação, resolvida pelo tipo: em {@code POR_LINHA}
+     * vem da linha; em {@code SOB_DEMANDA} é a {@link #cidadeDestino} informada.
+     */
+    public Cidade getDestino() {
+        if (cidadeDestino != null) {
+            return cidadeDestino;
+        }
+        return linha != null ? linha.getCidadeDestino() : null;
+    }
+
+    public TipoSolicitacao getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoSolicitacao tipo) {
+        this.tipo = tipo;
+    }
+
+    public Cidade getCidadeDestino() {
+        return cidadeDestino;
+    }
+
+    public void setCidadeDestino(Cidade cidadeDestino) {
+        this.cidadeDestino = cidadeDestino;
+    }
+
+    public LocalTime getHorarioDesejado() {
+        return horarioDesejado;
+    }
+
+    public void setHorarioDesejado(LocalTime horarioDesejado) {
+        this.horarioDesejado = horarioDesejado;
+    }
+
+    public String getCondicoes() {
+        return condicoes;
+    }
+
+    public void setCondicoes(String condicoes) {
+        this.condicoes = condicoes;
+    }
+
+    public String getMotivoRecusa() {
+        return motivoRecusa;
+    }
+
+    public void setMotivoRecusa(String motivoRecusa) {
+        this.motivoRecusa = motivoRecusa;
     }
 
     public UUID getId() {

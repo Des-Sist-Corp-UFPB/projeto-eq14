@@ -98,3 +98,6 @@ trivy-results.sarif
 *.seed
 *.pid.lock
 HELP.md
+
+# Instalador avulso (driver de impressora HP) baixado por engano na raiz — não versionar
+hplip.run
