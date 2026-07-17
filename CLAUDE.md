@@ -13,7 +13,7 @@ organiza **viagens**, **veículos**, **motoristas** e **cidades**. Sistema basea
 (RBAC): **PASSAGEIRO**, **MOTORISTA**, **GERENTE**, **SYSADMIN** (papel isolado de administração).
 
 > **A fonte da verdade do projeto é o SDD em [`docs/sdd/`](docs/sdd/)** (Spec-Driven Development):
-> constituição, especificação de produto, plano técnico, specs por feature (SPEC-01..07), ADRs,
+> constituição, especificação de produto, plano técnico, specs por feature (SPEC-01..10), ADRs,
 > cenários de teste e o roadmap. **Comece por lá** ao retomar — ver a seção
 > "Estado atual e como retomar" no fim deste arquivo.
 
@@ -23,9 +23,14 @@ organiza **viagens**, **veículos**, **motoristas** e **cidades**. Sistema basea
 programadas, painel semanal, designação, conflito, ciclo de status, visão do motorista);
 **endereço estruturado do passageiro** (municípios PB) + aba de análise; redesign do shell;
 **solicitação de transporte do passageiro via sistema** (linhas disponíveis + minhas viagens, com
-alocação automática e isolamento — SPEC-09).
-**Ainda fora do escopo:** solicitação via WhatsApp (Evolution API), aprovação/recusa pelo gestor,
-alocação/assentos (capacidade), escalas de motorista, perfil/CNH do motorista.
+alocação automática e isolamento — SPEC-09); **integração WhatsApp** (SPEC-10: porta
+`ProvedorWhatsapp` + Evolution API, webhook, painel `/whatsapp` com QR — código pronto; **falta a
+infra**: Evolution na VPS + variáveis de ambiente no deploy);
+**solicitação sob demanda + onboarding pelo WhatsApp** (SPEC-11: número novo se cadastra pelo bot;
+pede destino+data+horário+condições; **gestor aprova/recusa** em `/gestao/solicitacoes` e o passageiro
+é notificado; "Acesso à plataforma" define senha via token). Bot desacoplado (só serviços + porta).
+**Ainda fora do escopo:** alocação/assentos (capacidade) e prioridade automática,
+escalas de motorista, perfil/CNH do motorista, integração com o WhatsApp dos motoristas.
 
 ## Stack Técnica
 | Camada | Tecnologia | Versão |
@@ -46,19 +51,25 @@ br.ufpb.dsc.caladrius
 │                    #   AuditoriaSecurityListener (login/logout), GlobalExceptionHandler
 ├── controller/      # Auth, Home, Veiculo, Cidade, Usuario, Viagem (+semana/designar/status),
 │                    #   Linha, MotoristaViagem, Solicitacao (passageiro), Admin, Configuracao,
-│                    #   Auditoria, Convite, Ativacao, Conta, Notificacao, Perfil, Analise, Whatsapp, Ping
+│                    #   Auditoria, Convite, Ativacao, Conta, Notificacao, Perfil, Analise, Ping,
+│                    #   Whatsapp (painel do gerente), WhatsappWebhook (POST /webhooks/whatsapp)
 ├── domain/          # Usuario, Veiculo, Cidade, Viagem, LinhaProgramada, SolicitacaoViagem, Endereco,
-│   │                #   Municipio, ConfiguracaoSistema, LogAuditoria, Notificacao, TokenAtivacao
+│   │                #   Municipio, ConfiguracaoSistema, LogAuditoria, Notificacao, TokenAtivacao,
+│   │                #   ConversaBot, MensagemWhatsapp
 │   └── enums/       # Papel(+SYSADMIN), StatusUsuario, Tipo/StatusVeiculo, TipoCidade, StatusViagem,
-│                    #   TipoViagem, StatusSolicitacao, DiaSemana, CategoriaAuditoria
+│                    #   TipoViagem, StatusSolicitacao, DiaSemana, CategoriaAuditoria,
+│                    #   EtapaConversa, DirecaoMensagem
 ├── dto/             # Records de formulário (ViagemForm, LinhaProgramadaForm, DesignacaoForm,
 │                    #   EnderecoForm, PainelSemana, ...)
-├── notificacao/     # CanalNotificacao (interface) + InApp/Email/Whatsapp (stub) + CanalTipo
+├── notificacao/     # CanalNotificacao (interface) + InApp/Email/Whatsapp + CanalTipo
+├── whatsapp/        # Porta ProvedorWhatsapp + EvolutionApiProvedor (adaptador), records da porta,
+│   └── bot/         #   ProcessadorMensagemRecebida; bot/ = BotAtendimentoService + MensagensBot
 ├── exception/       # RecursoNaoEncontradoException, RegraNegocioException
 ├── repository/      # Interfaces Spring Data JPA
 ├── security/        # UsuarioAutenticado (UserDetails), CaladriusUserDetailsService
 ├── service/         # Lógica de negócio (@Transactional): Usuario/Veiculo/Cidade/Viagem,
-│                    #   LinhaProgramada, SolicitacaoViagem, Configuracao, Auditoria, Convite, Notificacao, Endereco
+│                    #   LinhaProgramada, SolicitacaoViagem, Configuracao, Auditoria, Convite,
+│                    #   Notificacao, Endereco, Whatsapp (fachada: envio + log + estado da conexão)
 └── util/            # Documentos (CPF, normalização de telefone, detecção de e-mail)
 ```
 
@@ -130,6 +141,9 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 - `V9` linhas_programadas + linha_dias + evolução de viagens (tipo, FK linha, origem, horario_retorno)
 - `V10` identidades_oauth (login social Google) + `usuarios.perfil_incompleto` + telefone nullable
 - `V11` solicitacoes_viagem (solicitação de transporte do passageiro — SPEC-09)
+- `V12` conversas_bot + mensagens_whatsapp (integração WhatsApp — SPEC-10)
+- `V13` solicitação sob demanda (`solicitacoes_viagem.tipo`/`cidade_destino`, linha nullable) +
+  contexto de cadastro no `conversas_bot` (SPEC-11)
 
 > **Política em banco compartilhado:** ver [`docs/sdd/02-plano-tecnico.md` §2.5](docs/sdd/02-plano-tecnico.md).
 > Migrations aditivas, sem extensões/superusuário; backup próprio (`pg_dump`) antes de alterações sensíveis.
@@ -152,37 +166,41 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 ## Documentação Técnica
 | Documento | Conteúdo |
 |-----------|----------|
-| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..09), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
+| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..11), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
 | [README.md](README.md) | Visão geral, como rodar, acesso, estrutura |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Camadas, HTMX, Flyway |
 | [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | Migrations, nomenclatura, validação, Conventional Commits |
 | [docs/SECURITY.md](docs/SECURITY.md) | SAST, OWASP, configuração do Spring Security |
 
 ## Estado atual e como retomar (ponto de restauração)
-> **Atualizado em 2026-06-25.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
+> **Atualizado em 2026-07-15.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
 > (em especial o [roadmap](docs/sdd/03-tarefas-e-roadmap.md), que rastreia o estado por capacidade e as
 > dívidas técnicas DT-01..DT-11). Este `CLAUDE.md` é carregado automaticamente em todo chat.
 
-- **Último marco**: **login Google em produção funcionando** (`https://eq14.dsc.rodrigor.com`) +
-  **solicitação de transporte do passageiro via sistema** (SPEC-09). Migrations até **V11**.
-  **Testes verdes** (115, incl. 1 de contexto Testcontainers que aplica V1→V11 e valida o schema).
-  `mvn test` funciona localmente.
-- **Specs implementadas (✅)**: SPEC-01..09 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
+- **Último marco**: **solicitação sob demanda + onboarding pelo WhatsApp** (SPEC-11) — número novo se
+  cadastra pelo bot (PASSAGEIRO ATIVO sem senha); pede **destino+data+horário+condições** sem depender
+  de linha; o **gestor aprova/recusa** em `/gestao/solicitacoes` (designa viagem imprevista) e o
+  passageiro é notificado por WhatsApp; "Acesso à plataforma" define senha via token de ativação.
+  Bot reescrito e **desacoplado** (só serviços + porta `ProvedorWhatsapp`). Antes: SPEC-10 (Evolution,
+  webhook, painel `/whatsapp`). Migrations até **V13**. **Testes verdes (190)**, incl. o de contexto
+  Testcontainers que aplica V1→V13. `mvn test` e `docker build` funcionam localmente.
+- **Specs implementadas (✅)**: SPEC-01..11 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
 - **Pontos de atenção / dívidas em aberto** (do roadmap):
-  - **Passageiro**: solicita transporte (`/solicitacoes`) e vê viagens alocadas ✅ (SPEC-09).
-    **Falta**: solicitação via **WhatsApp**, **aprovação/recusa** pelo gestor, **assentos/capacidade**.
-  - **Motorista**: `/minhas-viagens` (ver + status) funciona; **falta** perfil/CNH (`perfis_motorista`)
-    e a visão de "Veículos".
+  - **WhatsApp — infra pendente**: subir a **Evolution API na VPS da equipe** (SPEC-10 §8) e configurar
+    as variáveis de ambiente do deploy (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`,
+    `APP_URL_PUBLICA`). Sem elas, o canal opera como stub e o painel mostra "não configurada"
+    (RN-WPP-02) — nada quebra. Em teste local: Evolution no Railway + túnel (cloudflared) p/ o webhook.
+  - **Passageiro**: solicita via sistema ✅ (SPEC-09), via WhatsApp ✅ (SPEC-11: onboarding + sob demanda),
+    e o gestor **aprova/recusa** ✅. **Falta**: **assentos/capacidade** e **prioridade automática**.
+  - **Motorista**: `/minhas-viagens` (ver + status) funciona; **falta** perfil/CNH (`perfis_motorista`),
+    visão de "Veículos" e **integração com o WhatsApp dos motoristas** (próxima etapa pós-SPEC-11).
   - **Home (`/`)**: ainda mostra os totais do sistema para **qualquer** papel — ajustar para esconder
     de não-gerentes e dar landing por papel.
-  - **WhatsApp**: seção do gerente (`/whatsapp`) é placeholder; canal WhatsApp do `NotificacaoService`
-    é stub (Evolution API em avaliação) — é a próxima etapa da solicitação do passageiro.
-  - **DT-03** (carga horária do motorista via `escalas_motorista`) e **imprevista** com campos de
-    origem improvisada/horário de retorno na UI ainda pendentes.
+  - **DT-03** (carga horária do motorista via `escalas_motorista`) ainda pendente.
 
 ## Próximos Passos Sugeridos
-1. **Solicitação via WhatsApp** (Evolution API) — reaproveita o `SolicitacaoViagemService` (SPEC-09).
-2. **Aprovação/recusa** das solicitações pelo gestor + **assentos/capacidade** (`assentos_viagem`).
-3. **Perfil/CNH do motorista** (`perfis_motorista`) e visão de veículos.
-4. **Home por papel** (esconder totais de não-gerente; atalhos por papel).
-5. **Escalas de motorista** (`escalas_motorista`) → carga horária (DT-03 v2).
+1. **Infra da SPEC-10/11**: Evolution API na VPS (docker compose + TLS) e variáveis no deploy.
+2. **WhatsApp dos motoristas**: avisar o motorista da viagem designada pelo chat (reusa a porta).
+3. **Assentos/capacidade** (`assentos_viagem`) + **alocação por prioridade** (Incremento B).
+4. **Perfil/CNH do motorista** (`perfis_motorista`) e visão de veículos.
+5. **Home por papel** (esconder totais de não-gerente; atalhos por papel).

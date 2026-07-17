@@ -54,13 +54,12 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 >    (`linhas_programadas` + `linha_dias` + alteração de `viagens`, **migration V9**). Decisões
 >    confirmadas em [SPEC-06 §2.1](specs/SPEC-06-viagens-rotineiras-e-imprevistas.md) (ADR-12/13).
 
-### Incremento A — Solicitações de transporte (passageiro) ⬜
-- **Objetivo**: passageiro registra pedido de transporte (cidade, data/horário da consulta,
-  horário-limite de chegada, especialidade, acompanhante); gerente lista pendentes.
-- **Base pronta no schema**: `solicitacoes_transporte` (V2) — mapear como entidade.
-- **Novos artefatos**: `SolicitacaoTransporte` (entidade), DTO, service, controller, telas;
-  tela própria do passageiro pós-login.
-- **Toca**: SPEC-01 (telas por papel), RBAC (liberar rota ao `PASSAGEIRO`).
+### Incremento A — Solicitações de transporte (passageiro) ✅
+- **Entregue** em duas etapas: **por linha** ([SPEC-09](specs/SPEC-09-solicitacao-de-transporte.md), V11)
+  e **sob demanda** ([SPEC-11](specs/SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md), V13 —
+  destino+data+horário+condições, sem linha; avaliação/aprovação do gestor; onboarding pelo WhatsApp).
+- **Nota**: em vez de mapear a `solicitacoes_transporte` (V2), estendeu-se `solicitacoes_viagem`
+  com um `tipo` (ADR-15). A tabela `solicitacoes_transporte` segue **dormente** (DT de limpeza futura).
 
 ### Incremento B — Alocação automática por prioridade ⬜
 - **Objetivo**: alocar passageiros a **assentos** de viagem por prioridade (horário-limite de
@@ -69,15 +68,30 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 - **Depende de**: Incremento A (solicitações) e SPEC-05 (viagens).
 - **Resolve junto**: DT-04 (só alocar veículos disponíveis/compatíveis).
 
+### Incremento B.1 — Aprovação/recusa do gestor (sob demanda) ✅
+- **Entregue** na [SPEC-11](specs/SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md): painel
+  `/gestao/solicitacoes` (GERENTE) avalia demandas, **aprova** (aloca a uma viagem imprevista) ou
+  **recusa** (com motivo); o passageiro é notificado por WhatsApp. Assentos/capacidade seguem no
+  Incremento B (alocação por prioridade — o gestor avalia a prioridade manualmente por ora).
+
 ### Incremento C — Escalas de motorista e telas por papel ⬜
 - **Objetivo**: registrar janelas de disponibilidade do motorista e dar a ele a visão das
   próprias viagens; perfis detalhados (passageiro/motorista/gerente).
 - **Base pronta no schema**: `escalas_motorista`, `perfis_*` (V2).
 - **Resolve junto**: DT-03 (validar disponibilidade ao criar viagem).
 
-### Incremento D — Integração WhatsApp (Evolution API) 🔵
-- **Status**: em avaliação pela equipe; **fora do escopo** atual.
-- **Objetivo**: notificar passageiros/motoristas e, possivelmente, receber solicitações.
+### Incremento D — Integração WhatsApp (Evolution API) ✅ (código) / 🟡 (infra)
+- **Status**: **código implementado e testado (2026-07-14)** — [SPEC-10](specs/SPEC-10-integracao-whatsapp.md)
+  (ADR-14), migration **V12** aplicada, 182 testes verdes. **Pendente**: subir a Evolution na
+  **VPS da equipe** (SPEC-10 §8) e configurar as variáveis de ambiente no deploy
+  (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`, `APP_URL_PUBLICA`) — sem elas
+  o canal segue como stub e o painel informa "não configurada" (RN-WPP-02).
+- **Entregue**: porta `ProvedorWhatsapp` + adaptador `EvolutionApiProvedor` (bean condicional),
+  envio real no `NotificacaoWhatsappCanal` (via fachada `WhatsappService` + log
+  `mensagens_whatsapp`), webhook `POST /webhooks/whatsapp` (token + idempotência), **bot de
+  atendimento** (`whatsapp/bot/`, máquina de estados em `conversas_bot`) reaproveitando o
+  `SolicitacaoViagemService` (SPEC-09), e painel `/whatsapp` do gerente (QR + polling HTMX,
+  status, desconectar, teste, últimas mensagens).
 
 ---
 
