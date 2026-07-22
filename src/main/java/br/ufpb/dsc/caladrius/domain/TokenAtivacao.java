@@ -1,7 +1,10 @@
 package br.ufpb.dsc.caladrius.domain;
 
+import br.ufpb.dsc.caladrius.domain.enums.FinalidadeToken;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -26,6 +29,11 @@ public class TokenAtivacao {
 
     @Column(name = "token_hash", nullable = false, length = 120, unique = true)
     private String tokenHash;
+
+    /** Para que serve este token (SPEC-12). Padrão {@code ATIVACAO} — o convite original. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "finalidade", nullable = false, length = 30)
+    private FinalidadeToken finalidade = FinalidadeToken.ATIVACAO;
 
     /** Usuário (PENDENTE) que será ativado por este token. */
     @Column(name = "usuario", nullable = false)
@@ -69,6 +77,14 @@ public class TokenAtivacao {
 
     public void setTokenHash(String tokenHash) {
         this.tokenHash = tokenHash;
+    }
+
+    public FinalidadeToken getFinalidade() {
+        return finalidade;
+    }
+
+    public void setFinalidade(FinalidadeToken finalidade) {
+        this.finalidade = finalidade;
     }
 
     public UUID getUsuarioId() {

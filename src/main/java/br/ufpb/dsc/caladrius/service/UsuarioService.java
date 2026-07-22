@@ -9,6 +9,7 @@ import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
 import br.ufpb.dsc.caladrius.util.Documentos;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,12 +38,27 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
+    private final VerificacaoService verificacaoService;
+    private final WhatsappService whatsappService;
+
+    /**
+     * Override do gate de verificação de telefone no cadastro (SPEC-12, D5):
+     * {@code null} (padrão) = exige verificação apenas quando o WhatsApp está
+     * configurado (degradação graciosa — RN-VER-07). No perfil {@code dev} é
+     * {@code true} para dar de testar o fluxo com o canal em stub (código no log).
+     */
+    private final Boolean exigirVerificacaoTelefone;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
-                          AuditoriaService auditoriaService) {
+                          AuditoriaService auditoriaService, VerificacaoService verificacaoService,
+                          WhatsappService whatsappService,
+                          @Value("${caladrius.verificacao.exigir-telefone:#{null}}") Boolean exigirVerificacaoTelefone) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
+        this.verificacaoService = verificacaoService;
+        this.whatsappService = whatsappService;
+        this.exigirVerificacaoTelefone = exigirVerificacaoTelefone;
     }
 
     // ===================== Consultas =====================
@@ -84,15 +100,26 @@ public class UsuarioService {
         validarCpf(cpf, null);
         validarEmail(email, null);
 
+        // D5/RN-VER-07: exige verificar o telefone quando há canal para entregar o
+        // código (WhatsApp configurado). Sem canal, cria ATIVO (degradação graciosa).
+        boolean verificar = exigirVerificacaoTelefone != null
+                ? exigirVerificacaoTelefone
+                : whatsappService.configurada();
+
         Usuario usuario = new Usuario();
         usuario.setNomeCompleto(form.nomeCompleto().trim());
         usuario.setTelefone(telefone);
         usuario.setCpf(cpf);
         usuario.setEmail(email);
         usuario.setHashSenha(passwordEncoder.encode(form.senha()));
-        usuario.setStatus(StatusUsuario.ATIVO);
+        usuario.setStatus(verificar ? StatusUsuario.PENDENTE : StatusUsuario.ATIVO);
         usuario.setPapeis(EnumSet.of(Papel.PASSAGEIRO));
-        return usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
+
+        if (verificar) {
+            verificacaoService.enviarVerificacaoTelefone(usuario, AuditoriaService.ipDaRequisicao());
+        }
+        return usuario;
     }
 
     /**

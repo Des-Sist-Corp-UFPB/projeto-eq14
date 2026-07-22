@@ -79,6 +79,14 @@ public class Usuario {
     @Column(name = "perfil_incompleto", nullable = false)
     private boolean perfilIncompleto = false;
 
+    /** Momento em que o telefone foi verificado por OTP (SPEC-12). {@code null} = não verificado. */
+    @Column(name = "telefone_verificado_em")
+    private Instant telefoneVerificadoEm;
+
+    /** Momento em que o e-mail foi verificado por link (SPEC-12). {@code null} = não verificado. */
+    @Column(name = "email_verificado_em")
+    private Instant emailVerificadoEm;
+
     /**
      * Papéis do usuário (RBAC). Mapeados para {@code papeis_usuario(usuario, papel)}.
      * As demais colunas da tabela ({@code concedido_em}, {@code concedido_por})
@@ -212,6 +220,22 @@ public class Usuario {
 
     public void setPerfilIncompleto(boolean perfilIncompleto) {
         this.perfilIncompleto = perfilIncompleto;
+    }
+
+    public Instant getTelefoneVerificadoEm() {
+        return telefoneVerificadoEm;
+    }
+
+    public void setTelefoneVerificadoEm(Instant telefoneVerificadoEm) {
+        this.telefoneVerificadoEm = telefoneVerificadoEm;
+    }
+
+    public Instant getEmailVerificadoEm() {
+        return emailVerificadoEm;
+    }
+
+    public void setEmailVerificadoEm(Instant emailVerificadoEm) {
+        this.emailVerificadoEm = emailVerificadoEm;
     }
 
     @Override

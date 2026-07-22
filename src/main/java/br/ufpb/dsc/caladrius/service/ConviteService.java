@@ -2,6 +2,7 @@ package br.ufpb.dsc.caladrius.service;
 
 import br.ufpb.dsc.caladrius.domain.TokenAtivacao;
 import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.FinalidadeToken;
 import br.ufpb.dsc.caladrius.domain.enums.Papel;
 import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
 import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
@@ -149,6 +150,10 @@ public class ConviteService {
         if (!token.valido()) {
             throw new RegraNegocioException("Convite expirado ou já utilizado.");
         }
+        // Um token de verificação de e-mail não pode definir senha (SPEC-12).
+        if (token.getFinalidade() != FinalidadeToken.ATIVACAO) {
+            throw new RegraNegocioException("Convite inválido.");
+        }
         if (novaSenha == null || novaSenha.length() < SENHA_MIN) {
             throw new RegraNegocioException("A senha deve ter ao menos " + SENHA_MIN + " caracteres.");
         }
@@ -165,6 +170,58 @@ public class ConviteService {
         notificacaoService.notificarInApp(usuario.getId(), "Conta ativada",
                 "Sua conta foi ativada com sucesso. Bem-vindo(a) ao CALADRIUS!");
         auditoriaService.registrarSeguranca("CONTA_ATIVADA", "SUCESSO",
+                usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());
+    }
+
+    // ------------------------------------------------- verificação de e-mail (SPEC-12)
+
+    /**
+     * Envia um <strong>link mágico</strong> por e-mail para confirmar o endereço
+     * (reusa o {@code TokenAtivacao}, com {@code finalidade = VERIFICAR_EMAIL}).
+     * No-op se o usuário não tem e-mail. Não bloqueia a conta — e-mail é opcional.
+     */
+    @Transactional
+    public void enviarVerificacaoEmail(Usuario usuario) {
+        if (!StringUtils.hasText(usuario.getEmail())) {
+            return;
+        }
+        String raw = gerarTokenCru();
+        TokenAtivacao token = new TokenAtivacao();
+        token.setTokenHash(hash(raw));
+        token.setUsuarioId(usuario.getId());
+        token.setCriadoPorId(usuario.getId());
+        token.setFinalidade(FinalidadeToken.VERIFICAR_EMAIL);
+        token.setExpiraEm(Instant.now().plus(VALIDADE_DIAS, ChronoUnit.DAYS));
+        tokenRepository.save(token);
+
+        String link = "/verificar-email?token=" + raw;
+        notificacaoService.enviar(
+                new NotificacaoDestino(usuario.getId(), usuario.getEmail(), null),
+                "Confirme seu e-mail — CALADRIUS",
+                "Para confirmar o seu e-mail no CALADRIUS, acesse: " + link,
+                CanalTipo.EMAIL);
+    }
+
+    /** Redime o link de verificação de e-mail: marca {@code email_verificado_em} e consome o token. */
+    @Transactional
+    public void verificarEmail(String rawToken) {
+        if (!StringUtils.hasText(rawToken)) {
+            throw new RegraNegocioException("Link inválido.");
+        }
+        TokenAtivacao token = tokenRepository.findByTokenHash(hash(rawToken))
+                .orElseThrow(() -> new RegraNegocioException("Link inválido ou expirado."));
+        if (!token.valido() || token.getFinalidade() != FinalidadeToken.VERIFICAR_EMAIL) {
+            throw new RegraNegocioException("Link inválido ou expirado.");
+        }
+        Usuario usuario = usuarioRepository.findById(token.getUsuarioId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", token.getUsuarioId()));
+        usuario.setEmailVerificadoEm(Instant.now());
+        usuarioRepository.save(usuario);
+
+        token.setUsadoEm(Instant.now());
+        tokenRepository.save(token);
+
+        auditoriaService.registrarSeguranca("EMAIL_VERIFICADO", "SUCESSO",
                 usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());
     }
 

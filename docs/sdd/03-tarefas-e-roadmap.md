@@ -93,6 +93,21 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
   `SolicitacaoViagemService` (SPEC-09), e painel `/whatsapp` do gerente (QR + polling HTMX,
   status, desconectar, teste, últimas mensagens).
 
+### Incremento E — Verificação de contato e recuperação de senha ✅ (core) / 🟡 (SPEC-08)
+- **Objetivo**: verificar **telefone** (OTP/WhatsApp) e **e-mail** (link/e-mail) no cadastro, e um
+  fluxo de **"esqueci a senha"** (OTP/WhatsApp) — modelo **híbrido** ([SPEC-12](specs/SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md), **ADR-16**).
+- **Status**: ✅ **implementado e testado (2026-07-21)** — migration **V14**, **223 testes verdes**,
+  app sobe validando o schema. `VerificacaoService` (OTP), `RecuperacaoSenhaService` (reset com
+  seletor de método + anti-enumeração), verificação de e-mail por link, cadastro→PENDENTE+OTP com
+  degradação (RN-VER-07) e flag de DEV. **Pendente**: integração SPEC-08 (RN-VER-08) e **lockout do
+  login por senha** (nova DT).
+- **Reusa**: `TokenAtivacao`/`ConviteService` (ADR-11) e o `NotificacaoService` multicanal.
+- **Depende de**: canal WhatsApp = infra da Evolution (Incremento D); canal e-mail = integrar
+  `JavaMailSender`/SMTP (hoje `NotificacaoEmailCanal` é stub). O caminho feliz (telefone/WhatsApp)
+  independe do e-mail.
+- **Resolve junto**: os três itens da **SPEC-01 §9** (reset, verificação de contato, lockout dos
+  códigos). Fica de fora o **lockout do login por senha** (nova DT sugerida).
+
 ---
 
 ## 4. Backlog técnico transversal (não-funcional)

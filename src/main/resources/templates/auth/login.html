@@ -129,6 +129,12 @@
             <div th:if="${param.ativado}" class="cal-alert cal-alert--ok">
                 Conta ativada com sucesso! Faça login com sua nova senha.
             </div>
+            <div th:if="${param.verificado}" class="cal-alert cal-alert--ok">
+                Telefone confirmado! Faça login para continuar.
+            </div>
+            <div th:if="${param.senhaRedefinida}" class="cal-alert cal-alert--ok">
+                Senha redefinida com sucesso! Entre com a sua nova senha.
+            </div>
 
             <form th:action="@{/login}" method="post" class="cal-fields">
                 <label class="cal-field">
@@ -142,7 +148,7 @@
                 <label class="cal-field">
                     <span class="cal-field-top">
                         <span class="cal-label">Senha</span>
-                        <a class="cal-trailing" href="#">Esqueceu a senha?</a>
+                        <a class="cal-trailing" th:href="@{/esqueci-senha}">Esqueceu a senha?</a>
                     </span>
                     <input class="cal-input" type="password" name="password"
                            placeholder="••••••••" autocomplete="current-password" required/>

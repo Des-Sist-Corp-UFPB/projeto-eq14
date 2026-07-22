@@ -189,10 +189,10 @@ busca por   normaliza p/ dígitos
 
 ## 9. Fora do escopo desta spec
 
-- Recuperação de senha por e-mail (mencionada no domínio, **não implementada**).
+- Recuperação de senha (esqueci a senha) — **coberto por [SPEC-12](SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md)** (OTP via WhatsApp).
 - Telas/redirecionamentos por papel após login (hoje todos caem em `/`).
-- Verificação de e-mail/telefone (confirmação por link/código).
-- Bloqueio por tentativas (rate limiting / lockout).
+- Verificação de e-mail/telefone (confirmação por link/código) — **coberto por [SPEC-12](SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md)** (telefone por OTP/WhatsApp; e-mail por link).
+- Bloqueio por tentativas (rate limiting / lockout) — **parcialmente por [SPEC-12](SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md)** (lockout/throttle dos **códigos**); o lockout do **login por senha** segue fora do escopo.
 
 ---
 

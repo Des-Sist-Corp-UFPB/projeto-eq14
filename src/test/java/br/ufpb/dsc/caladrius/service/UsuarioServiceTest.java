@@ -42,6 +42,12 @@ class UsuarioServiceTest {
     @Mock
     private AuditoriaService auditoriaService;
 
+    @Mock
+    private VerificacaoService verificacaoService;
+
+    @Mock
+    private WhatsappService whatsappService;
+
     @InjectMocks
     private UsuarioService usuarioService;
 
@@ -59,6 +65,43 @@ class UsuarioServiceTest {
         assertThat(salvo.getTelefone()).isEqualTo("83999999999");
         assertThat(salvo.getHashSenha()).isEqualTo("HASH");
         assertThat(salvo.getPapeis()).containsExactly(Papel.PASSAGEIRO);
+    }
+
+    @Test
+    @DisplayName("registrarPassageiro: com WhatsApp configurado, nasce PENDENTE e dispara OTP (SPEC-12)")
+    void registrarPassageiro_whatsappConfigurado_pendenteEEnviaOtp() {
+        RegistroForm form = new RegistroForm("João Silva", "83999999999", null, null, "secret123",
+                null, null, null, null, null, null, null);
+        when(usuarioRepository.existsByTelefoneAndRemovidoEmIsNull("83999999999")).thenReturn(false);
+        when(passwordEncoder.encode("secret123")).thenReturn("HASH");
+        when(whatsappService.configurada()).thenReturn(true);
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> {
+            Usuario u = inv.getArgument(0);
+            if (u.getId() == null) {
+                u.setId(UUID.randomUUID());
+            }
+            return u;
+        });
+
+        Usuario salvo = usuarioService.registrarPassageiro(form);
+
+        assertThat(salvo.getStatus()).isEqualTo(StatusUsuario.PENDENTE);
+        verify(verificacaoService).enviarVerificacaoTelefone(any(Usuario.class), any());
+    }
+
+    @Test
+    @DisplayName("registrarPassageiro: sem WhatsApp configurado, nasce ATIVO sem OTP (degradação — RN-VER-07)")
+    void registrarPassageiro_whatsappNaoConfigurado_ativoSemOtp() {
+        RegistroForm form = new RegistroForm("João Silva", "83999999999", null, null, "secret123",
+                null, null, null, null, null, null, null);
+        when(usuarioRepository.existsByTelefoneAndRemovidoEmIsNull("83999999999")).thenReturn(false);
+        when(passwordEncoder.encode("secret123")).thenReturn("HASH");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Usuario salvo = usuarioService.registrarPassageiro(form);
+
+        assertThat(salvo.getStatus()).isEqualTo(StatusUsuario.ATIVO);
+        verify(verificacaoService, never()).enviarVerificacaoTelefone(any(), any());
     }
 
     @Test

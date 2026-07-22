@@ -2,9 +2,12 @@ package br.ufpb.dsc.caladrius.service;
 
 import br.ufpb.dsc.caladrius.domain.TokenAtivacao;
 import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.FinalidadeToken;
 import br.ufpb.dsc.caladrius.domain.enums.Papel;
 import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
+import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
 import br.ufpb.dsc.caladrius.repository.TokenAtivacaoRepository;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +26,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -137,5 +142,81 @@ class ConviteServiceTest {
                 .hasMessageContaining("6 caracteres");
 
         verify(usuarioRepository, never()).save(any());
+    }
+
+    // ---------------------------------------- verificação de e-mail (SPEC-12)
+
+    @Test
+    @DisplayName("enviarVerificacaoEmail: cria token VERIFICAR_EMAIL e envia o link por e-mail")
+    void enviarVerificacaoEmail_criaTokenEEnviaLink() {
+        Usuario u = new Usuario();
+        u.setId(UUID.randomUUID());
+        u.setNomeCompleto("Fulano");
+        u.setEmail("a@b.com");
+        when(tokenRepository.save(any(TokenAtivacao.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        conviteService.enviarVerificacaoEmail(u);
+
+        ArgumentCaptor<TokenAtivacao> cap = ArgumentCaptor.forClass(TokenAtivacao.class);
+        verify(tokenRepository).save(cap.capture());
+        assertThat(cap.getValue().getFinalidade()).isEqualTo(FinalidadeToken.VERIFICAR_EMAIL);
+        verify(notificacaoService).enviar(any(NotificacaoDestino.class), anyString(),
+                contains("/verificar-email?token="), eq(CanalTipo.EMAIL));
+    }
+
+    @Test
+    @DisplayName("enviarVerificacaoEmail: sem e-mail é no-op")
+    void enviarVerificacaoEmail_semEmail_noop() {
+        Usuario u = new Usuario();
+        u.setId(UUID.randomUUID());
+
+        conviteService.enviarVerificacaoEmail(u);
+
+        verify(tokenRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("verificarEmail: token válido marca email_verificado_em e consome o token")
+    void verificarEmail_valido() {
+        UUID uid = UUID.randomUUID();
+        TokenAtivacao token = new TokenAtivacao();
+        token.setUsuarioId(uid);
+        token.setExpiraEm(Instant.now().plusSeconds(3600));
+        token.setFinalidade(FinalidadeToken.VERIFICAR_EMAIL);
+        Usuario u = new Usuario();
+        when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+        when(usuarioRepository.findById(uid)).thenReturn(Optional.of(u));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tokenRepository.save(any(TokenAtivacao.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        conviteService.verificarEmail("raw-token");
+
+        assertThat(u.getEmailVerificadoEm()).isNotNull();
+        assertThat(token.getUsadoEm()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("verificarEmail: token de finalidade errada (ATIVACAO) é rejeitado")
+    void verificarEmail_finalidadeErrada() {
+        TokenAtivacao token = new TokenAtivacao(); // finalidade ATIVACAO (padrão)
+        token.setUsuarioId(UUID.randomUUID());
+        token.setExpiraEm(Instant.now().plusSeconds(3600));
+        when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+
+        assertThatThrownBy(() -> conviteService.verificarEmail("raw"))
+                .isInstanceOf(RegraNegocioException.class);
+    }
+
+    @Test
+    @DisplayName("ativar: token de verificação de e-mail não pode definir senha")
+    void ativar_tokenVerificacaoEmail_rejeita() {
+        TokenAtivacao token = new TokenAtivacao();
+        token.setUsuarioId(UUID.randomUUID());
+        token.setExpiraEm(Instant.now().plusSeconds(3600));
+        token.setFinalidade(FinalidadeToken.VERIFICAR_EMAIL);
+        when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(token));
+
+        assertThatThrownBy(() -> conviteService.ativar("raw", "novaSenha123"))
+                .isInstanceOf(RegraNegocioException.class);
     }
 }

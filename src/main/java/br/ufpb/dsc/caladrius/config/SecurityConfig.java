@@ -61,6 +61,9 @@ public class SecurityConfig {
                         // /ping é o contrato público exigido pela disciplina (200 JSON).
                         .requestMatchers(
                                 "/login", "/registrar", "/ativar",
+                                // Verificação de contato e recuperação de senha (SPEC-12).
+                                "/verificar-telefone", "/verificar-telefone/reenviar",
+                                "/verificar-email", "/esqueci-senha", "/redefinir-senha",
                                 "/ping", "/actuator/health",
                                 "/webjars/**", "/css/**", "/js/**"
                         ).permitAll()
