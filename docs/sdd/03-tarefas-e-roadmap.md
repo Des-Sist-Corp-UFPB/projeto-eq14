@@ -108,6 +108,14 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 - **Resolve junto**: os três itens da **SPEC-01 §9** (reset, verificação de contato, lockout dos
   códigos). Fica de fora o **lockout do login por senha** (nova DT sugerida).
 
+### Incremento F — Feature toggle ⬜
+- **Objetivo**: ligar/desligar funcionalidades em runtime pela área admin — **bot on/off**, **modo de
+  manutenção**, **entitlement de pagamento por município** e **config toggles** (parâmetros de negócio)
+  — [SPEC-13](specs/SPEC-13-feature-toggle.md), **ADR-17**.
+- **Status**: 🚧 **especificado** (SPEC-13); a implementar. Reusa `ConfiguracaoSistema` (ADR-10);
+  migration **V15** proposta só para `municipios.pagamento_habilitado`.
+- **Resolve**: move o item "Feature toggle" do `docs/checklist.md` de 🟡 para ✅.
+
 ---
 
 ## 4. Backlog técnico transversal (não-funcional)
