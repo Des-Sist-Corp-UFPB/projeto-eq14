@@ -4,10 +4,31 @@
 |---|---|
 | **Área** | `OBS` (observabilidade) |
 | **Papéis** | SYSADMIN (variáveis de ambiente/segredos no deploy); equipe/professor (leitura do painel Grafana). **Sem papel de usuário final** — é capacidade transversal de operação. |
-| **Status geral** | 🟢 **Implementada (2026-07-24)** — **dev e prod prontos** (código + infra) e **validados**: 199 testes verdes (incl. contexto Testcontainers V1→V13), `docker build -f docker/Dockerfile .` **verde** e **RN-OBS-01 conferido na imagem** (agente presente porém inerte; `ENTRYPOINT` intocado). Instrumentação = **agente Java (automática)** + **camada manual fina** (`RastreamentoService`) em **1 fluxo de negócio**. **Sem migration.** Falta apenas o passo **operacional**: preencher o `.env` do servidor (com o **token da turma**) e redeployar (§7). |
+| **Status geral** | ✅ **Em produção (2026-07-24)** — telemetria de **`dsc-eq14`** fluindo no backend central (confirmado no Grafana: `dsc-eq14` no dropdown *Job* do *JVM Overview*). Instrumentação = **agente Java (automática)** + **camada manual** (`RastreamentoService`) em **2 fluxos de negócio**; 199 testes verdes, `docker build` verde, RN-OBS-01 conferido na imagem. **Sem migration.** Ativação e **troubleshooting** (armadilhas reais da 1ª ativação) no **§11**. |
 | **Constituição** | Art. I (versões fixas — agente **pinado `v2.30.0`**; deps OTel pinadas pelo BOM do Spring Boot), Art. XI (segurança — token só por env, TLS, nada de segredo no repo), **Art. XII (o gate do CI é a compilação — o download do agente no build de prod não pode quebrar `docker build`)**, Art. XIII (`/ping` e Actuator intactos), Art. XIV (reusa o **backend central**, **não sobe infra própria** no servidor compartilhado) |
 | **Relacionada** | [SPEC-08](SPEC-08-login-social-google.md) (padrão de **ativação condicional por variável de ambiente** — o app sobe igual sem config), [SPEC-10](SPEC-10-integracao-whatsapp.md) (mesma filosofia "sem config, sem quebra"; infra externa via env/segredos), backlog **"Observabilidade"** do [roadmap §4](../03-tarefas-e-roadmap.md) · **ADR-17** ([plano técnico §9](../02-plano-tecnico.md)) |
 | **Código/Infra** | `pom.xml` (**+`opentelemetry-api`** compile, **+`opentelemetry-sdk-testing`** test — versões geridas pelo `opentelemetry-bom` do Spring Boot, 1.43.0); `observabilidade/RastreamentoService` + `observabilidade/TelemetriaConfig`; `service/SolicitacaoViagemService` (2 spans de negócio + logs estruturados); `docker/Dockerfile` (baixa e embute o agente pinado); `docker/docker-compose.prod.yml` (`OTEL_*` + `JAVA_TOOL_OPTIONS`, todos com default vazio); `.env.example`; `docker/Dockerfile.dev` + `docker/docker-compose.dev.yml` (agente + `grafana/otel-lgtm`). **Testes**: `RastreamentoServiceTest`, `SolicitacaoViagemTelemetriaTest`. **Nenhuma migration.** |
+
+---
+
+> ### 🔁 Playbook reutilizável (outros serviços/projetos)
+> Esta spec é do CALADRIUS, mas o **padrão** vale para **qualquer serviço JVM/Spring Boot** na infra da
+> disciplina (e, com pequenas adaptações, fora dela). Para reusar em outro serviço, troque só os pontos
+> abaixo — o **runbook genérico de ativação + troubleshooting está no [§11](#11-runbook-de-ativação-em-produção--troubleshooting-lições-da-1ª-ativação)**:
+>
+> | Ponto de substituição | Neste projeto (exemplo) | No seu serviço |
+> |---|---|---|
+> | `OTEL_SERVICE_NAME` | `dsc-eq14` | `dsc-eqNN` — o **seu** identificador |
+> | Caminho do agente na imagem | `/app/opentelemetry-javaagent.jar` | onde o **seu** Dockerfile copia o `.jar` |
+> | Span(s) manuais de negócio | `solicitar-sob-demanda`, `aprovar-solicitacao` (`SolicitacaoViagemService`) | `nome-da-sua-operação` no **seu** service |
+> | Atributos de domínio | `solicitacao.tipo`, `solicitacao.cidade_destino` | atributos do **seu** domínio (**sem PII**) |
+> | Endpoint / token | `https://otel.dsc.rodrigor.com` / `<TOKEN_DA_TURMA>` | o endpoint e token do seu backend |
+>
+> **O que NÃO muda** (o "esqueleto" reutilizável): baixar o **agente pinado** no Dockerfile e embuti-lo
+> **inerte**; ligar por **`JAVA_TOOL_OPTIONS=-javaagent:<caminho>`**; `OTEL_*` no **ambiente do container**;
+> o helper **`RastreamentoService`** (independente de domínio — copiável como está); e o **diagnóstico**
+> (log de boot do container + filtro por `service.name` no painel). As classes de exemplo
+> (`RastreamentoService`/`TelemetriaConfig`) não referenciam nada do CALADRIUS — servem de base direta.
 
 ---
 
@@ -41,9 +62,9 @@ Dois princípios regem o desenho (espelham SPEC-08/10):
 
 | ID | Requisito | Estado |
 |---|---|---|
-| **FR-OBS-01** | Exportar **traces** das requisições (HTTP + JDBC) para o Tempo via OTLP. | 🟢 código+infra ✅ (aguarda `.env` do servidor) |
-| **FR-OBS-02** | Exportar **métricas** (JVM, HTTP, pool de conexões) para o Prometheus via OTLP. | 🟢 código+infra ✅ (aguarda `.env`) |
-| **FR-OBS-03** | Exportar **logs** da aplicação para o **Loki** via OTLP (agregador central), correlacionados ao trace. | 🟢 código+infra ✅ (aguarda `.env`) |
+| **FR-OBS-01** | Exportar **traces** das requisições (HTTP + JDBC) para o Tempo via OTLP. | ✅ **em produção** (`dsc-eq14` no Grafana) |
+| **FR-OBS-02** | Exportar **métricas** (JVM, HTTP, pool de conexões) para o Prometheus via OTLP. | ✅ **em produção** |
+| **FR-OBS-03** | Exportar **logs** da aplicação para o **Loki** via OTLP (agregador central), correlacionados ao trace. | ✅ **em produção** |
 | **FR-OBS-04** | Separar a telemetria da equipe por `service.name = dsc-eq14` (filtro no Grafana). | 🟢 ✅ (`dsc-eq14` prod / `dsc-eq14-dev` dev) |
 | **FR-OBS-05** | Não exigir migration; ligar/desligar por variável de ambiente. | ✅ (por desenho) |
 | **FR-OBS-06** | **Spans de negócio** manuais (nome de operação + atributos de domínio), cobertos por teste. | ✅ 2 fluxos: `solicitar-sob-demanda` + `aprovar-solicitacao` (ver §3.1/§8) |
@@ -251,19 +272,16 @@ ambiente**. O agente OTel lê os padrões `OTEL_*` diretamente do ambiente.
 
 - **Onde as variáveis vivem:** no `.env` do servidor, gerido pelas **mesmas mãos** que já definem
   `DATABASE_PASSWORD`/`GOOGLE_CLIENT_ID` (SYSADMIN/deploy). `.env` está no `.gitignore`.
-- **Sequência de ativação (prod):**
-  1. **Já feito neste incremento:** Dockerfile embute o agente; compose repassa as env (default vazio);
-     app com a camada manual. O `push` faz o CI (`deploy.yml`) buildar a imagem (com o agente) e publicar.
-  2. Definir as chaves no `.env` do servidor (inclui o **token** — RN-OBS-02). Bloco pronto para
-     copiar em [`.env.example`](../../../.env.example).
-  3. Redeploy → o container sobe com `JAVA_TOOL_OPTIONS` apontando o agente.
-  4. Validar no Grafana (§8).
-- **⚠️ O push dispara o deploy.** Como o `docker/Dockerfile` mudou (embute o agente), o próximo deploy
-  **rebuilda a imagem com o agente**. Sem o `.env`, o comportamento em runtime é **idêntico** (agente
-  inerte — RN-OBS-01): é seguro. A telemetria só flui quando o `.env` do servidor for preenchido.
-- **Ponto a confirmar:** se o servidor usa o `docker-compose.prod.yml` **do repositório** (então as
-  novas chaves de `environment` sobem no próximo deploy) ou uma **cópia estática** em
-  `/home/ghactions/eq14/` (aí é preciso atualizar a cópia à mão). O `.env` é sempre manual.
+- **Sequência de ativação (prod) — o que foi feito:**
+  1. Dockerfile embute o agente; `push` → CI builda/publica a imagem (com o agente). Sem `.env`, o
+     runtime é **idêntico** (agente inerte — RN-OBS-01), então o push é **seguro**.
+  2. Ligar a telemetria pelo **portal da disciplina** (editor de `.env` → **Salvar e aplicar**, que
+     **recria o container**) — **não** por SSH nem pelo compose do repo. Passo a passo no **§11**.
+  3. Validar no **Dozzle** (boot do container) e no Grafana (§11.3).
+- **Ponto a confirmar — RESOLVIDO (2026-07-24):** o servidor **não** usa o `docker-compose.prod.yml`
+  do repositório; o container é gerido pelo **portal da disciplina**. As `OTEL_*`/`JAVA_TOOL_OPTIONS`
+  no compose do repo valem para o **dev** e como documentação; em **prod**, quem vale é o `.env` do
+  portal (§11.1).
 
 ---
 
@@ -304,7 +322,7 @@ domínio), somados à validação operacional do agente/infra.
 ## 9. Impacto em specs/documentos existentes
 
 - **[Roadmap §1](../03-tarefas-e-roadmap.md)** — nova capacidade **"Observabilidade (OpenTelemetry)"**
-  (🟢 código+infra prontos; aguarda `.env`) + **Incremento E**.
+  (✅ em produção — `dsc-eq14` no Grafana) + **Incremento E**.
 - **[Roadmap §4](../03-tarefas-e-roadmap.md)** — o item transversal **"Observabilidade"** ("avaliar
   métricas/health além de `/ping`") passa a ser **endereçado por esta spec**.
 - **[Plano técnico §9](../02-plano-tecnico.md)** — **ADR-17** registrada (agente auto + camada manual +
@@ -318,9 +336,8 @@ domínio), somados à validação operacional do agente/infra.
 
 ## 10. Próximos passos
 
-1. **Preencher o `.env`** do servidor (bloco pronto no `.env.example`) com o **token da turma** e
-   redeployar; **validar no Grafana** (traces/métricas/logs + o span `solicitar-sob-demanda`,
-   filtrando `dsc-eq14` — §8).
+1. ✅ **Feito (2026-07-24):** ativado em produção pelo **portal da disciplina** — `dsc-eq14` recebendo
+   no Grafana. Runbook e troubleshooting em **§11**.
 2. **(Futuro)** mais **spans de negócio** (ex.: `ViagemService.designar`, onboarding do bot) reusando o
    `RastreamentoService`; **métricas de negócio** via Micrometer/OTel SDK; correlação da telemetria com
    a auditoria (`log_auditoria`) e com o WhatsApp (SPEC-10).
@@ -329,3 +346,69 @@ domínio), somados à validação operacional do agente/infra.
 > Atualizações do agente são uma mudança **consciente** (bump do `ARG OTEL_AGENT_VERSION` no
 > Dockerfile), nunca um `latest` que possa quebrar o build de prod sem aviso. A **API** OTel usada pela
 > app (1.43.0, do BOM do Spring Boot) é ≤ à do agente — compatível.
+
+---
+
+## 11. Runbook de ativação em produção + troubleshooting (lições da 1ª ativação)
+
+Registro da **primeira ativação real** (2026-07-24) para **reuso em outros projetos JVM**. Duas
+armadilhas consumiram a maior parte do tempo — estão na tabela de troubleshooting (§11.4).
+
+### 11.1 Como a infra da disciplina realmente ativa (importante)
+
+O CI **não sincroniza** o `docker-compose.prod.yml` do repositório com o servidor: o container de cada
+equipe é gerido por um **portal da disciplina**, que expõe um **editor de variáveis de ambiente
+(`.env`)**. Ao **"Salvar e aplicar"**, o portal grava o `.env` **e recria o container**
+automaticamente (é o mesmo mecanismo por onde já chegam as credenciais do banco). Ou seja: **a
+telemetria é ligada por esse portal — não por SSH nem editando o compose do repo.**
+
+> Consequência para o repo: as `OTEL_*`/`JAVA_TOOL_OPTIONS` que estão no `docker/docker-compose.prod.yml`
+> servem de **documentação/rede de segurança** e valem para o **dev**; em **prod**, quem vale é o `.env`
+> do portal.
+
+### 11.2 Passo a passo (portal da equipe)
+
+1. Portal da equipe → card **"Variáveis de ambiente"** → **Editar variáveis**.
+2. Acrescente ao `.env` (mantendo as chaves de banco/Google), copiando de [`.env.example`](../../../.env.example):
+   ```
+   OTEL_SERVICE_NAME=dsc-eqNN
+   OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.dsc.rodrigor.com
+   OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer <TOKEN_DA_TURMA>
+   OTEL_TRACES_EXPORTER=otlp
+   OTEL_METRICS_EXPORTER=otlp
+   OTEL_LOGS_EXPORTER=otlp
+   JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
+   ```
+3. **Salvar e aplicar** (recria o container).
+4. Validar (§11.3).
+
+### 11.3 Como validar sem SSH (Dozzle + Grafana)
+
+A infra tem **Dozzle** (visualizador de logs, *read-only* — não edita nada). No **boot** do container
+`eqNN` devem aparecer, nesta ordem:
+- `Picked up JAVA_TOOL_OPTIONS: -javaagent:/app/opentelemetry-javaagent.jar` — a variável chegou **e** o valor está correto (**com** o hífen);
+- `[otel.javaagent ...] opentelemetry-javaagent - version: 2.30.0` — o agente subiu;
+- `Started CaladriusApplication ...` — sem erro de JVM.
+
+No **Grafana** (`otel.dsc.rodrigor.com`): em **Dashboards → JVM Overview** o dropdown **Job** passa a
+listar `dsc-eqNN`; em **Explore → Tempo/Loki** filtre `service.name=dsc-eqNN` (**traces e logs vivem no
+Explore**; as métricas ficam nos Dashboards).
+
+### 11.4 Troubleshooting — as armadilhas reais
+
+| Sintoma (log/Grafana) | Causa | Correção |
+|---|---|---|
+| `dsc-eqNN` não aparece; app sobe normal; **sem** `Picked up JAVA_TOOL_OPTIONS` no boot | A variável não chega ao container **ou** o **nome está errado**. O correto é **`JAVA_TOOL_OPTIONS`** — **`TOOL` no singular**; o typo `JAVA_TOOLS_OPTIONS` faz a JVM **ignorar silenciosamente** (app sobe, mas sem agente). | Corrigir o nome; garantir que o `.env` chega ao container (o portal já faz ao "aplicar"; em Compose próprio, `env_file: [.env]` ou listar em `environment:`). |
+| `Unrecognized option: javaagent:...` → `Could not create the Java Virtual Machine` → **container em crash-loop** (app fora do ar) | O valor está **sem o hífen** inicial. `-javaagent` é opção da JVM e **exige** o `-`. | Valor exato: **`-javaagent:/app/opentelemetry-javaagent.jar`** — o `-` vem logo após o `=`. |
+| Agente sobe no boot, mas **sem dados** no Grafana; log com `401`/`Unauthorized` | Token ausente/errado, ou **aspas** no valor do header. | `OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer <token>` — **sem aspas** (o `.env` lê literal). |
+| Nada em **Dashboards**, mas não olhou em **Explore** | Dashboards mostram **métricas** por Job; **traces/logs** vivem no **Explore**. | Use **Explore → Tempo** (traces) e **Loki** (logs) filtrando `service.name`. |
+
+### 11.5 Lição para reuso (qualquer projeto JVM)
+
+O par que liga a telemetria é **`JAVA_TOOL_OPTIONS=-javaagent:<caminho-do-agente-na-imagem>`** — os dois
+pontos que custam tempo são o **nome** (`TOOL`, singular) e o **hífen** do valor. O resto é `OTEL_*` no
+ambiente. Em qualquer infra que injete o `.env` no ambiente do container (portal, Portainer, Compose com
+`env_file`/`environment`), basta essas chaves **chegarem ao container** e o `.jar` do agente existir na
+imagem — **sem tocar no código** da aplicação. Diagnóstico é sempre o mesmo: **log de boot do container**
+(`Picked up ...` + `opentelemetry-javaagent - version`) e o **dropdown/filtro por `service.name`** no painel.

@@ -189,16 +189,17 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
   **backend central** da disciplina (Grafana+Tempo+Prometheus+**Loki**, `service.name=dsc-eq14`).
   **Sem migration.** `pom.xml` ganhou só a **API** OTel (o SDK vem do agente). Agente **pinado v2.30.0**
   no `Dockerfile` — embutido mas **inerte** sem `JAVA_TOOL_OPTIONS` (RN-OBS-01, conferido na imagem);
-  `grafana/otel-lgtm` local no dev. **Falta só operacional**: preencher o `.env` do servidor (token da
-  turma) + redeploy. Antes: SPEC-11 (sob demanda + onboarding WhatsApp, V13) e SPEC-10
+  `grafana/otel-lgtm` local no dev. **Em produção**: ativado pelo portal da disciplina — `dsc-eq14`
+  recebendo no Grafana (runbook + armadilhas da ativação na SPEC-14 §11). Antes: SPEC-11 (sob demanda + onboarding WhatsApp, V13) e SPEC-10
   (Evolution/webhook/painel `/whatsapp`). Migrations até **V13**. **Testes verdes (199)**, incl. o de
   contexto Testcontainers (V1→V13) e os de telemetria; `mvn test` e `docker build -f docker/Dockerfile .`
   verdes localmente.
 - **Specs implementadas (✅)**: SPEC-01..11 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
 - **Pontos de atenção / dívidas em aberto** (do roadmap):
-  - **Observabilidade — `.env` pendente (SPEC-14)**: preencher `OTEL_*` + `JAVA_TOOL_OPTIONS` no `.env`
-    do servidor (com o **token da turma** do Discord) e redeployar; sem isso o agente fica inerte e o
-    app sobe idêntico (RN-OBS-01). Bloco pronto no `.env.example`. Painel: `otel.dsc.rodrigor.com`.
+  - **Observabilidade — ✅ em produção (SPEC-14)**: `dsc-eq14` recebendo traces/métricas/logs no Grafana
+    (`otel.dsc.rodrigor.com`). Ativado pelo **portal da disciplina** (editor de `.env` que recria o
+    container). Armadilhas da ativação (nome `JAVA_TOOL_OPTIONS` **singular**; **hífen** do `-javaagent`;
+    diagnóstico via Dozzle no boot) documentadas na **SPEC-14 §11**.
   - **WhatsApp — infra pendente**: subir a **Evolution API na VPS da equipe** (SPEC-10 §8) e configurar
     as variáveis de ambiente do deploy (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`,
     `APP_URL_PUBLICA`). Sem elas, o canal opera como stub e o painel mostra "não configurada"
