@@ -13,11 +13,14 @@ import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
 import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
 import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
+import br.ufpb.dsc.caladrius.observabilidade.RastreamentoService;
 import br.ufpb.dsc.caladrius.repository.CidadeRepository;
 import br.ufpb.dsc.caladrius.repository.LinhaProgramadaRepository;
 import br.ufpb.dsc.caladrius.repository.SolicitacaoViagemRepository;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
 import br.ufpb.dsc.caladrius.repository.ViagemRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -40,6 +44,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class SolicitacaoViagemService {
 
+    private static final Logger log = LoggerFactory.getLogger(SolicitacaoViagemService.class);
     private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final SolicitacaoViagemRepository solicitacaoRepository;
@@ -49,6 +54,7 @@ public class SolicitacaoViagemService {
     private final CidadeRepository cidadeRepository;
     private final NotificacaoService notificacaoService;
     private final WhatsappService whatsappService;
+    private final RastreamentoService rastreamento;
 
     public SolicitacaoViagemService(SolicitacaoViagemRepository solicitacaoRepository,
                                     LinhaProgramadaRepository linhaRepository,
@@ -56,7 +62,8 @@ public class SolicitacaoViagemService {
                                     UsuarioRepository usuarioRepository,
                                     CidadeRepository cidadeRepository,
                                     NotificacaoService notificacaoService,
-                                    WhatsappService whatsappService) {
+                                    WhatsappService whatsappService,
+                                    RastreamentoService rastreamento) {
         this.solicitacaoRepository = solicitacaoRepository;
         this.linhaRepository = linhaRepository;
         this.viagemRepository = viagemRepository;
@@ -64,6 +71,7 @@ public class SolicitacaoViagemService {
         this.cidadeRepository = cidadeRepository;
         this.notificacaoService = notificacaoService;
         this.whatsappService = whatsappService;
+        this.rastreamento = rastreamento;
     }
 
     /** Linhas ativas oferecidas ao passageiro (aba "Linhas disponíveis"). */
@@ -199,23 +207,35 @@ public class SolicitacaoViagemService {
         Cidade destino = cidadeRepository.findById(cidadeDestinoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Cidade", cidadeDestinoId));
 
-        if (data == null || data.isBefore(LocalDate.now())) {
-            throw new RegraNegocioException("Escolha uma data igual ou posterior a hoje");
-        }
-        if (solicitacaoRepository.existsByPassageiro_IdAndCidadeDestino_IdAndDataDesejadaAndStatusNot(
-                passageiroId, cidadeDestinoId, data, StatusSolicitacao.CANCELADA)) {
-            throw new RegraNegocioException("Você já tem uma solicitação para este destino nesta data");
-        }
+        // Span de negócio (SPEC-14): nomeia a operação de domínio e anexa atributos
+        // (destino/tipo) — sem PII (RN-OBS-08). Uma violação de regra abaixo é gravada
+        // no span como ERROR; com o agente desligado, todo o rastrear() é no-op (RN-OBS-06).
+        Map<String, String> atributos = Map.of(
+                "solicitacao.tipo", TipoSolicitacao.SOB_DEMANDA.name(),
+                "solicitacao.cidade_destino", destino.getNome());
+        return rastreamento.rastrear("solicitar-sob-demanda", atributos, () -> {
+            if (data == null || data.isBefore(LocalDate.now())) {
+                throw new RegraNegocioException("Escolha uma data igual ou posterior a hoje");
+            }
+            if (solicitacaoRepository.existsByPassageiro_IdAndCidadeDestino_IdAndDataDesejadaAndStatusNot(
+                    passageiroId, cidadeDestinoId, data, StatusSolicitacao.CANCELADA)) {
+                throw new RegraNegocioException("Você já tem uma solicitação para este destino nesta data");
+            }
 
-        SolicitacaoViagem solicitacao = new SolicitacaoViagem();
-        solicitacao.setTipo(TipoSolicitacao.SOB_DEMANDA);
-        solicitacao.setPassageiro(passageiro);
-        solicitacao.setCidadeDestino(destino);
-        solicitacao.setDataDesejada(data);
-        solicitacao.setHorarioDesejado(horario);
-        solicitacao.setCondicoes(condicoes != null && !condicoes.isBlank() ? condicoes.trim() : null);
-        solicitacao.setStatus(StatusSolicitacao.PENDENTE);
-        return solicitacaoRepository.save(solicitacao);
+            SolicitacaoViagem solicitacao = new SolicitacaoViagem();
+            solicitacao.setTipo(TipoSolicitacao.SOB_DEMANDA);
+            solicitacao.setPassageiro(passageiro);
+            solicitacao.setCidadeDestino(destino);
+            solicitacao.setDataDesejada(data);
+            solicitacao.setHorarioDesejado(horario);
+            solicitacao.setCondicoes(condicoes != null && !condicoes.isBlank() ? condicoes.trim() : null);
+            solicitacao.setStatus(StatusSolicitacao.PENDENTE);
+            SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);
+            // Log estruturado (vai ao Loki via agente, correlacionado ao trace) — sem PII.
+            log.info("solicitação sob demanda criada: solicitacao_id={} destino={} data={} status={}",
+                    salva.getId(), destino.getNome(), data, salva.getStatus());
+            return salva;
+        });
     }
 
     /** Fila do gestor: demandas aguardando avaliação (mais antigas primeiro). */
@@ -245,26 +265,37 @@ public class SolicitacaoViagemService {
     public SolicitacaoViagem aprovar(UUID solicitacaoId, UUID viagemId) {
         SolicitacaoViagem solicitacao = solicitacaoRepository.findById(solicitacaoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação", solicitacaoId));
-        if (solicitacao.getStatus() != StatusSolicitacao.PENDENTE) {
-            throw new RegraNegocioException("Só é possível aprovar uma solicitação pendente");
-        }
-        Viagem viagem = viagemRepository.findById(viagemId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Viagem", viagemId));
-        Cidade destino = solicitacao.getDestino();
-        if (destino != null && !viagem.getCidadeDestino().getId().equals(destino.getId())) {
-            throw new RegraNegocioException("A viagem escolhida tem destino diferente do solicitado");
-        }
 
-        solicitacao.setViagem(viagem);
-        solicitacao.setStatus(StatusSolicitacao.ALOCADA);
-        solicitacao.setMotivoRecusa(null);
-        SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);
+        // 2º span de negócio (SPEC-14): a decisão do gestor (aprovar/alocar). Erros de
+        // regra (não pendente, destino divergente) e a viagem inexistente caem no span
+        // como ERROR; sem agente, todo o rastrear() é no-op (RN-OBS-06).
+        Map<String, String> atributos = Map.of(
+                "solicitacao.id", String.valueOf(solicitacaoId),
+                "solicitacao.cidade_destino", nomeDestino(solicitacao));
+        return rastreamento.rastrear("aprovar-solicitacao", atributos, () -> {
+            if (solicitacao.getStatus() != StatusSolicitacao.PENDENTE) {
+                throw new RegraNegocioException("Só é possível aprovar uma solicitação pendente");
+            }
+            Viagem viagem = viagemRepository.findById(viagemId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Viagem", viagemId));
+            Cidade destino = solicitacao.getDestino();
+            if (destino != null && !viagem.getCidadeDestino().getId().equals(destino.getId())) {
+                throw new RegraNegocioException("A viagem escolhida tem destino diferente do solicitado");
+            }
 
-        String hora = viagem.getHorarioSaida() != null ? viagem.getHorarioSaida().toString() : "";
-        notificar(solicitacao.getPassageiro(), "Transporte aprovado",
-                whatsappService.mensagemConfirmacao(nomeDestino(solicitacao),
-                        DATA_BR.format(solicitacao.getDataDesejada()), hora));
-        return salva;
+            solicitacao.setViagem(viagem);
+            solicitacao.setStatus(StatusSolicitacao.ALOCADA);
+            solicitacao.setMotivoRecusa(null);
+            SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);
+
+            String hora = viagem.getHorarioSaida() != null ? viagem.getHorarioSaida().toString() : "";
+            notificar(solicitacao.getPassageiro(), "Transporte aprovado",
+                    whatsappService.mensagemConfirmacao(nomeDestino(solicitacao),
+                            DATA_BR.format(solicitacao.getDataDesejada()), hora));
+            log.info("solicitação aprovada: solicitacao_id={} viagem_id={} destino={} status={}",
+                    solicitacaoId, viagemId, nomeDestino(solicitacao), salva.getStatus());
+            return salva;
+        });
     }
 
     /**

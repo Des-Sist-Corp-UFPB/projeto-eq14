@@ -262,6 +262,7 @@ Resumo das decisões já tomadas (detalhe e justificativa na Constituição e na
 | **ADR-13** | Endereço do passageiro em **tabela `enderecos` estruturada** (FK cidade), não JSONB | **Aprovada** | SPEC-07 |
 | **ADR-14** | WhatsApp via **porta `ProvedorWhatsapp`** (trocar de provedor = novo adaptador); **Evolution API** self-hosted em VPS própria; bot desacoplado da integração | **Aprovada** | SPEC-10 |
 | **ADR-15** | Solicitação **sob demanda** estende `solicitacoes_viagem` (coluna `tipo`, `linha_programada` nullable) — fila única, não tabela nova; **onboarding** pelo WhatsApp cria PASSAGEIRO **ATIVO sem senha**; "Acesso à plataforma" reusa o **token de ativação** (ADR-11) | **Aprovada** | SPEC-11 |
+| **ADR-17** | **Observabilidade via OpenTelemetry**: **agente Java** (auto: HTTP/JDBC/JVM/logs) + **camada manual mínima** (`RastreamentoService`, só a API OTel no `pom.xml`; o SDK vem do agente) para spans de negócio; export **OTLP** ao **backend central** da disciplina (logs no Loki pela mesma via); ligado/desligado por env (`JAVA_TOOL_OPTIONS`), **sem migration**. (ADR-16 reservada para spec em preparação.) | **Aprovada** | SPEC-14 |
 
 **Como registrar uma nova ADR:** ao emendar a Constituição ou tomar uma decisão técnica
 relevante, acrescente uma linha aqui (com motivação) e atualize a `CLAUDE.md`.

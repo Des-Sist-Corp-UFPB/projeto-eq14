@@ -15,6 +15,13 @@ FROM maven:3.9.9-eclipse-temurin-21 AS dev
 
 WORKDIR /app
 
+# Agente OpenTelemetry (SPEC-14) — baixado no build (a imagem maven tem curl), versão
+# PINADA (Art. I). Em DEV o agente é SEMPRE anexado (via jvmArguments no CMD) e aponta
+# para o otel-lgtm LOCAL (ver docker-compose.dev.yml).
+ARG OTEL_AGENT_VERSION=2.30.0
+RUN curl -fsSL -o /app/opentelemetry-javaagent.jar \
+    "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar"
+
 # Copiar apenas o pom.xml primeiro para aproveitar o cache de dependências.
 # Se o pom.xml não mudar, o Docker reutiliza a camada de "mvn dependency:go-offline".
 COPY pom.xml .
@@ -25,5 +32,7 @@ RUN mvn dependency:go-offline -B
 
 EXPOSE 8080
 
-# Spring DevTools requer o argumento -Dspring-boot.run.fork=false para funcionar em container
-CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-Dspring.profiles.active=dev"]
+# O agente OTel é anexado à JVM da app (via jvmArguments); as variáveis OTEL_* vêm do
+# docker-compose.dev.yml e apontam para o otel-lgtm local. (spring-boot:run bifurca a
+# JVM quando há jvmArguments, então o -javaagent recai sobre o processo da aplicação.)
+CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-javaagent:/app/opentelemetry-javaagent.jar -Dspring.profiles.active=dev"]

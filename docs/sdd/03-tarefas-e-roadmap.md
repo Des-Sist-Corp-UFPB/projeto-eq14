@@ -17,6 +17,7 @@
 | CRUD de cidades | [SPEC-04](specs/SPEC-04-gestao-cidades.md) | ✅ | remoção física; seed na V3 |
 | Viagens: criar/listar/excluir | [SPEC-05](specs/SPEC-05-gestao-viagens.md) | 🟡 | sem edição/transição de status |
 | Painel inicial (totais) | (produto §4) | ✅ | contagens por repositório |
+| Observabilidade (OpenTelemetry) | [SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md) | 🟢 | agente auto (traces/métricas/logs) + span de negócio; dev+prod prontos, aguarda `.env` do servidor |
 
 ---
 
@@ -93,6 +94,17 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
   `SolicitacaoViagemService` (SPEC-09), e painel `/whatsapp` do gerente (QR + polling HTMX,
   status, desconectar, teste, últimas mensagens).
 
+### Incremento E — Observabilidade (OpenTelemetry) 🟢 (código+infra) / 🟡 (aguarda `.env`)
+- **Status**: **implementado e validado (2026-07-24)** — [SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md)
+  (ADR-17), **sem migration**, 199 testes verdes e `docker build` verde (agente pinado **v2.30.0**).
+  **Pendente**: preencher o `.env` do servidor (com o **token da turma**) e redeployar — sem isso o
+  agente fica **inerte** e o app sobe idêntico (RN-OBS-01).
+- **Entregue**: agente Java (auto: HTTP/JDBC/JVM/**logs**) exportando **OTLP** ao backend **central**
+  da disciplina (Grafana+Tempo+Prometheus+**Loki**); camada manual `RastreamentoService` +
+  `TelemetriaConfig`; **2 spans de negócio** (`solicitar-sob-demanda` + `aprovar-solicitacao`, atributos
+  de domínio + logs estruturados) com testes de unidade e de **cenário real**; infra dev (`grafana/otel-lgtm`) e prod
+  (Dockerfile embute o agente; compose + `.env.example` com `OTEL_*`/`JAVA_TOOL_OPTIONS`).
+
 ---
 
 ## 4. Backlog técnico transversal (não-funcional)
@@ -103,7 +115,7 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 | Cobertura de testes | Testes de `ViagemService`/`CidadeService` e de controllers; um teste por critério de aceite (DT-07). |
 | Regras de integridade | Proteções DT-01 (cidade referenciada) e DT-02 (último gerente). |
 | Sincronizar status do veículo | Marcar `EM_VIAGEM` ao alocar; liberar ao concluir/cancelar. |
-| Observabilidade | Avaliar métricas/health além de `/ping` (Actuator). |
+| Observabilidade | ✅ Endereçado pela **[SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md)** (ADR-17): traces/métricas/**logs** via OpenTelemetry ao backend central. Aguarda só o `.env` do servidor. |
 
 ---
 
