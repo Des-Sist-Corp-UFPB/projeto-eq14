@@ -17,6 +17,7 @@
 | CRUD de cidades | [SPEC-04](specs/SPEC-04-gestao-cidades.md) | ✅ | remoção física; seed na V3 |
 | Viagens: criar/listar/excluir | [SPEC-05](specs/SPEC-05-gestao-viagens.md) | 🟡 | sem edição/transição de status |
 | Painel inicial (totais) | (produto §4) | ✅ | contagens por repositório |
+| Observabilidade (OpenTelemetry) | [SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md) | ✅ | **em produção** (`dsc-eq14` no Grafana); agente auto (traces/métricas/logs) + 2 spans de negócio |
 
 ---
 
@@ -108,7 +109,18 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 - **Resolve junto**: os três itens da **SPEC-01 §9** (reset, verificação de contato, lockout dos
   códigos). Fica de fora o **lockout do login por senha** (nova DT sugerida).
 
-### Incremento F — Feature toggle ⬜
+### Incremento F — Observabilidade (OpenTelemetry) ✅ (em produção)
+- **Status**: **em produção (2026-07-24)** — [SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md)
+  (ADR-18), **sem migration**, 199 testes verdes e `docker build` verde (agente pinado **v2.30.0**).
+  **Ativado pelo portal da disciplina** (editor de `.env` que recria o container) — `dsc-eq14` recebendo
+  no Grafana. Runbook + armadilhas da ativação em [SPEC-14 §11](specs/SPEC-14-observabilidade-opentelemetry.md).
+- **Entregue**: agente Java (auto: HTTP/JDBC/JVM/**logs**) exportando **OTLP** ao backend **central**
+  da disciplina (Grafana+Tempo+Prometheus+**Loki**); camada manual `RastreamentoService` +
+  `TelemetriaConfig`; **2 spans de negócio** (`solicitar-sob-demanda` + `aprovar-solicitacao`, atributos
+  de domínio + logs estruturados) com testes de unidade e de **cenário real**; infra dev (`grafana/otel-lgtm`) e prod
+  (Dockerfile embute o agente; compose + `.env.example` com `OTEL_*`/`JAVA_TOOL_OPTIONS`).
+
+### Incremento G — Feature toggle ⬜
 - **Objetivo**: ligar/desligar funcionalidades em runtime pela área admin — **bot on/off**, **modo de
   manutenção**, **entitlement de pagamento por município** e **config toggles** (parâmetros de negócio)
   — [SPEC-13](specs/SPEC-13-feature-toggle.md), **ADR-17**.
@@ -126,7 +138,7 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 | Cobertura de testes | Testes de `ViagemService`/`CidadeService` e de controllers; um teste por critério de aceite (DT-07). |
 | Regras de integridade | Proteções DT-01 (cidade referenciada) e DT-02 (último gerente). |
 | Sincronizar status do veículo | Marcar `EM_VIAGEM` ao alocar; liberar ao concluir/cancelar. |
-| Observabilidade | Avaliar métricas/health além de `/ping` (Actuator). |
+| Observabilidade | ✅ **Em produção** pela **[SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md)** (ADR-18): traces/métricas/**logs** via OpenTelemetry ao backend central (`dsc-eq14` no Grafana). |
 
 ---
 

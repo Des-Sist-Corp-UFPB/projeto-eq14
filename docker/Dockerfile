@@ -18,6 +18,15 @@ FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /build
 
+# Agente OpenTelemetry (SPEC-14) — baixado no estágio de build (a imagem maven tem curl;
+# o runtime -jre não precisa ganhar ferramenta de rede) com versão PINADA (Art. I).
+# curl -fsSL falha o build em erro HTTP em vez de gerar um .jar corrompido, mantendo o
+# gate do CI honesto (Art. XII). O agente vai para o runtime abaixo, mas fica INERTE até
+# JAVA_TOOL_OPTIONS referenciá-lo (liga/desliga sem rebuild).
+ARG OTEL_AGENT_VERSION=2.30.0
+RUN curl -fsSL -o /opentelemetry-javaagent.jar \
+    "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar"
+
 # Copiar pom.xml primeiro para cache de dependências
 COPY pom.xml .
 RUN mvn dependency:go-offline -B -q
@@ -39,8 +48,14 @@ WORKDIR /app
 # Copiar apenas o JAR do estágio anterior
 COPY --from=builder /build/target/*.jar app.jar
 
-# Definir owner do arquivo
-RUN chown mercado:mercado app.jar
+# Agente OpenTelemetry (SPEC-14): presente na imagem desde o build, porém INERTE — só é
+# anexado à JVM se JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar for
+# definido (no .env do servidor). Sem isso, a JVM nem o carrega: comportamento idêntico
+# ao atual (RN-OBS-01). O ENTRYPOINT abaixo NÃO muda.
+COPY --from=builder /opentelemetry-javaagent.jar opentelemetry-javaagent.jar
+
+# Definir owner dos arquivos (app + agente)
+RUN chown mercado:mercado app.jar opentelemetry-javaagent.jar
 
 # Trocar para usuário não-root
 USER mercado

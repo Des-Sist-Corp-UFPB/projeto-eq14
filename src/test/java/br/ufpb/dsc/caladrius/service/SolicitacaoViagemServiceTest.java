@@ -9,10 +9,12 @@ import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
 import br.ufpb.dsc.caladrius.domain.enums.StatusSolicitacao;
 import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
 import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.observabilidade.RastreamentoService;
 import br.ufpb.dsc.caladrius.repository.LinhaProgramadaRepository;
 import br.ufpb.dsc.caladrius.repository.SolicitacaoViagemRepository;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
 import br.ufpb.dsc.caladrius.repository.ViagemRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,9 +31,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -50,8 +55,23 @@ class SolicitacaoViagemServiceTest {
     @Mock private br.ufpb.dsc.caladrius.repository.CidadeRepository cidadeRepository;
     @Mock private NotificacaoService notificacaoService;
     @Mock private WhatsappService whatsappService;
+    @Mock private RastreamentoService rastreamento;
 
     @InjectMocks private SolicitacaoViagemService service;
+
+    /**
+     * O {@link RastreamentoService} é mockado de forma <em>transparente</em>: executa o
+     * {@link Supplier} passado ao {@code rastrear(...)} e devolve o resultado, para a
+     * regra de negócio rodar normalmente nestes testes (a telemetria em si — nome do
+     * span, atributos, status ERROR — é coberta em {@code SolicitacaoViagemTelemetriaTest}).
+     * {@code lenient()} evita "unnecessary stubbing" nos testes que não passam pelo fluxo
+     * instrumentado ({@code solicitarSobDemanda}).
+     */
+    @BeforeEach
+    void configurarRastreamentoTransparente() {
+        lenient().when(rastreamento.rastrear(anyString(), anyMap(), any()))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(2)).get());
+    }
 
     // ------------------------------------------------------------- helpers
 

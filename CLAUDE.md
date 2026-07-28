@@ -29,6 +29,10 @@ infra**: Evolution na VPS + variáveis de ambiente no deploy);
 **solicitação sob demanda + onboarding pelo WhatsApp** (SPEC-11: número novo se cadastra pelo bot;
 pede destino+data+horário+condições; **gestor aprova/recusa** em `/gestao/solicitacoes` e o passageiro
 é notificado; "Acesso à plataforma" define senha via token). Bot desacoplado (só serviços + porta).
+**Observabilidade (SPEC-14):** agente OpenTelemetry exportando **traces/métricas/logs** via OTLP ao
+**backend central da disciplina** (Grafana+Tempo+Prometheus+Loki, `service.name=dsc-eq14`) + **2 spans de
+negócio** manuais (`RastreamentoService` → `solicitar-sob-demanda`/`aprovar-solicitacao`); **sem migration**; liga/desliga por
+env (`JAVA_TOOL_OPTIONS`) — código/infra dev+prod prontos, falta só o `.env` do servidor (token) + redeploy.
 **Ainda fora do escopo:** alocação/assentos (capacidade) e prioridade automática,
 escalas de motorista, perfil/CNH do motorista, integração com o WhatsApp dos motoristas.
 
@@ -62,6 +66,7 @@ br.ufpb.dsc.caladrius
 ├── dto/             # Records de formulário (ViagemForm, LinhaProgramadaForm, DesignacaoForm,
 │                    #   EnderecoForm, PainelSemana, ...)
 ├── notificacao/     # CanalNotificacao (interface) + InApp/Email/Whatsapp + CanalTipo
+├── observabilidade/ # RastreamentoService (spans de negócio, OTel API) + TelemetriaConfig (SPEC-14)
 ├── whatsapp/        # Porta ProvedorWhatsapp + EvolutionApiProvedor (adaptador), records da porta,
 │   └── bot/         #   ProcessadorMensagemRecebida; bot/ = BotAtendimentoService + MensagensBot
 ├── exception/       # RecursoNaoEncontradoException, RegraNegocioException
@@ -144,6 +149,7 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 - `V12` conversas_bot + mensagens_whatsapp (integração WhatsApp — SPEC-10)
 - `V13` solicitação sob demanda (`solicitacoes_viagem.tipo`/`cidade_destino`, linha nullable) +
   contexto de cadastro no `conversas_bot` (SPEC-11)
+- **SPEC-14 (observabilidade/OpenTelemetry) — SEM migration** (infra/config + camada de código fina; não altera schema)
 
 > **Política em banco compartilhado:** ver [`docs/sdd/02-plano-tecnico.md` §2.5](docs/sdd/02-plano-tecnico.md).
 > Migrations aditivas, sem extensões/superusuário; backup próprio (`pg_dump`) antes de alterações sensíveis.
@@ -173,19 +179,27 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 | [docs/SECURITY.md](docs/SECURITY.md) | SAST, OWASP, configuração do Spring Security |
 
 ## Estado atual e como retomar (ponto de restauração)
-> **Atualizado em 2026-07-15.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
+> **Atualizado em 2026-07-24.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
 > (em especial o [roadmap](docs/sdd/03-tarefas-e-roadmap.md), que rastreia o estado por capacidade e as
 > dívidas técnicas DT-01..DT-11). Este `CLAUDE.md` é carregado automaticamente em todo chat.
 
-- **Último marco**: **solicitação sob demanda + onboarding pelo WhatsApp** (SPEC-11) — número novo se
-  cadastra pelo bot (PASSAGEIRO ATIVO sem senha); pede **destino+data+horário+condições** sem depender
-  de linha; o **gestor aprova/recusa** em `/gestao/solicitacoes` (designa viagem imprevista) e o
-  passageiro é notificado por WhatsApp; "Acesso à plataforma" define senha via token de ativação.
-  Bot reescrito e **desacoplado** (só serviços + porta `ProvedorWhatsapp`). Antes: SPEC-10 (Evolution,
-  webhook, painel `/whatsapp`). Migrations até **V13**. **Testes verdes (190)**, incl. o de contexto
-  Testcontainers que aplica V1→V13. `mvn test` e `docker build` funcionam localmente.
+- **Último marco**: **observabilidade com OpenTelemetry (SPEC-14 / ADR-18)** — agente Java (auto:
+  HTTP/JDBC/JVM/**logs**) + **camada manual** (`RastreamentoService` + `TelemetriaConfig`) com **2 spans
+  de negócio** (`solicitar-sob-demanda` + `aprovar-solicitacao`, atributos de domínio + logs estruturados) exportando **OTLP** ao
+  **backend central** da disciplina (Grafana+Tempo+Prometheus+**Loki**, `service.name=dsc-eq14`).
+  **Sem migration.** `pom.xml` ganhou só a **API** OTel (o SDK vem do agente). Agente **pinado v2.30.0**
+  no `Dockerfile` — embutido mas **inerte** sem `JAVA_TOOL_OPTIONS` (RN-OBS-01, conferido na imagem);
+  `grafana/otel-lgtm` local no dev. **Em produção**: ativado pelo portal da disciplina — `dsc-eq14`
+  recebendo no Grafana (runbook + armadilhas da ativação na SPEC-14 §11). Antes: SPEC-11 (sob demanda + onboarding WhatsApp, V13) e SPEC-10
+  (Evolution/webhook/painel `/whatsapp`). Migrations até **V13**. **Testes verdes (199)**, incl. o de
+  contexto Testcontainers (V1→V13) e os de telemetria; `mvn test` e `docker build -f docker/Dockerfile .`
+  verdes localmente.
 - **Specs implementadas (✅)**: SPEC-01..11 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
 - **Pontos de atenção / dívidas em aberto** (do roadmap):
+  - **Observabilidade — ✅ em produção (SPEC-14)**: `dsc-eq14` recebendo traces/métricas/logs no Grafana
+    (`otel.dsc.rodrigor.com`). Ativado pelo **portal da disciplina** (editor de `.env` que recria o
+    container). Armadilhas da ativação (nome `JAVA_TOOL_OPTIONS` **singular**; **hífen** do `-javaagent`;
+    diagnóstico via Dozzle no boot) documentadas na **SPEC-14 §11**.
   - **WhatsApp — infra pendente**: subir a **Evolution API na VPS da equipe** (SPEC-10 §8) e configurar
     as variáveis de ambiente do deploy (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`,
     `APP_URL_PUBLICA`). Sem elas, o canal opera como stub e o painel mostra "não configurada"
