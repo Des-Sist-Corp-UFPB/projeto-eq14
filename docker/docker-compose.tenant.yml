@@ -1,0 +1,108 @@
+# =============================================================================
+# docker-compose.tenant.yml — MODELO de ambiente ISOLADO por secretaria (SPEC-15)
+# =============================================================================
+# Opção A (silo): CADA secretaria/cliente roda o SEU PRÓPRIO stack — app + banco
+# dedicado + volume + subdomínio — totalmente isolado dos demais. Não existe
+# conceito de "tenant" no código: o isolamento é FÍSICO (bancos e volumes
+# separados), então é impossível uma secretaria ver os dados da outra (RN-MT-03/06).
+#
+# Este é um MODELO parametrizado por um .env POR AMBIENTE. Não suba com ele "cru":
+# use o script de provisionamento, que gera ambientes/<slug>/.env com senha sorteada:
+#
+#   scripts/novo-ambiente.sh campina-grande \
+#       --nome "Secretaria de Saúde de Campina Grande" \
+#       --dominio campina.caladrius.app --porta 8114
+#
+# e então, no servidor:
+#
+#   docker compose --env-file ambientes/campina-grande/.env \
+#       -f docker/docker-compose.tenant.yml up -d
+#
+# O `name: caladrius-${TENANT}` faz o namespacing do Compose: containers, rede e
+# volume ganham o prefixo do ambiente — nenhum recurso é compartilhado entre
+# secretarias (RN-MT-01). Runbook: docs/multi-ambiente.md · decisão: SPEC-15.
+# =============================================================================
+
+# Nome do projeto Compose — isola TODOS os recursos (containers/rede/volume) por ambiente.
+name: caladrius-${TENANT:?defina TENANT no .env do ambiente}
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Banco de dados DEDICADO a esta secretaria (isolamento físico dos dados).
+  # A porta NÃO é publicada no host: só a app, na mesma rede interna, o acessa.
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: caladrius-${TENANT}-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-caladrius}
+      POSTGRES_USER: ${POSTGRES_USER:-caladrius}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env do ambiente}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-caladrius} -d ${POSTGRES_DB:-caladrius}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - interna
+
+  # ---------------------------------------------------------------------------
+  # Aplicação — a MESMA imagem de produção do CI (uma imagem serve N ambientes).
+  # Publica só em 127.0.0.1:${APP_PORT}; o Caddy do host faz o proxy do subdomínio.
+  # O perfil `prod` e o agente OTel (inerte) já vêm fixados no Dockerfile.
+  # ---------------------------------------------------------------------------
+  app:
+    image: ${APP_IMAGE:-ghcr.io/des-sist-corp-ufpb/projeto-eq14:latest}
+    container_name: caladrius-${TENANT}-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Banco dedicado (host "db" resolvido na rede interna deste stack).
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-caladrius}
+      DATABASE_USERNAME: ${POSTGRES_USER:-caladrius}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env do ambiente}
+      # URL pública desta secretaria (base do webhook do WhatsApp — SPEC-10/11).
+      APP_URL_PUBLICA: ${APP_URL_PUBLICA:-}
+      # Login social Google (SPEC-08) — opcional, POR AMBIENTE. Cadastre o redirect
+      # https://<DOMINIO>/login/oauth2/code/google no Google Console.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # WhatsApp (SPEC-10/11) — instância/número/segredos PRÓPRIOS de cada secretaria.
+      EVOLUTION_URL: ${EVOLUTION_URL:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      WHATSAPP_WEBHOOK_TOKEN: ${WHATSAPP_WEBHOOK_TOKEN:-}
+      # Observabilidade (SPEC-14) — opcional; o service.name distingue a secretaria no Grafana.
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES:-}
+      OTEL_LOGS_EXPORTER: ${OTEL_LOGS_EXPORTER:-otlp}
+      # Interruptor mestre da telemetria (vazio = agente inerte, RN-OBS-01).
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
+    ports:
+      - "127.0.0.1:${APP_PORT:?defina APP_PORT no .env do ambiente (porta única por secretaria)}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - interna
+
+volumes:
+  # Volume dedicado — namespaced pelo Compose project (caladrius-<TENANT>_db-data).
+  # Sem colisão entre secretarias; apagá-lo (down -v) só afeta ESTE ambiente (RN-MT-07).
+  db-data:
+
+networks:
+  # Rede interna PRÓPRIA deste stack (não externa, não compartilhada).
+  interna:
+    driver: bridge

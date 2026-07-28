@@ -18,6 +18,7 @@
 | Viagens: criar/listar/excluir | [SPEC-05](specs/SPEC-05-gestao-viagens.md) | 🟡 | sem edição/transição de status |
 | Painel inicial (totais) | (produto §4) | ✅ | contagens por repositório |
 | Observabilidade (OpenTelemetry) | [SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md) | ✅ | **em produção** (`dsc-eq14` no Grafana); agente auto (traces/métricas/logs) + 2 spans de negócio |
+| Multi-ambiente por secretaria | [SPEC-15](specs/SPEC-15-multi-ambiente-por-secretaria.md) | 🚧 | proposta + protótipo (Opção A / silo); isolamento físico, sem código/migration |
 
 ---
 
@@ -127,6 +128,18 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 - **Status**: 🚧 **especificado** (SPEC-13); a implementar. Reusa `ConfiguracaoSistema` (ADR-10);
   migration **V15** proposta só para `municipios.pagamento_habilitado`.
 - **Resolve**: move o item "Feature toggle" do `docs/checklist.md` de 🟡 para ✅.
+
+### Incremento H — Multi-ambiente por secretaria (multi-tenancy) 🚧
+- **Objetivo**: isolar **cada secretaria/cliente** no **seu próprio ambiente** (app + banco dedicado +
+  subdomínio), sem um ver os dados do outro — [SPEC-15](specs/SPEC-15-multi-ambiente-por-secretaria.md), **ADR-19**.
+- **Decisão**: **Opção A (instância por cliente / silo)** — isolamento **físico**, **zero código de
+  tenant**, **sem migration**. Descartadas por ora: schema-por-tenant (B) e linha-a-linha (C — reservada
+  para quando exigir **painel único multi-secretaria**; ver [SPEC-15 §7](specs/SPEC-15-multi-ambiente-por-secretaria.md)).
+- **Status**: 🚧 **proposta + protótipo** — `docker/docker-compose.tenant.yml` (modelo de stack isolado),
+  `docker/.env.tenant.example`, `scripts/novo-ambiente.sh` (provisionamento) e runbook em
+  [`docs/multi-ambiente.md`](../multi-ambiente.md). **Aditivo**: nada é referenciado pelo CI atual.
+- **Falta**: operar de fato (VPS própria com Postgres por ambiente) e, se um dia precisar de visão
+  consolidada entre secretarias, avaliar a migração para a Opção C.
 
 ---
 

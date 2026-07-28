@@ -70,6 +70,11 @@ spring.log
 .env
 .env.*
 !.env.example
+# Template de .env por secretaria (SPEC-15) — versionado (sem segredos), apesar do .env.* acima
+!docker/.env.tenant.example
+
+# Ambientes provisionados por secretaria (multi-ambiente / SPEC-15) — cada .env tem segredos
+/ambientes/
 
 # ---------------------------------------------------------------------------
 # Docker
