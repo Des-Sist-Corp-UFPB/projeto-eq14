@@ -176,6 +176,13 @@
                 </a>
             </div>
 
+            <!-- Logs do sistema: item de primeiro nível, sem submenus (GERENTE/SYSADMIN) -->
+            <a sec:authorize="hasAnyRole('GERENTE','SYSADMIN')" class="cal-nav" th:href="@{/logs}"
+               th:classappend="${requestURI != null and requestURI.startsWith('/logs')} ? 'active'">
+                <svg th:replace="~{fragments/icons :: icon('logs')}"></svg>
+                <span class="cal-nav__label">Logs</span>
+            </a>
+
             <!-- Administração (sysadmin) -->
             <div sec:authorize="hasRole('SYSADMIN')">
                 <div class="cal-group" th:classappend="${requestURI != null and requestURI.startsWith('/admin')} ? 'open'">

@@ -117,6 +117,32 @@ Telas públicas de verificação/recuperação; `POST /esqueci-senha` com identi
 **redireciona igual** (anti-enumeração); telefone desconhecido na verificação volta com erro; e o
 **`POST` sem CSRF é barrado com 403**.
 
+## `LogControllerTest` — 7 cenários (central de logs)
+
+A tela `/logs`: trilha completa do sistema com a **etiqueta da área** de cada evento.
+
+| Cenário | Verifica |
+|---|---|
+| GERENTE e SYSADMIN entram; passageiro e motorista → 403 | quem vê a trilha |
+| a tela oferece todas as áreas como etiqueta/filtro | o catálogo chega ao template |
+| filtro por área devolve **só** aquela área | `USUARIOS` traz `USUARIO_CRIADO` e **não** traz `LOGIN_SUCESSO` |
+| busca livre acha pelo detalhe | o texto gravado no log é pesquisável |
+| área desconhecida na URL → **400** | o filtro aceita só o catálogo `AreaSistema` |
+| **ações do painel WhatsApp deixam rastro** | era a lacuna: conectar/desconectar/configurar não geravam log nenhum |
+| `/historico` mostra **só** o ciclo das solicitações | a separação entre as duas telas de fato acontece |
+
+## `AreaSistemaTest` — 6 cenários (unitário)
+
+A classificação que gera a etiqueta, derivada da ação/entidade já gravadas (sem
+coluna nova, valendo retroativamente para toda a trilha existente):
+
+- classifica pela **ação** (o sinal mais específico);
+- **ação vence entidade**: `CONTA_ATIVADA` grava a entidade `Usuario`, mas é evento de
+  *Acesso* — se a ordem invertesse, um login apareceria em "Usuários";
+- sem ação conhecida, cai na **entidade**; evento de segurança desconhecido ainda vira
+  *Acesso*; o resto vira *Sistema* — **nenhum log fica sem etiqueta**;
+- catálogo consistente: toda área tem rótulo e cor, e nenhuma ação está em duas áreas.
+
 ## `HomeControllerTest`
 
 O painel inicial renderiza com as contagens.

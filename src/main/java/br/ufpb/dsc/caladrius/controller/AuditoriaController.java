@@ -35,11 +35,19 @@ public class AuditoriaController {
         return "admin/auditoria";
     }
 
+    /**
+     * Histórico das <strong>solicitações</strong> — o que o gerente acompanha no dia a
+     * dia: pedido criado, cancelado pelo passageiro, aprovado ou recusado. O restante
+     * da trilha (cadastros, acessos, configuração) fica na central de logs
+     * ({@code /logs}), para esta tela não virar um "tudo" que ninguém lê.
+     */
     @GetMapping("/historico")
-    public String historicoOperacao(@RequestParam(name = "pagina", defaultValue = "0") int pagina, Model model) {
-        Page<LogAuditoria> logs = auditoriaService.listarOperacao(PageRequest.of(pagina, TAMANHO_PAGINA));
-        preencher(model, logs, pagina, "Histórico de operação",
-                "Criações, edições e exclusões dos cadastros e viagens.", "/historico");
+    public String historicoSolicitacoes(@RequestParam(name = "pagina", defaultValue = "0") int pagina,
+                                        Model model) {
+        Page<LogAuditoria> logs = auditoriaService.listarSolicitacoes(PageRequest.of(pagina, TAMANHO_PAGINA));
+        preencher(model, logs, pagina, "Histórico de solicitações",
+                "Pedidos de transporte: criação, cancelamento, aprovação e recusa. "
+                        + "A trilha completa do sistema fica em Logs.", "/historico");
         return "admin/auditoria";
     }
 

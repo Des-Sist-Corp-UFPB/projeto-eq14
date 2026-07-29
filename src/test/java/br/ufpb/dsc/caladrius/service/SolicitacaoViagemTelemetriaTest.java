@@ -66,6 +66,7 @@ class SolicitacaoViagemTelemetriaTest {
     @Mock private CidadeRepository cidadeRepository;
     @Mock private NotificacaoService notificacaoService;
     @Mock private WhatsappService whatsappService;
+    @Mock private AuditoriaService auditoriaService;
 
     private SolicitacaoViagemService service;
 
@@ -73,7 +74,7 @@ class SolicitacaoViagemTelemetriaTest {
     void montarServicoComHelperReal() {
         service = new SolicitacaoViagemService(solicitacaoRepository, linhaRepository,
                 viagemRepository, usuarioRepository, cidadeRepository, notificacaoService,
-                whatsappService, new RastreamentoService(otel.getOpenTelemetry()));
+                whatsappService, new RastreamentoService(otel.getOpenTelemetry()), auditoriaService);
     }
 
     @AfterEach

@@ -13,11 +13,11 @@ complemento executável do SDD — cada regra de negócio (`RN-*`) e critério d
 
 | Métrica | Valor |
 |---|---|
-| **Testes** | **346** (JUnit 5), 0 falhas |
-| **Cobertura de linhas** | **87,3%** (2863/3278) |
-| **Cobertura de instruções** | **87,5%** |
-| **Cobertura de métodos** | **86,8%** |
-| **Cobertura de ramos** | **69,7%** |
+| **Testes** | **368** (JUnit 5), 0 falhas |
+| **Cobertura de linhas** | **≥ 87%** |
+| **Cobertura de instruções** | **≥ 87%** |
+| **Cobertura de métodos** | **≥ 86%** |
+| **Cobertura de ramos** | **≥ 69%** |
 | **Gate no build** | `jacoco:check` — **falha** abaixo de **85%** (linhas e instruções) e **65%** (ramos) |
 
 Cobertura por camada (linhas):

@@ -1,6 +1,7 @@
 package br.ufpb.dsc.caladrius.service;
 
 import br.ufpb.dsc.caladrius.domain.LogAuditoria;
+import br.ufpb.dsc.caladrius.domain.enums.AreaSistema;
 import br.ufpb.dsc.caladrius.domain.enums.CategoriaAuditoria;
 import br.ufpb.dsc.caladrius.repository.LogAuditoriaRepository;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
@@ -10,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -89,6 +91,35 @@ public class AuditoriaService {
     public Page<LogAuditoria> listarOperacao(Pageable pageable) {
         return repository.findByCategoriaInOrderByInstanteDesc(
                 List.of(CategoriaAuditoria.OPERACAO), pageable);
+    }
+
+    /**
+     * Histórico das <strong>solicitações</strong> (tela {@code /historico} do gerente):
+     * o ciclo de vida do pedido do passageiro — criado, cancelado, aprovado, recusado.
+     * O resto da trilha vive na central de logs ({@code /logs}).
+     */
+    public Page<LogAuditoria> listarSolicitacoes(Pageable pageable) {
+        return repository.findByAcaoInOrderByInstanteDesc(
+                AreaSistema.SOLICITACOES.getAcoes(), pageable);
+    }
+
+    /**
+     * Central de logs: a trilha inteira, opcionalmente restrita a uma
+     * {@link AreaSistema} ou a um termo de busca (os dois filtros não se combinam —
+     * o termo procura em todas as áreas, que é o que se espera de uma busca).
+     */
+    public Page<LogAuditoria> listar(AreaSistema area, String termo, Pageable pageable) {
+        if (StringUtils.hasText(termo)) {
+            return repository.buscar(termo.trim().toLowerCase(), pageable);
+        }
+        if (area == null) {
+            return repository.findAllByOrderByInstanteDesc(pageable);
+        }
+        // A área "Sistema" é o complemento: o que ainda não foi classificado.
+        return area == AreaSistema.SISTEMA
+                ? repository.findByAcaoNotInOrderByInstanteDesc(
+                        AreaSistema.todasAsAcoesConhecidas(), pageable)
+                : repository.findByAcaoInOrderByInstanteDesc(area.getAcoes(), pageable);
     }
 
     // ----------------------------------------------------------- helpers

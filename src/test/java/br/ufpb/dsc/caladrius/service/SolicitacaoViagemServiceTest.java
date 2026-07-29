@@ -56,6 +56,7 @@ class SolicitacaoViagemServiceTest {
     @Mock private NotificacaoService notificacaoService;
     @Mock private WhatsappService whatsappService;
     @Mock private RastreamentoService rastreamento;
+    @Mock private AuditoriaService auditoriaService;
 
     @InjectMocks private SolicitacaoViagemService service;
 

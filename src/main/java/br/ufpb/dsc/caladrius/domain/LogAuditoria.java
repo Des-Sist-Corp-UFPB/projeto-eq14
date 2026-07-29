@@ -1,5 +1,6 @@
 package br.ufpb.dsc.caladrius.domain;
 
+import br.ufpb.dsc.caladrius.domain.enums.AreaSistema;
 import br.ufpb.dsc.caladrius.domain.enums.CategoriaAuditoria;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -71,6 +72,14 @@ public class LogAuditoria {
         if (this.resultado == null) {
             this.resultado = "SUCESSO";
         }
+    }
+
+    /**
+     * Área do sistema tocada por este evento — a etiqueta exibida na central de
+     * logs. É <strong>derivada</strong> (não há coluna): ver {@link AreaSistema}.
+     */
+    public AreaSistema getArea() {
+        return AreaSistema.de(acao, entidade, categoria);
     }
 
     public UUID getId() {

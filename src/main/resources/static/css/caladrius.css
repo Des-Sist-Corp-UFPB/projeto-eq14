@@ -98,6 +98,30 @@ body { margin: 0; background-color: var(--cal-bg); font-family: var(--cal-font);
 .cal-group__children { display: flex; flex-direction: column; gap: 2px; }
 .cal-group:not(.open) > .cal-group__children { display: none; }
 
+/* ---------------------------------------------------- etiquetas de área (logs)
+   Uma cor por área do sistema (AreaSistema.getCor() dá o sufixo da classe).
+   Servem como rótulo na tabela e como filtro clicável — por isso são <a> e <span>
+   com o mesmo visual. Tons suaves: a tabela tem muitas linhas, e etiqueta
+   saturada em série cansa a leitura. */
+.cal-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; line-height: 1.5;
+    text-decoration: none; border: 1px solid transparent; white-space: nowrap;
+}
+a.cal-tag:hover { filter: brightness(.96); }
+.cal-tag--ativa { outline: 2px solid var(--cal-primary); outline-offset: 1px; }
+
+.cal-tag--todas       { background: oklch(0.95 0.005 250); color: oklch(0.40 0.02 257); }
+.cal-tag--acesso      { background: oklch(0.94 0.045 25);  color: oklch(0.45 0.16 25); }
+.cal-tag--usuarios    { background: oklch(0.94 0.045 257); color: oklch(0.45 0.16 257); }
+.cal-tag--viagens     { background: oklch(0.94 0.045 220); color: oklch(0.44 0.14 230); }
+.cal-tag--solicitacoes{ background: oklch(0.95 0.055 85);  color: oklch(0.48 0.13 70); }
+.cal-tag--veiculos    { background: oklch(0.94 0.045 300); color: oklch(0.45 0.15 300); }
+.cal-tag--cidades     { background: oklch(0.94 0.055 165); color: oklch(0.43 0.12 165); }
+.cal-tag--whatsapp    { background: oklch(0.94 0.06 145);  color: oklch(0.42 0.13 145); }
+.cal-tag--configuracao{ background: oklch(0.93 0.02 285);  color: oklch(0.42 0.08 285); }
+.cal-tag--sistema     { background: oklch(0.94 0.008 250); color: oklch(0.45 0.02 257); }
+
 /* filho indentado com bolinha — hierarquia visual: mais leve que o pai */
 .cal-nav--child {
     padding: 8px 12px 8px 40px; position: relative;

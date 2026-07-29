@@ -55,6 +55,7 @@ public class SolicitacaoViagemService {
     private final NotificacaoService notificacaoService;
     private final WhatsappService whatsappService;
     private final RastreamentoService rastreamento;
+    private final AuditoriaService auditoriaService;
 
     public SolicitacaoViagemService(SolicitacaoViagemRepository solicitacaoRepository,
                                     LinhaProgramadaRepository linhaRepository,
@@ -63,7 +64,8 @@ public class SolicitacaoViagemService {
                                     CidadeRepository cidadeRepository,
                                     NotificacaoService notificacaoService,
                                     WhatsappService whatsappService,
-                                    RastreamentoService rastreamento) {
+                                    RastreamentoService rastreamento,
+                                    AuditoriaService auditoriaService) {
         this.solicitacaoRepository = solicitacaoRepository;
         this.linhaRepository = linhaRepository;
         this.viagemRepository = viagemRepository;
@@ -72,6 +74,7 @@ public class SolicitacaoViagemService {
         this.notificacaoService = notificacaoService;
         this.whatsappService = whatsappService;
         this.rastreamento = rastreamento;
+        this.auditoriaService = auditoriaService;
     }
 
     /** Linhas ativas oferecidas ao passageiro (aba "Linhas disponíveis"). */
@@ -144,7 +147,12 @@ public class SolicitacaoViagemService {
                     solicitacao.setStatus(StatusSolicitacao.ALOCADA);
                 },
                 () -> solicitacao.setStatus(StatusSolicitacao.PENDENTE));
-        return solicitacaoRepository.save(solicitacao);
+        SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);
+        auditoriaService.registrarOperacao("SOLICITACAO_CRIADA", "SolicitacaoViagem",
+                String.valueOf(salva.getId()),
+                "Por linha — " + nomeDestino(salva) + " em " + DATA_BR.format(data)
+                        + " (" + salva.getStatus() + ")");
+        return salva;
     }
 
     /**
@@ -187,6 +195,8 @@ public class SolicitacaoViagemService {
         solicitacao.setStatus(StatusSolicitacao.CANCELADA);
         solicitacao.setViagem(null);
         solicitacaoRepository.save(solicitacao);
+        auditoriaService.registrarOperacao("SOLICITACAO_CANCELADA", "SolicitacaoViagem",
+                solicitacaoId.toString(), "Cancelada pelo passageiro — " + nomeDestino(solicitacao));
     }
 
     // ===================== SPEC-11 — sob demanda =====================
@@ -234,6 +244,9 @@ public class SolicitacaoViagemService {
             // Log estruturado (vai ao Loki via agente, correlacionado ao trace) — sem PII.
             log.info("solicitação sob demanda criada: solicitacao_id={} destino={} data={} status={}",
                     salva.getId(), destino.getNome(), data, salva.getStatus());
+            auditoriaService.registrarOperacao("SOLICITACAO_CRIADA", "SolicitacaoViagem",
+                    String.valueOf(salva.getId()),
+                    "Sob demanda — " + destino.getNome() + " em " + DATA_BR.format(data));
             return salva;
         });
     }
@@ -294,6 +307,9 @@ public class SolicitacaoViagemService {
                             DATA_BR.format(solicitacao.getDataDesejada()), hora));
             log.info("solicitação aprovada: solicitacao_id={} viagem_id={} destino={} status={}",
                     solicitacaoId, viagemId, nomeDestino(solicitacao), salva.getStatus());
+            auditoriaService.registrarOperacao("SOLICITACAO_APROVADA", "SolicitacaoViagem",
+                    solicitacaoId.toString(),
+                    nomeDestino(solicitacao) + " — alocada na viagem " + viagemId);
             return salva;
         });
     }
@@ -322,6 +338,8 @@ public class SolicitacaoViagemService {
                 "Seu transporte para " + nomeDestino(solicitacao) + " em "
                         + DATA_BR.format(solicitacao.getDataDesejada())
                         + " não foi aprovado. Motivo: " + motivo.trim());
+        auditoriaService.registrarOperacao("SOLICITACAO_RECUSADA", "SolicitacaoViagem",
+                solicitacaoId.toString(), nomeDestino(solicitacao) + " — motivo: " + motivo.trim());
         return salva;
     }
 

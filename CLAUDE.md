@@ -38,6 +38,10 @@ seguro + auditoria); **kill switches** `feature.bot_whatsapp` e `feature.modo_ma
 (`ManutencaoFilter` → 503, libera SYSADMIN e `/ping`); **parâmetros de negócio** (`param.*`, lidos por
 `VerificacaoService`/`ConviteService`); **entitlement** `municipios.pagamento_habilitado` (**V15**);
 telas `/admin/features` e `/admin/municipios`.
+**Central de logs (`/logs`):** item de 1º nível no menu (GERENTE/SYSADMIN) com a trilha inteira,
+**etiqueta de área** por evento (`AreaSistema` — derivada da ação/entidade, **sem coluna nova**),
+filtro por área e busca livre. `/historico` ficou só com o ciclo das **solicitações**. Painel WhatsApp
+e solicitações passaram a ser auditados (antes não deixavam rastro).
 **Ainda fora do escopo:** alocação/assentos (capacidade) e prioridade automática,
 escalas de motorista, perfil/CNH do motorista, integração com o WhatsApp dos motoristas,
 **pagamento/organização** (especificado na SPEC-16, não implementado).
@@ -61,14 +65,15 @@ br.ufpb.dsc.caladrius
 │                    #   AuditoriaSecurityListener (login/logout), GlobalExceptionHandler
 ├── controller/      # Auth, Home, Veiculo, Cidade, Usuario, Viagem (+semana/designar/status),
 │                    #   Linha, MotoristaViagem, Solicitacao (passageiro), Admin, Configuracao,
-│                    #   Auditoria, Convite, Ativacao, Conta, Notificacao, Perfil, Analise, Ping,
+│                    #   Auditoria, Log (central /logs), Feature (/admin/features + municipios),
+│                    #   Manutencao, Convite, Ativacao, Conta, Notificacao, Perfil, Analise, Ping,
 │                    #   Whatsapp (painel do gerente), WhatsappWebhook (POST /webhooks/whatsapp)
 ├── domain/          # Usuario, Veiculo, Cidade, Viagem, LinhaProgramada, SolicitacaoViagem, Endereco,
 │   │                #   Municipio, ConfiguracaoSistema, LogAuditoria, Notificacao, TokenAtivacao,
 │   │                #   ConversaBot, MensagemWhatsapp
 │   └── enums/       # Papel(+SYSADMIN), StatusUsuario, Tipo/StatusVeiculo, TipoCidade, StatusViagem,
 │                    #   TipoViagem, StatusSolicitacao, DiaSemana, CategoriaAuditoria,
-│                    #   EtapaConversa, DirecaoMensagem
+│                    #   AreaSistema (etiqueta da central de logs), EtapaConversa, DirecaoMensagem
 ├── dto/             # Records de formulário (ViagemForm, LinhaProgramadaForm, DesignacaoForm,
 │                    #   EnderecoForm, PainelSemana, ...)
 ├── notificacao/     # CanalNotificacao (interface) + InApp/Email/Whatsapp + CanalTipo

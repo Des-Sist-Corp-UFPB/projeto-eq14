@@ -1,6 +1,7 @@
 package br.ufpb.dsc.caladrius.controller;
 
 import br.ufpb.dsc.caladrius.dto.ConfiguracaoEnvioWhatsapp;
+import br.ufpb.dsc.caladrius.service.AuditoriaService;
 import br.ufpb.dsc.caladrius.service.WhatsappService;
 import br.ufpb.dsc.caladrius.util.Documentos;
 import br.ufpb.dsc.caladrius.whatsapp.ConexaoWhatsapp;
@@ -32,9 +33,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class WhatsappController {
 
     private final WhatsappService whatsappService;
+    private final AuditoriaService auditoriaService;
 
-    public WhatsappController(WhatsappService whatsappService) {
+    public WhatsappController(WhatsappService whatsappService, AuditoriaService auditoriaService) {
         this.whatsappService = whatsappService;
+        this.auditoriaService = auditoriaService;
     }
 
     @GetMapping
@@ -52,6 +55,8 @@ public class WhatsappController {
                                       RedirectAttributes redirect) {
         whatsappService.salvarConfiguracaoEnvio(
                 new ConfiguracaoEnvioWhatsapp(nomeExibicao, mensagemConfirmacao));
+        auditoriaService.registrarSistema("WHATSAPP_CONFIG_ALTERADA",
+                "Nome de exibição e mensagem de confirmação do canal WhatsApp");
         redirect.addFlashAttribute("sucesso", "Configurações de envio salvas.");
         return "redirect:/whatsapp";
     }
@@ -67,6 +72,8 @@ public class WhatsappController {
     public String conectar(RedirectAttributes redirect) {
         try {
             ConexaoWhatsapp conexao = whatsappService.conectar();
+            auditoriaService.registrarSistema("WHATSAPP_CONECTADO",
+                    "Pareamento iniciado no painel — estado: " + conexao.status());
             redirect.addFlashAttribute("sucesso", conexao.status() == StatusConexaoWhatsapp.CONECTADO
                     ? "A conta já está conectada."
                     : "Conexão iniciada — escaneie o QR code com o WhatsApp do número da secretaria.");
@@ -80,6 +87,8 @@ public class WhatsappController {
     public String desconectar(RedirectAttributes redirect) {
         try {
             whatsappService.desconectar();
+            auditoriaService.registrarSistema("WHATSAPP_DESCONECTADO",
+                    "Sessão encerrada pelo painel — bot e notificações pausados");
             redirect.addFlashAttribute("sucesso", "Sessão desconectada.");
         } catch (WhatsappException e) {
             redirect.addFlashAttribute("erro", "Não foi possível desconectar. Tente novamente.");
@@ -97,6 +106,8 @@ public class WhatsappController {
             return "redirect:/whatsapp";
         }
         boolean enviado = whatsappService.enviarTexto(digitos, texto.trim());
+        auditoriaService.registrarSistema("WHATSAPP_TESTE_ENVIADO",
+                "Teste de envio para " + digitos + (enviado ? " — aceito" : " — falhou"));
         if (enviado) {
             redirect.addFlashAttribute("sucesso", "Mensagem de teste enviada para " + digitos + ".");
         } else {
