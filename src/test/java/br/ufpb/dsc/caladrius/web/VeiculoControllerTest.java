@@ -3,8 +3,10 @@ package br.ufpb.dsc.caladrius.web;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
@@ -76,5 +78,71 @@ class VeiculoControllerTest extends IntegracaoWebTestBase {
                         .param("placa", "DEF4G56").param("marca", "VW").param("modelo", "Kombi")
                         .param("ano", "2015").param("tipo", "VAN").param("capacidade", "9"))
                 .andExpect(status().isForbidden());
+    }
+
+    /** O fragmento da tabela também é servido por rota própria (paginação/busca via HTMX). */
+    @Test
+    @DisplayName("GET /veiculos/fragmento-tabela devolve a tabela filtrada")
+    void fragmentoTabela() throws Exception {
+        mockMvc.perform(get("/veiculos/fragmento-tabela").param("busca", "sprinter")
+                        .with(comoGerente()))
+                .andExpect(status().isOk());
+    }
+
+    /** O modal de edição vem preenchido com os dados do veículo. */
+    @Test
+    @DisplayName("GET /veiculos/{id}/editar devolve o formulário com a placa atual")
+    void editarForm() throws Exception {
+        var veiculo = persistirVeiculo();
+
+        mockMvc.perform(get("/veiculos/" + veiculo.getId() + "/editar").with(comoGerente()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(veiculo.getPlaca())));
+    }
+
+    @Test
+    @DisplayName("GET /veiculos/{id}/editar com id inexistente devolve 404")
+    void editarInexistente() throws Exception {
+        mockMvc.perform(get("/veiculos/" + java.util.UUID.randomUUID() + "/editar").with(comoGerente()))
+                .andExpect(status().isNotFound());
+    }
+
+    /** Atualização válida devolve a linha; inválida devolve o formulário. */
+    @Test
+    @DisplayName("PUT /veiculos/{id} atualiza o veículo; formulário inválido volta o modal")
+    void atualizar() throws Exception {
+        var veiculo = persistirVeiculo();
+
+        mockMvc.perform(put("/veiculos/" + veiculo.getId()).with(comoGerente())
+                        .param("placa", veiculo.getPlaca())
+                        .param("marca", "Iveco")
+                        .param("modelo", "Daily")
+                        .param("ano", "2023")
+                        .param("tipo", "VAN")
+                        .param("capacidade", "16")
+                        .param("status", "DISPONIVEL"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Iveco")));
+
+        mockMvc.perform(put("/veiculos/" + veiculo.getId()).with(comoGerente())
+                        .param("placa", "X")
+                        .param("marca", "Iveco")
+                        .param("modelo", "Daily")
+                        .param("ano", "2023")
+                        .param("tipo", "VAN")
+                        .param("capacidade", "16"))
+                .andExpect(status().isOk());
+    }
+
+    /** Exclusão é soft-delete; id inexistente devolve 404. */
+    @Test
+    @DisplayName("DELETE /veiculos/{id} remove (soft-delete); inexistente devolve 404")
+    void excluir() throws Exception {
+        var veiculo = persistirVeiculo();
+
+        mockMvc.perform(delete("/veiculos/" + veiculo.getId()).with(comoGerente()))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/veiculos/" + java.util.UUID.randomUUID()).with(comoGerente()))
+                .andExpect(status().isNotFound());
     }
 }

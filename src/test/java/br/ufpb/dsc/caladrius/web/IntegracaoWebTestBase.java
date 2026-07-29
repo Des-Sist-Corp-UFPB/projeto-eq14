@@ -1,9 +1,16 @@
 package br.ufpb.dsc.caladrius.web;
 
+import br.ufpb.dsc.caladrius.domain.Cidade;
 import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.Veiculo;
 import br.ufpb.dsc.caladrius.domain.enums.Papel;
 import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import br.ufpb.dsc.caladrius.domain.enums.StatusVeiculo;
+import br.ufpb.dsc.caladrius.domain.enums.TipoCidade;
+import br.ufpb.dsc.caladrius.domain.enums.TipoVeiculo;
+import br.ufpb.dsc.caladrius.repository.CidadeRepository;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.repository.VeiculoRepository;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -59,6 +66,8 @@ abstract class IntegracaoWebTestBase {
 
     @Autowired protected MockMvc mockMvc;
     @Autowired protected UsuarioRepository usuarioRepository;
+    @Autowired protected VeiculoRepository veiculoRepository;
+    @Autowired protected CidadeRepository cidadeRepository;
 
     // ===================== Autenticação (principal sintético) =====================
 
@@ -106,5 +115,31 @@ abstract class IntegracaoWebTestBase {
         u.setPerfilIncompleto(perfilIncompleto);
         u.setPapeis(EnumSet.copyOf(List.of(papeis)));
         return usuarioRepository.save(u);
+    }
+
+    /** Telefone único por chamada — evita colisão com os índices parciais de unicidade. */
+    protected String telefoneUnico() {
+        return "8391" + String.format("%06d", SEQ.getAndIncrement());
+    }
+
+    /** Veículo DISPONÍVEL pronto para ser designado a uma viagem. */
+    protected Veiculo persistirVeiculo() {
+        Veiculo v = new Veiculo();
+        v.setPlaca("TST" + String.format("%04d", SEQ.getAndIncrement()));
+        v.setMarca("Mercedes");
+        v.setModelo("Sprinter");
+        v.setAno(2022);
+        v.setTipo(TipoVeiculo.VAN);
+        v.setCapacidade(15);
+        v.setStatus(StatusVeiculo.DISPONIVEL);
+        return veiculoRepository.save(v);
+    }
+
+    /** Uma cidade METROPOLITANA de destino (a V3 semeia João Pessoa, Campina Grande…). */
+    protected Cidade cidadeDestino() {
+        return cidadeRepository.findAll().stream()
+                .filter(c -> c.getTipo() == TipoCidade.METROPOLITANA)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Seed de cidades (V3) não aplicado"));
     }
 }

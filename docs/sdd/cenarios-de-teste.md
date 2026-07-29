@@ -2,8 +2,12 @@
 
 > Catálogo de cenários (Dado / Quando / Então) para montar os testes. Legenda:
 > ✅ **já automatizado** (existe teste de unidade) · 🟡 **sugerido** (montar você).
-> Os 25 testes de unidade atuais passam (`mvn test` dos `*ServiceTest`); o teste de
-> contexto com Testcontainers depende de Docker compatível (ver nota no fim).
+>
+> **📌 Este documento é o catálogo de _planejamento_ (o que testar).** A **suíte real** — o que
+> existe hoje, o que cada teste verifica e por quê — está documentada em
+> **[`docs/testes/`](../testes/)**: **346 testes**, **87,3% de cobertura de linhas**, com gate de
+> 85% no `mvn verify`. Comece por lá para entender a suíte; use este arquivo para pensar em
+> cenários novos.
 
 ---
 

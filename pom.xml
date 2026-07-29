@@ -178,11 +178,29 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- JaCoCo: cobertura de código -->
+            <!--
+                JaCoCo: cobertura de código.
+
+                Além de RELATAR (target/site/jacoco/index.html), o build agora FALHA se a
+                cobertura de linhas cair abaixo de 85% (execução "check", ligada ao verify).
+                O limiar é o exigido no docs/checklist.md; `mvn test` não é afetado — a
+                verificação roda em `mvn verify` (e, portanto, no gate local antes do push).
+
+                Exclusões (e por quê):
+                  - DevSeed: carga de dados de exemplo, @Profile("dev") — não sobe em prod
+                    nem nos testes; cobri-la seria testar o próprio dado semeado.
+                  - CaladriusApplication: só o main() do Spring Boot.
+            -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco-maven-plugin.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>br/ufpb/dsc/caladrius/config/DevSeed.*</exclude>
+                        <exclude>br/ufpb/dsc/caladrius/CaladriusApplication.*</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals><goal>prepare-agent</goal></goals>
@@ -191,6 +209,41 @@
                         <id>report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <!-- Meta do checklist: 85% (linhas e instruções). -->
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.85</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.85</minimum>
+                                        </limit>
+                                        <!--
+                                            Ramos (if/else, ternários, catch) são mais caros de cobrir:
+                                            o limiar aqui é de NÃO-REGRESSÃO, abaixo do patamar atual,
+                                            e sobe conforme os cenários de erro forem sendo cobertos.
+                                        -->
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.65</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
