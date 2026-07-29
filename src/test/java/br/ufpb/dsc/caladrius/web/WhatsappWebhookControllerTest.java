@@ -7,6 +7,8 @@ import br.ufpb.dsc.caladrius.domain.enums.Papel;
 import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
 import br.ufpb.dsc.caladrius.repository.ConversaBotRepository;
 import br.ufpb.dsc.caladrius.repository.MensagemWhatsappRepository;
+import br.ufpb.dsc.caladrius.service.ChaveFeature;
+import br.ufpb.dsc.caladrius.service.FeatureFlagService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,7 @@ class WhatsappWebhookControllerTest extends IntegracaoWebTestBase {
 
     @Autowired private MensagemWhatsappRepository mensagemRepository;
     @Autowired private ConversaBotRepository conversaRepository;
+    @Autowired private FeatureFlagService featureFlags;
 
     private String payloadMensagem(String jid, boolean fromMe, String idProvedor, String texto) {
         return """
@@ -121,6 +124,28 @@ class WhatsappWebhookControllerTest extends IntegracaoWebTestBase {
 
         assertThat(mensagemRepository.existsByIdProvedorAndDirecao("WBK-GRUPO", DirecaoMensagem.RECEBIDA)).isFalse();
         assertThat(mensagemRepository.existsByIdProvedorAndDirecao("WBK-FROMME", DirecaoMensagem.RECEBIDA)).isFalse();
+    }
+
+    @Test
+    @DisplayName("CA-FLG-03 (SPEC-13): bot desligado registra a mensagem, não aciona o bot e responde 200")
+    void botDesligadoNaoAciona() throws Exception {
+        passageiroComTelefone("83955550005");
+        featureFlags.definir(ChaveFeature.BOT_WHATSAPP, false);
+        try {
+            mockMvc.perform(post("/webhooks/whatsapp")
+                            .header("X-Webhook-Token", TOKEN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(payloadMensagem("5583955550005@s.whatsapp.net", false, "WBK-OFF", "oi")))
+                    .andExpect(status().isOk());
+
+            // A mensagem NÃO se perde (idempotência preservada)...
+            assertThat(mensagemRepository.existsByIdProvedorAndDirecao("WBK-OFF", DirecaoMensagem.RECEBIDA))
+                    .isTrue();
+            // ...mas o bot não abriu conversa nenhuma.
+            assertThat(conversaRepository.findByTelefone("83955550005")).isEmpty();
+        } finally {
+            featureFlags.definir(ChaveFeature.BOT_WHATSAPP, true);
+        }
     }
 
     @Test

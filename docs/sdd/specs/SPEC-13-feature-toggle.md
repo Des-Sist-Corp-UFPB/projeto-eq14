@@ -4,8 +4,8 @@
 |---|---|
 | **Área** | `FLG` |
 | **Papéis** | SYSADMIN (gerencia as flags globais e de manutenção); GERENTE (parâmetros de negócio e adesão de municípios); todos (sofrem o efeito) |
-| **Status geral** | 🚧 **Proposta — a implementar.** Migration **V15** (proposta) só para o entitlement por município; flags globais e parâmetros **reusam** `configuracoes_sistema` (V5). Decisões D1–D6 em §4. |
-| **Código (a criar)** | `FeatureFlagService` (fachada sobre `ConfiguracaoService`, com cache e defaults), `ChaveFeature` (constantes/enum das chaves), `ManutencaoFilter`, gate no `WhatsappWebhookController`/`BotAtendimentoService`, coluna `municipios.pagamento_habilitado` (V15) + leitura nos serviços de negócio; telas em `/admin` (features + parâmetros + adesão de municípios) |
+| **Status geral** | ✅ **Implementado (2026-07-29).** Migration **V15** só para o entitlement por município; flags globais e parâmetros **reusam** `configuracoes_sistema` (V5). Decisões D1–D6 em §4 (com o ajuste D7 em §4). |
+| **Código** | `FeatureFlagService` (fachada sobre `ConfiguracaoService`, com cache, defaults e auditoria), catálogos `ChaveFeature` e `ParametroSistema`, `ManutencaoFilter` + `ManutencaoController` + `templates/manutencao.html`, gate no `WhatsappWebhookController`, `MunicipioService` (entitlement) e coluna `municipios.pagamento_habilitado` (V15); telas `/admin/features` e `/admin/municipios`. `VerificacaoService`/`ConviteService` passaram a ler os parâmetros do toggle. |
 | **Constituição** | Artigos II (camadas), IV (migrations forward-only), VI (UUID/enums/VARCHAR), VII (RBAC), IX (português), X (HTMX), XI (segurança), XIII (`/ping` público), XIV (ambiente compartilhado) |
 | **Relacionada** | Configuração do Sistema (`ConfiguracaoSistema`/sessão dinâmica — #18, ADR-10), [SPEC-10](SPEC-10-integracao-whatsapp.md)/[SPEC-11](SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md) (bot), [SPEC-07](SPEC-07-endereco-do-passageiro.md) (`Municipio`), [SPEC-12](SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md) (parâmetros de OTP) · **ADR-17** (proposta, §4) |
 
@@ -83,6 +83,12 @@ Um `ManutencaoFilter` (após a autorização) devolve a **página de manutençã
 qualquer requisição quando `feature.modo_manutencao = true`, **exceto**: papel **SYSADMIN**, `/login`,
 `/logout`, `/ping` (contrato — Art. XIII), `/actuator/health` e estáticos. Assim o SYSADMIN entra e
 **desliga** o modo.
+
+### D7 — Adesão de município → **SYSADMIN** (ajuste feito na implementação)
+A FR-FLG-03 previa a tela para **GERENTE/SYSADMIN**. Ela ficou em `/admin/municipios`, ou seja,
+**só SYSADMIN**: adesão ao pagamento é decisão **comercial da plataforma**, não operação diária da
+secretaria — e assim nenhuma exceção precisou ser aberta no `SecurityConfig` (`/admin/**` continua
+exclusivo do SYSADMIN). Reversível se a operação pedir.
 
 ### D6 — Bot on/off → **✅ Gate no webhook (200 + no-op)**
 Com `feature.bot_whatsapp = false`, o `WhatsappWebhookController` **registra a mensagem** (idempotência,
@@ -194,14 +200,24 @@ Padrão HTMX (Art. X). A **página de manutenção** é pública.
 
 ---
 
-## 11. Testes (previsto)
+## 11. Testes ✅ (entregues — detalhamento em [`docs/testes/04-feature-toggle.md`](../../testes/04-feature-toggle.md))
 
-- **`FeatureFlagServiceTest`** (unit): `ativo`/`parametro` com cache; default seguro para chave
-  ausente/valor inválido; invalidação de cache ao salvar.
-- **Manutenção** (MockMvc + Testcontainers): SYSADMIN passa; demais recebem 503; `/ping` = 200.
-- **Bot off** (`WhatsappWebhookControllerTest`): flag off ⇒ registra mensagem, não aciona o bot, 200.
-- **Parâmetros**: `VerificacaoService` usa o valor de config; fora do intervalo ⇒ default.
-- **Contexto** (Testcontainers): schema **V1→V15** válido.
+Escritos **antes** da implementação (TDD):
+
+- **`FeatureFlagServiceTest`** (13 cenários, unit): `ativo`/`parametro` com cache; default seguro para
+  chave ausente/valor inválido/fora do intervalo; invalidação do cache ao salvar; auditoria da
+  mudança; recusa de escrita fora do intervalo.
+- **`MunicipioServiceTest`** (5 cenários, unit): adesão persistida e auditada; elegibilidade pelo
+  município de origem; sem endereço ⇒ `false` (default seguro).
+- **`FeatureToggleWebTest`** (10 cenários, MockMvc + Testcontainers): RBAC das telas; manutenção
+  barrando o GERENTE (503 + página) e liberando o SYSADMIN; `/ping` e `/actuator/health` imunes;
+  variante HTMX (`HX-Redirect`); parâmetros válidos/inválidos; adesão de município.
+- **Bot off** (`WhatsappWebhookControllerTest`): flag off ⇒ registra a mensagem, **não** aciona o bot,
+  responde 200.
+- **Contexto** (Testcontainers): schema **V1→V15** válido com `ddl-auto: validate`.
+
+**Resultado:** 346 testes verdes na suíte; cobertura global **87,3% de linhas** (gate de 85% no
+`mvn verify`).
 
 ---
 

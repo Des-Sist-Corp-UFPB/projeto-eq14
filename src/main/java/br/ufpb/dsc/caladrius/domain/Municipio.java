@@ -32,6 +32,14 @@ public class Municipio {
     @Column(name = "codigo_ibge", length = 7)
     private String codigoIbge;
 
+    /**
+     * Adesão do município ao (futuro) fluxo de pagamento — <em>entitlement</em> da
+     * SPEC-13 (RN-FLG-05, migration V15). Default {@code false}: ninguém entra no
+     * fluxo sem decisão explícita da administração.
+     */
+    @Column(name = "pagamento_habilitado", nullable = false)
+    private boolean pagamentoHabilitado = false;
+
     public Municipio() {
     }
 
@@ -61,5 +69,13 @@ public class Municipio {
 
     public void setCodigoIbge(String codigoIbge) {
         this.codigoIbge = codigoIbge;
+    }
+
+    public boolean isPagamentoHabilitado() {
+        return pagamentoHabilitado;
+    }
+
+    public void setPagamentoHabilitado(boolean pagamentoHabilitado) {
+        this.pagamentoHabilitado = pagamentoHabilitado;
     }
 }

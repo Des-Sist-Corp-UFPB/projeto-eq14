@@ -10,6 +10,7 @@ import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
 import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
 import br.ufpb.dsc.caladrius.repository.TokenAtivacaoRepository;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,8 +43,20 @@ class ConviteServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private NotificacaoService notificacaoService;
     @Mock private AuditoriaService auditoriaService;
+    @Mock private FeatureFlagService featureFlags;
 
     @InjectMocks private ConviteService conviteService;
+
+    /**
+     * Validade do convite e tamanho mínimo de senha passaram a vir do feature toggle
+     * (SPEC-13, FR-FLG-06); o mock devolve o <strong>default do código</strong> — o
+     * mesmo comportamento de quando não há configuração no banco (RN-FLG-02).
+     */
+    @BeforeEach
+    void parametrosNoPadrao() {
+        lenient().when(featureFlags.parametro(any(ParametroSistema.class)))
+                .thenAnswer(inv -> inv.getArgument(0, ParametroSistema.class).getPadrao());
+    }
 
     @Test
     @DisplayName("convidar: cria usuário PENDENTE com o papel e gera token; retorna link")

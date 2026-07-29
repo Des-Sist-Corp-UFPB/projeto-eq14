@@ -1,5 +1,7 @@
 package br.ufpb.dsc.caladrius.controller;
 
+import br.ufpb.dsc.caladrius.service.ChaveFeature;
+import br.ufpb.dsc.caladrius.service.FeatureFlagService;
 import br.ufpb.dsc.caladrius.service.WhatsappService;
 import br.ufpb.dsc.caladrius.util.Documentos;
 import br.ufpb.dsc.caladrius.whatsapp.MensagemRecebida;
@@ -41,13 +43,16 @@ public class WhatsappWebhookController {
 
     private final WhatsappService whatsappService;
     private final ProcessadorMensagemRecebida processador;
+    private final FeatureFlagService featureFlags;
     private final String tokenEsperado;
 
     public WhatsappWebhookController(WhatsappService whatsappService,
                                      ProcessadorMensagemRecebida processador,
+                                     FeatureFlagService featureFlags,
                                      @Value("${WHATSAPP_WEBHOOK_TOKEN:}") String tokenEsperado) {
         this.whatsappService = whatsappService;
         this.processador = processador;
+        this.featureFlags = featureFlags;
         this.tokenEsperado = tokenEsperado;
     }
 
@@ -93,6 +98,14 @@ public class WhatsappWebhookController {
                 Instant.now());
         // Idempotência (RN-WPP-03): evento repetido não volta ao bot.
         if (!whatsappService.registrarRecebida(mensagem)) {
+            return;
+        }
+        // Kill switch do atendimento automático (SPEC-13, RN-FLG-04): a mensagem já
+        // está registrada — só o bot não é acionado. O webhook responde 200 para a
+        // Evolution não re-tentar, e as notificações de SAÍDA seguem funcionando.
+        if (!featureFlags.ativo(ChaveFeature.BOT_WHATSAPP)) {
+            log.info("Bot desligado (feature.bot_whatsapp=false): mensagem de {} registrada sem resposta",
+                    mensagem.telefone());
             return;
         }
         try {

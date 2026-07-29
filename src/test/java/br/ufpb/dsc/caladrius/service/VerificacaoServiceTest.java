@@ -9,6 +9,7 @@ import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
 import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
 import br.ufpb.dsc.caladrius.repository.CodigoVerificacaoRepository;
 import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,10 +50,22 @@ class VerificacaoServiceTest {
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private NotificacaoService notificacaoService;
     @Mock private AuditoriaService auditoriaService;
+    @Mock private FeatureFlagService featureFlags;
 
     @InjectMocks private VerificacaoService service;
 
     private static final Pattern SEIS_DIGITOS = Pattern.compile("\\b(\\d{6})\\b");
+
+    /**
+     * Os parâmetros do OTP passaram a vir do feature toggle (SPEC-13, FR-FLG-06). Aqui
+     * o mock devolve sempre o <strong>default do código</strong> — que é exatamente o
+     * comportamento sem configuração no banco (RN-FLG-02), preservando estes cenários.
+     */
+    @BeforeEach
+    void parametrosNoPadrao() {
+        lenient().when(featureFlags.parametro(any(ParametroSistema.class)))
+                .thenAnswer(inv -> inv.getArgument(0, ParametroSistema.class).getPadrao());
+    }
 
     // ------------------------------------------------------------- enviarCodigo
 

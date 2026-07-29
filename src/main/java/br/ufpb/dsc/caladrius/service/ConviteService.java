@@ -38,25 +38,36 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ConviteService {
 
-    private static final int VALIDADE_DIAS = 7;
-    private static final int SENHA_MIN = 6;
-
     private final UsuarioRepository usuarioRepository;
     private final TokenAtivacaoRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificacaoService notificacaoService;
     private final AuditoriaService auditoriaService;
+    private final FeatureFlagService featureFlags;
 
     public ConviteService(UsuarioRepository usuarioRepository,
                           TokenAtivacaoRepository tokenRepository,
                           PasswordEncoder passwordEncoder,
                           NotificacaoService notificacaoService,
-                          AuditoriaService auditoriaService) {
+                          AuditoriaService auditoriaService,
+                          FeatureFlagService featureFlags) {
         this.usuarioRepository = usuarioRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.notificacaoService = notificacaoService;
         this.auditoriaService = auditoriaService;
+        this.featureFlags = featureFlags;
+    }
+
+    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06) — os defaults
+    // do código (7 dias / 6 caracteres) preservam o comportamento anterior (RN-FLG-02).
+
+    private int validadeDias() {
+        return featureFlags.parametro(ParametroSistema.CONVITE_VALIDADE_DIAS);
+    }
+
+    private int senhaMinima() {
+        return featureFlags.parametro(ParametroSistema.SENHA_MIN);
     }
 
     /**
@@ -93,7 +104,7 @@ public class ConviteService {
         token.setTokenHash(hash(raw));
         token.setUsuarioId(usuario.getId());
         token.setCriadoPorId(criadoPorId);
-        token.setExpiraEm(Instant.now().plus(VALIDADE_DIAS, ChronoUnit.DAYS));
+        token.setExpiraEm(Instant.now().plus(validadeDias(), ChronoUnit.DAYS));
         tokenRepository.save(token);
 
         String link = "/ativar?token=" + raw;
@@ -131,7 +142,7 @@ public class ConviteService {
         token.setTokenHash(hash(raw));
         token.setUsuarioId(usuario.getId());
         token.setCriadoPorId(usuario.getId());
-        token.setExpiraEm(Instant.now().plus(VALIDADE_DIAS, ChronoUnit.DAYS));
+        token.setExpiraEm(Instant.now().plus(validadeDias(), ChronoUnit.DAYS));
         tokenRepository.save(token);
 
         auditoriaService.registrarOperacao("ACESSO_PLATAFORMA_TOKEN", "Usuario",
@@ -154,8 +165,9 @@ public class ConviteService {
         if (token.getFinalidade() != FinalidadeToken.ATIVACAO) {
             throw new RegraNegocioException("Convite inválido.");
         }
-        if (novaSenha == null || novaSenha.length() < SENHA_MIN) {
-            throw new RegraNegocioException("A senha deve ter ao menos " + SENHA_MIN + " caracteres.");
+        int senhaMinima = senhaMinima();
+        if (novaSenha == null || novaSenha.length() < senhaMinima) {
+            throw new RegraNegocioException("A senha deve ter ao menos " + senhaMinima + " caracteres.");
         }
 
         Usuario usuario = usuarioRepository.findById(token.getUsuarioId())
@@ -191,7 +203,7 @@ public class ConviteService {
         token.setUsuarioId(usuario.getId());
         token.setCriadoPorId(usuario.getId());
         token.setFinalidade(FinalidadeToken.VERIFICAR_EMAIL);
-        token.setExpiraEm(Instant.now().plus(VALIDADE_DIAS, ChronoUnit.DAYS));
+        token.setExpiraEm(Instant.now().plus(validadeDias(), ChronoUnit.DAYS));
         tokenRepository.save(token);
 
         String link = "/verificar-email?token=" + raw;

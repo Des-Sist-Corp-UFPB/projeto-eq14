@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+  Página de manutenção (SPEC-13, RN-FLG-03).
+
+  Renderizada com HTTP 503 sempre que a flag feature.modo_manutencao está ligada e
+  quem acessa não é SYSADMIN. É PÚBLICA e AUTOCONTIDA de propósito: não usa o layout
+  autenticado (que traz menu e dados do usuário) nem depende de nenhum serviço — em
+  manutenção, a página tem de subir mesmo se o resto estiver indisponível.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Em manutenção — CALADRIUS</title>
+    <style>
+        :root {
+            --cal-primary: oklch(0.55 0.17 257);
+            --cal-text: oklch(0.26 0.03 257);
+            --cal-muted: oklch(0.55 0.02 257);
+            --cal-bg: oklch(0.98 0.004 250);
+            --cal-border: oklch(0.92 0.008 250);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 32px; background: var(--cal-bg); color: var(--cal-text);
+            font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+        }
+        .cal-card {
+            width: 520px; max-width: 100%; background: #fff; border: 1px solid var(--cal-border);
+            border-radius: 16px; padding: 40px; text-align: center;
+        }
+        .cal-logo {
+            display: inline-flex; align-items: center; gap: 9px;
+            font-weight: 700; font-size: 17px; letter-spacing: 0.09em; margin-bottom: 28px;
+        }
+        .cal-logo .dot { width: 17px; height: 17px; border-radius: 5px; background: var(--cal-primary); }
+        h1 { font-size: 22px; margin: 0 0 10px; }
+        p { font-size: 15px; line-height: 1.6; color: var(--cal-muted); margin: 0 0 8px; }
+        .cal-acoes { margin-top: 26px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .cal-btn {
+            display: inline-block; padding: 10px 18px; border-radius: 9px; text-decoration: none;
+            font-size: 14px; font-weight: 600; border: 1px solid var(--cal-border); color: var(--cal-text);
+        }
+        .cal-btn--primary { background: var(--cal-primary); border-color: var(--cal-primary); color: #fff; }
+    </style>
+</head>
+<body>
+<div class="cal-card">
+    <span class="cal-logo"><span class="dot"></span>CALADRIUS</span>
+
+    <h1>Estamos em manutenção</h1>
+    <p>O sistema de agendamento de transporte está temporariamente fora do ar para
+        manutenção programada.</p>
+    <p>As solicitações já registradas <strong>não</strong> foram perdidas. Tente novamente
+        em alguns minutos.</p>
+
+    <div class="cal-acoes">
+        <a class="cal-btn cal-btn--primary" th:href="@{/}">Tentar novamente</a>
+        <a class="cal-btn" th:href="@{/login}">Ir para o login</a>
+    </div>
+</div>
+</body>
+</html>

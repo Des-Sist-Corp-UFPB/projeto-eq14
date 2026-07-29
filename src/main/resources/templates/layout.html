@@ -193,6 +193,9 @@
                         <a class="cal-nav cal-nav--child" th:href="@{/admin/configuracoes}"
                            th:classappend="${requestURI != null and requestURI.startsWith('/admin/configuracoes')} ? 'active'">
                             <span class="cal-dot"></span><span class="cal-nav__label">Configurações</span></a>
+                        <a class="cal-nav cal-nav--child" th:href="@{/admin/features}"
+                           th:classappend="${requestURI != null and (requestURI.startsWith('/admin/features') or requestURI.startsWith('/admin/municipios'))} ? 'active'">
+                            <span class="cal-dot"></span><span class="cal-nav__label">Funcionalidades</span></a>
                         <a class="cal-nav cal-nav--child" th:href="@{/admin/auditoria}"
                            th:classappend="${requestURI != null and requestURI.startsWith('/admin/auditoria')} ? 'active'">
                             <span class="cal-dot"></span><span class="cal-nav__label">Auditoria</span></a>

@@ -38,9 +38,6 @@ import java.util.UUID;
 public class VerificacaoService {
 
     static final int TAMANHO_CODIGO = 6;
-    static final int VALIDADE_MINUTOS = 10;
-    static final int MAX_TENTATIVAS = 5;
-    static final int COOLDOWN_SEGUNDOS = 60;
 
     private static final String ERRO_GENERICO = "Código inválido ou expirado.";
 
@@ -48,16 +45,35 @@ public class VerificacaoService {
     private final UsuarioRepository usuarioRepository;
     private final NotificacaoService notificacaoService;
     private final AuditoriaService auditoriaService;
+    private final FeatureFlagService featureFlags;
     private final SecureRandom random = new SecureRandom();
 
     public VerificacaoService(CodigoVerificacaoRepository codigoRepository,
                               UsuarioRepository usuarioRepository,
                               NotificacaoService notificacaoService,
-                              AuditoriaService auditoriaService) {
+                              AuditoriaService auditoriaService,
+                              FeatureFlagService featureFlags) {
         this.codigoRepository = codigoRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificacaoService = notificacaoService;
         this.auditoriaService = auditoriaService;
+        this.featureFlags = featureFlags;
+    }
+
+    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06). Os valores
+    // de fábrica (10 min / 5 tentativas / 60 s) continuam sendo os defaults do código:
+    // sem configuração no banco, o comportamento é exatamente o de antes (RN-FLG-02).
+
+    private int validadeMinutos() {
+        return featureFlags.parametro(ParametroSistema.OTP_VALIDADE_MINUTOS);
+    }
+
+    private int maxTentativas() {
+        return featureFlags.parametro(ParametroSistema.OTP_MAX_TENTATIVAS);
+    }
+
+    private int cooldownSegundos() {
+        return featureFlags.parametro(ParametroSistema.OTP_COOLDOWN_SEGUNDOS);
     }
 
     /**
@@ -68,9 +84,10 @@ public class VerificacaoService {
     @Transactional
     public void enviarCodigo(Usuario usuario, FinalidadeCodigo finalidade, CanalTipo canal, String ip) {
         // Cooldown de reenvio (RN-VER-06): evita disparo em rajada.
+        int cooldownSegundos = cooldownSegundos();
         codigoRepository.findFirstByUsuarioIdAndFinalidadeOrderByCriadoEmDesc(usuario.getId(), finalidade)
                 .filter(c -> c.getCriadoEm() != null
-                        && c.getCriadoEm().isAfter(Instant.now().minusSeconds(COOLDOWN_SEGUNDOS)))
+                        && c.getCriadoEm().isAfter(Instant.now().minusSeconds(cooldownSegundos)))
                 .ifPresent(c -> {
                     throw new RegraNegocioException("Aguarde alguns segundos para pedir um novo código.");
                 });
@@ -84,6 +101,7 @@ public class VerificacaoService {
             codigoRepository.saveAll(ativos);
         }
 
+        int validadeMinutos = validadeMinutos();
         String codigoCru = gerarCodigo();
         CodigoVerificacao codigo = new CodigoVerificacao();
         codigo.setUsuarioId(usuario.getId());
@@ -91,13 +109,13 @@ public class VerificacaoService {
         codigo.setFinalidade(finalidade);
         codigo.setCanal(canal);
         codigo.setTentativas(0);
-        codigo.setExpiraEm(Instant.now().plus(VALIDADE_MINUTOS, ChronoUnit.MINUTES));
+        codigo.setExpiraEm(Instant.now().plus(validadeMinutos, ChronoUnit.MINUTES));
         codigo.setCriadoIp(ip);
         codigoRepository.save(codigo);
 
         String titulo = "Código de verificação — CALADRIUS";
         String mensagem = "Seu código para " + finalidade.getRotulo() + " é: " + codigoCru
-                + "\nEle expira em " + VALIDADE_MINUTOS + " minutos. Não compartilhe este código.";
+                + "\nEle expira em " + validadeMinutos + " minutos. Não compartilhe este código.";
         notificacaoService.enviar(
                 new NotificacaoDestino(usuario.getId(), usuario.getEmail(), usuario.getTelefone()),
                 titulo, mensagem, canal);
@@ -117,8 +135,9 @@ public class VerificacaoService {
                 .findFirstByUsuarioIdAndFinalidadeAndUsadoEmIsNullOrderByCriadoEmDesc(usuarioId, finalidade)
                 .orElseThrow(() -> new RegraNegocioException(ERRO_GENERICO));
 
+        int maxTentativas = maxTentativas();
         // Expirado ou já bloqueado: não conta como nova tentativa.
-        if (!codigo.valido(MAX_TENTATIVAS)) {
+        if (!codigo.valido(maxTentativas)) {
             throw new RegraNegocioException(ERRO_GENERICO);
         }
 
@@ -129,7 +148,7 @@ public class VerificacaoService {
 
         if (!confere) {
             codigo.setTentativas(codigo.getTentativas() + 1);
-            if (codigo.getTentativas() >= MAX_TENTATIVAS) {
+            if (codigo.getTentativas() >= maxTentativas) {
                 codigo.setUsadoEm(Instant.now()); // lockout: invalida o código
             }
             codigoRepository.save(codigo);

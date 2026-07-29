@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--
+  Funcionalidades / feature toggle (SYSADMIN) — SPEC-13.
+
+  Três blocos: flags globais (kill switches), parâmetros de negócio e o atalho para a
+  adesão por município. As mutações usam HTMX; como /admin NÃO está na lista de exceções
+  de CSRF (é área administrativa), o token vai no hx-headers do container.
+-->
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::main})}">
+<head><title>Funcionalidades</title></head>
+<body>
+<main th:attr="hx-headers='{&quot;' + ${_csrf.headerName} + '&quot;: &quot;' + ${_csrf.token} + '&quot;}'">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Funcionalidades</h1>
+        <p class="text-muted mb-0">
+            Ligue e desligue funcionalidades em runtime, sem redeploy. Toda alteração é
+            auditada e vale já na requisição seguinte.
+        </p>
+    </div>
+
+    <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
+    <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+    <!-- ------------------------------------------------------- flags globais -->
+    <h2 class="h5 mb-3">Interruptores</h2>
+    <div th:replace="~{admin/fragments/flags :: lista}"></div>
+
+    <div class="alert alert-warning mt-3 small mb-0">
+        <strong>Modo de manutenção:</strong> com ele ligado, todos os papéis recebem a página
+        de manutenção (503) — menos o SYSADMIN, que continua navegando para desligá-lo.
+        O <code>/ping</code> e o health check seguem respondendo 200.
+    </div>
+
+    <!-- -------------------------------------------------- parâmetros de negócio -->
+    <h2 class="h5 mt-5 mb-3">Parâmetros de negócio</h2>
+    <div class="card" style="max-width: 720px;">
+        <div class="card-body">
+            <form th:action="@{/admin/features/parametros}" method="post">
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6" th:each="p : ${parametros}">
+                        <label class="form-label fw-semibold small"
+                               th:for="${p.key.name()}" th:text="${p.key.rotulo}">Parâmetro</label>
+                        <input type="number" class="form-control"
+                               th:id="${p.key.name()}" th:name="${p.key.name()}"
+                               th:min="${p.key.minimo}" th:max="${p.key.maximo}"
+                               th:value="${p.value}"/>
+                        <div class="form-text">
+                            Entre <span th:text="${p.key.minimo}">1</span> e
+                            <span th:text="${p.key.maximo}">10</span>
+                            (padrão <span th:text="${p.key.padrao}">5</span>).
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-cal mt-3">Salvar parâmetros</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ------------------------------------------------ entitlement por município -->
+    <h2 class="h5 mt-5 mb-3">Adesão ao pagamento</h2>
+    <div class="card" style="max-width: 720px;">
+        <div class="card-body">
+            <p class="text-muted small">
+                Marcador por município consultado pela (futura) integração de pagamento —
+                avaliado pelo município de origem do passageiro.
+            </p>
+            <p class="mb-3" th:if="${#lists.isEmpty(municipiosAderidos)}">
+                <span class="badge text-bg-secondary">Nenhum município aderiu ainda</span>
+            </p>
+            <p class="mb-3" th:unless="${#lists.isEmpty(municipiosAderidos)}">
+                <span class="badge text-bg-success me-1" th:each="m : ${municipiosAderidos}"
+                      th:text="${m.nome + '/' + m.uf}">Município</span>
+            </p>
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/admin/municipios}">
+                Gerenciar adesão por município</a>
+        </div>
+    </div>
+
+</main>
+</body>
+</html>

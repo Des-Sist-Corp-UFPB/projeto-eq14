@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- Tabela de adesão ao pagamento por município (SPEC-13, RN-FLG-05). -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="tabela" id="municipios">
+    <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+            <th scope="col">Município</th>
+            <th scope="col">UF</th>
+            <th scope="col" class="text-end">Pagamento</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="m : ${municipios}">
+            <td th:text="${m.nome}">Município</td>
+            <td th:text="${m.uf}">PB</td>
+            <td class="text-end">
+                <button type="button" class="btn btn-sm"
+                        th:classappend="${m.pagamentoHabilitado} ? 'btn-success' : 'btn-outline-secondary'"
+                        th:attr="hx-post=@{'/admin/municipios/' + ${m.id}},
+                                 hx-vals='{&quot;habilitado&quot;: ' + ${!m.pagamentoHabilitado}
+                                          + ', &quot;busca&quot;: &quot;' + ${busca} + '&quot;}'"
+                        hx-target="#municipios"
+                        hx-swap="outerHTML"
+                        th:text="${m.pagamentoHabilitado} ? 'Aderiu' : 'Não aderiu'">Não aderiu</button>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(municipios)}">
+            <td colspan="3" class="text-center text-muted py-3">Nenhum município encontrado.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

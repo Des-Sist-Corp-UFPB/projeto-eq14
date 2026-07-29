@@ -3,6 +3,7 @@ package br.ufpb.dsc.caladrius.config;
 import br.ufpb.dsc.caladrius.security.CaladriusOidcUserService;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import br.ufpb.dsc.caladrius.service.AuditoriaService;
+import br.ufpb.dsc.caladrius.service.FeatureFlagService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,6 +55,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            AuditoriaService auditoriaService,
                                            CaladriusOidcUserService oidcUserService,
+                                           FeatureFlagService featureFlagService,
                                            ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
@@ -64,6 +66,9 @@ public class SecurityConfig {
                                 // Verificação de contato e recuperação de senha (SPEC-12).
                                 "/verificar-telefone", "/verificar-telefone/reenviar",
                                 "/verificar-email", "/esqueci-senha", "/redefinir-senha",
+                                // Página de manutenção (SPEC-13, RN-FLG-03) — pública por
+                                // definição: é o que se vê quando o sistema está fora do ar.
+                                "/manutencao",
                                 "/ping", "/actuator/health",
                                 "/webjars/**", "/css/**", "/js/**"
                         ).permitAll()
@@ -134,9 +139,13 @@ public class SecurityConfig {
             );
         }
 
-        // Após a autenticação/autorização, barra a navegação de contas com perfil
-        // incompleto (login social sem telefone), levando-as a /conta/completar.
-        http.addFilterAfter(new PerfilIncompletoFilter(), AuthorizationFilter.class);
+        // Após a autenticação/autorização, dois filtros de navegação. A ordem importa:
+        //   1) manutenção (SPEC-13) — kill switch global, tem de vir primeiro, senão um
+        //      usuário de perfil incompleto seria mandado a /conta/completar em vez de
+        //      ver a página de manutenção;
+        //   2) perfil incompleto (SPEC-08) — leva contas sem telefone a /conta/completar.
+        http.addFilterAfter(new ManutencaoFilter(featureFlagService), AuthorizationFilter.class);
+        http.addFilterAfter(new PerfilIncompletoFilter(), ManutencaoFilter.class);
 
         return http.build();
     }

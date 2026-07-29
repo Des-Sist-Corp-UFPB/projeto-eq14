@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+  Bloco das flags globais (SPEC-13, FR-FLG-01).
+
+  O POST devolve ESTE mesmo fragmento com o estado recalculado — por isso o
+  interruptor troca o bloco inteiro (hx-target/#flags), sem fragmento por item.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="lista" id="flags" class="row g-3">
+    <div class="col-12 col-lg-6" th:each="entrada : ${flags}">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-start gap-3">
+                <div>
+                    <h3 class="h6 mb-1" th:text="${entrada.key.rotulo}">Flag</h3>
+                    <p class="text-muted small mb-2" th:text="${entrada.key.descricao}">Descrição</p>
+                    <code class="small text-muted" th:text="${entrada.key.chave}">feature.x</code>
+                </div>
+
+                <!-- hx-vals inverte o estado: o botão sempre envia o VALOR DESEJADO. -->
+                <button type="button"
+                        class="btn btn-sm flex-shrink-0"
+                        th:classappend="${entrada.value} ? 'btn-success' : 'btn-outline-secondary'"
+                        th:attr="hx-post=@{'/admin/features/' + ${entrada.key.name()}},
+                                 hx-vals='{&quot;ativo&quot;: ' + ${!entrada.value} + '}'"
+                        hx-target="#flags"
+                        hx-swap="outerHTML"
+                        th:text="${entrada.value} ? 'Ligada' : 'Desligada'">Ligada</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
