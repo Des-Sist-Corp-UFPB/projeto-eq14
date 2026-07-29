@@ -35,18 +35,32 @@ docs/
 ├── ARCHITECTURE.md          ← (base) camadas, HTMX, Flyway
 ├── CONVENTIONS.md           ← (base) migrations, nomenclatura, validação
 ├── SECURITY.md              ← (base) SAST, OWASP, Spring Security
+├── checklist.md             ← requisitos cobrados na disciplina × estado atual
+├── testes/                  ← a SUÍTE real: o que cada teste verifica e por quê
 └── sdd/
     ├── README.md                       ← este arquivo (índice + fluxo)
     ├── 00-constituicao.md              ← princípios invioláveis do projeto
     ├── 01-especificacao-produto.md     ← visão, personas, glossário, escopo, NFRs
-    ├── 02-plano-tecnico.md             ← como as specs viram arquitetura/dados/endpoints
-    ├── 03-tarefas-e-roadmap.md         ← rastreabilidade (feito × pendente) + próximos passos
+    ├── 02-plano-tecnico.md             ← como as specs viram arquitetura/dados/endpoints (ADRs)
+    ├── 03-tarefas-e-roadmap.md         ← rastreabilidade (feito × pendente) + dívidas DT-XX
+    ├── cenarios-de-teste.md            ← catálogo de cenários a testar (planejamento)
     └── specs/
         ├── SPEC-01-autenticacao.md     ← login (e-mail/telefone) + auto-cadastro
         ├── SPEC-02-gestao-usuarios.md  ← CRUD de usuários + papéis (RBAC)
         ├── SPEC-03-gestao-veiculos.md  ← CRUD de veículos (frota)
         ├── SPEC-04-gestao-cidades.md   ← CRUD de cidades (origem/destino)
-        └── SPEC-05-gestao-viagens.md   ← criação/listagem de viagens
+        ├── SPEC-05-gestao-viagens.md   ← criação/listagem de viagens
+        ├── SPEC-06-viagens-rotineiras-e-imprevistas.md  ← linhas, painel semanal, designação
+        ├── SPEC-07-endereco-do-passageiro.md            ← endereço estruturado (municípios)
+        ├── SPEC-08-login-social-google.md               ← OAuth2/OIDC
+        ├── SPEC-09-solicitacao-de-transporte.md         ← passageiro solicita pelo sistema
+        ├── SPEC-10-integracao-whatsapp.md               ← porta + Evolution API + painel
+        ├── SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md ← bot + aprovação do gestor
+        ├── SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md ← OTP + link mágico
+        ├── SPEC-13-feature-toggle.md                    ← ✅ flags, manutenção, parâmetros
+        ├── SPEC-14-observabilidade-opentelemetry.md     ← ✅ traces/métricas/logs
+        ├── SPEC-15-multi-ambiente-por-secretaria.md     ← 🚧 multi-tenancy (Opção A/silo)
+        └── SPEC-16-organizacao-planos-e-pagamento.md    ← 🔵 venda self-service + pagamento
 ```
 
 Os três documentos da raiz de `docs/` (`ARCHITECTURE`, `CONVENTIONS`, `SECURITY`) **continuam

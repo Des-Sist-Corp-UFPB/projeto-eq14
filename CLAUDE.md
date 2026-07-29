@@ -32,9 +32,15 @@ pede destino+data+horário+condições; **gestor aprova/recusa** em `/gestao/sol
 **Observabilidade (SPEC-14):** agente OpenTelemetry exportando **traces/métricas/logs** via OTLP ao
 **backend central da disciplina** (Grafana+Tempo+Prometheus+Loki, `service.name=dsc-eq14`) + **2 spans de
 negócio** manuais (`RastreamentoService` → `solicitar-sob-demanda`/`aprovar-solicitacao`); **sem migration**; liga/desliga por
-env (`JAVA_TOOL_OPTIONS`) — código/infra dev+prod prontos, falta só o `.env` do servidor (token) + redeploy.
+env (`JAVA_TOOL_OPTIONS`) — em produção.
+**Feature toggle (SPEC-13):** `FeatureFlagService` sobre `configuracoes_sistema` (cache + default
+seguro + auditoria); **kill switches** `feature.bot_whatsapp` e `feature.modo_manutencao`
+(`ManutencaoFilter` → 503, libera SYSADMIN e `/ping`); **parâmetros de negócio** (`param.*`, lidos por
+`VerificacaoService`/`ConviteService`); **entitlement** `municipios.pagamento_habilitado` (**V15**);
+telas `/admin/features` e `/admin/municipios`.
 **Ainda fora do escopo:** alocação/assentos (capacidade) e prioridade automática,
-escalas de motorista, perfil/CNH do motorista, integração com o WhatsApp dos motoristas.
+escalas de motorista, perfil/CNH do motorista, integração com o WhatsApp dos motoristas,
+**pagamento/organização** (especificado na SPEC-16, não implementado).
 
 ## Stack Técnica
 | Camada | Tecnologia | Versão |
@@ -149,6 +155,10 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 - `V12` conversas_bot + mensagens_whatsapp (integração WhatsApp — SPEC-10)
 - `V13` solicitação sob demanda (`solicitacoes_viagem.tipo`/`cidade_destino`, linha nullable) +
   contexto de cadastro no `conversas_bot` (SPEC-11)
+- `V14` verificação de contato e recuperação de senha (`codigos_verificacao`, `tokens_ativacao.finalidade`,
+  `usuarios.telefone_verificado_em`/`email_verificado_em`) — SPEC-12
+- `V15` feature toggle: `municipios.pagamento_habilitado` (entitlement) — SPEC-13. As **flags** e os
+  **parâmetros** NÃO têm schema: são linhas chave/valor em `configuracoes_sistema` (V5)
 - **SPEC-14 (observabilidade/OpenTelemetry) — SEM migration** (infra/config + camada de código fina; não altera schema)
 
 > **Política em banco compartilhado:** ver [`docs/sdd/02-plano-tecnico.md` §2.5](docs/sdd/02-plano-tecnico.md).
@@ -172,29 +182,33 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 ## Documentação Técnica
 | Documento | Conteúdo |
 |-----------|----------|
-| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..11), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
+| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..16), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
+| **[docs/testes/](docs/testes/)** | **Suíte de testes documentada**: o que cada cenário verifica e por quê, cobertura por camada e como rodar |
+| [docs/checklist.md](docs/checklist.md) | Requisitos cobrados na disciplina × estado atual |
 | [README.md](README.md) | Visão geral, como rodar, acesso, estrutura |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Camadas, HTMX, Flyway |
 | [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | Migrations, nomenclatura, validação, Conventional Commits |
 | [docs/SECURITY.md](docs/SECURITY.md) | SAST, OWASP, configuração do Spring Security |
 
 ## Estado atual e como retomar (ponto de restauração)
-> **Atualizado em 2026-07-24.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
+> **Atualizado em 2026-07-29.** Para retomar em um novo chat: **leia este arquivo + [`docs/sdd/`](docs/sdd/)**
 > (em especial o [roadmap](docs/sdd/03-tarefas-e-roadmap.md), que rastreia o estado por capacidade e as
-> dívidas técnicas DT-01..DT-11). Este `CLAUDE.md` é carregado automaticamente em todo chat.
+> dívidas técnicas DT-01..DT-18) e o [`docs/checklist.md`](docs/checklist.md). Este `CLAUDE.md` é
+> carregado automaticamente em todo chat.
 
-- **Último marco**: **observabilidade com OpenTelemetry (SPEC-14 / ADR-18)** — agente Java (auto:
-  HTTP/JDBC/JVM/**logs**) + **camada manual** (`RastreamentoService` + `TelemetriaConfig`) com **2 spans
-  de negócio** (`solicitar-sob-demanda` + `aprovar-solicitacao`, atributos de domínio + logs estruturados) exportando **OTLP** ao
-  **backend central** da disciplina (Grafana+Tempo+Prometheus+**Loki**, `service.name=dsc-eq14`).
-  **Sem migration.** `pom.xml` ganhou só a **API** OTel (o SDK vem do agente). Agente **pinado v2.30.0**
-  no `Dockerfile` — embutido mas **inerte** sem `JAVA_TOOL_OPTIONS` (RN-OBS-01, conferido na imagem);
-  `grafana/otel-lgtm` local no dev. **Em produção**: ativado pelo portal da disciplina — `dsc-eq14`
-  recebendo no Grafana (runbook + armadilhas da ativação na SPEC-14 §11). Antes: SPEC-11 (sob demanda + onboarding WhatsApp, V13) e SPEC-10
-  (Evolution/webhook/painel `/whatsapp`). Migrations até **V13**. **Testes verdes (199)**, incl. o de
-  contexto Testcontainers (V1→V13) e os de telemetria; `mvn test` e `docker build -f docker/Dockerfile .`
-  verdes localmente.
-- **Specs implementadas (✅)**: SPEC-01..11 — ver o status no topo de cada arquivo em `docs/sdd/specs/`.
+- **Último marco**: **feature toggle (SPEC-13 / ADR-17)** — `FeatureFlagService` (fachada sobre
+  `ConfiguracaoService`, com **cache**, **default seguro** e **auditoria**), catálogos `ChaveFeature` e
+  `ParametroSistema`, `ManutencaoFilter` (503 + página pública, libera SYSADMIN e o contrato `/ping`),
+  gate do bot no webhook, `MunicipioService` (entitlement) e telas `/admin/features` + `/admin/municipios`.
+  **Migration V15** (só `municipios.pagamento_habilitado`). **Cobertura de testes com gate**: `jacoco:check`
+  falha abaixo de **85%** — hoje **346 testes verdes**, **87,3% de linhas**. Cenários documentados em
+  **[`docs/testes/`](docs/testes/)**. Antes: SPEC-14 (OpenTelemetry, em produção), SPEC-12 (V14),
+  SPEC-11/10 (WhatsApp). Migrations até **V15**; teste de contexto Testcontainers cobre V1→V15.
+- **Como rodar o build sem Java na máquina** (é o que valida antes do push):
+  `docker run --rm -v "$PWD":/app -w /app -v caladrius-m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock --network host maven:3.9.9-eclipse-temurin-21 mvn -B verify`
+- **Specs implementadas (✅)**: SPEC-01..14 (a 13 e a 14 completas). **SPEC-15** = proposta + protótipo
+  (multi-ambiente, Opção A). **SPEC-16** = proposta (organização/planos/pagamento) — ver o status no
+  topo de cada arquivo em `docs/sdd/specs/`.
 - **Pontos de atenção / dívidas em aberto** (do roadmap):
   - **Observabilidade — ✅ em produção (SPEC-14)**: `dsc-eq14` recebendo traces/métricas/logs no Grafana
     (`otel.dsc.rodrigor.com`). Ativado pelo **portal da disciplina** (editor de `.env` que recria o
@@ -208,13 +222,22 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
     e o gestor **aprova/recusa** ✅. **Falta**: **assentos/capacidade** e **prioridade automática**.
   - **Motorista**: `/minhas-viagens` (ver + status) funciona; **falta** perfil/CNH (`perfis_motorista`),
     visão de "Veículos" e **integração com o WhatsApp dos motoristas** (próxima etapa pós-SPEC-11).
-  - **Home (`/`)**: ainda mostra os totais do sistema para **qualquer** papel — ajustar para esconder
-    de não-gerentes e dar landing por papel.
+  - **Home (`/`)**: ainda mostra os totais do sistema para **qualquer** papel (**DT-17**) — ajustar
+    para esconder de não-gerentes e dar landing por papel.
   - **DT-03** (carga horária do motorista via `escalas_motorista`) ainda pendente.
+  - **DT-12**: **sem lockout do login por senha** (o OTP tem trava, o `formLogin` não).
+  - **DT-16**: horário de atendimento do WhatsApp é salvo mas **não aplicado** — agora dá para
+    resolver como parâmetro da SPEC-13.
+  - **Pagamento/organização (SPEC-16)**: **proposta escrita, com decisões em aberto** (planos/preços,
+    como o passageiro descobre a organização dele, destino da `configuracoes_sistema`). A regra que
+    sustenta a spec: o papel `GERENTE` **só** vem da confirmação servidor-a-servidor do pagamento.
 
 ## Próximos Passos Sugeridos
-1. **Infra da SPEC-10/11**: Evolution API na VPS (docker compose + TLS) e variáveis no deploy.
-2. **WhatsApp dos motoristas**: avisar o motorista da viagem designada pelo chat (reusa a porta).
-3. **Assentos/capacidade** (`assentos_viagem`) + **alocação por prioridade** (Incremento B).
-4. **Perfil/CNH do motorista** (`perfis_motorista`) e visão de veículos.
-5. **Home por papel** (esconder totais de não-gerente; atalhos por papel).
+1. **Infra da SPEC-10/11**: Evolution API na VPS (docker compose + TLS) e variáveis no `.env` do
+   servidor (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`, `APP_URL_PUBLICA` — ver
+   `.env.example`; o `docker-compose.prod.yml` já as repassa).
+2. **Decidir a SPEC-16** (planos, resolução de organização, faseamento) e implementar a **fase 1**
+   (V16: `Organizacao`/`Assinatura`/`Pagamento` + checkout + webhook).
+3. **WhatsApp dos motoristas**: avisar o motorista da viagem designada pelo chat (reusa a porta).
+4. **Assentos/capacidade** (`assentos_viagem`) + **alocação por prioridade** (Incremento B).
+5. **Home por papel** (DT-17) e **lockout do login** (DT-12).

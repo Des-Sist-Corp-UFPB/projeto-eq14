@@ -17,8 +17,11 @@
 | CRUD de cidades | [SPEC-04](specs/SPEC-04-gestao-cidades.md) | ✅ | remoção física; seed na V3 |
 | Viagens: criar/listar/excluir | [SPEC-05](specs/SPEC-05-gestao-viagens.md) | 🟡 | sem edição/transição de status |
 | Painel inicial (totais) | (produto §4) | ✅ | contagens por repositório |
+| Verificação de contato + recuperação de senha | [SPEC-12](specs/SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md) | ✅ | OTP/WhatsApp + link de e-mail, migration V14 |
 | Observabilidade (OpenTelemetry) | [SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md) | ✅ | **em produção** (`dsc-eq14` no Grafana); agente auto (traces/métricas/logs) + 2 spans de negócio |
+| **Feature toggle (flags + parâmetros + entitlement)** | [SPEC-13](specs/SPEC-13-feature-toggle.md) | ✅ | **implementado** — `/admin/features`, modo de manutenção (503), bot on/off, `municipios.pagamento_habilitado` (**V15**) |
 | Multi-ambiente por secretaria | [SPEC-15](specs/SPEC-15-multi-ambiente-por-secretaria.md) | 🚧 | proposta + protótipo (Opção A / silo); isolamento físico, sem código/migration |
+| Organização, planos e pagamento | [SPEC-16](specs/SPEC-16-organizacao-planos-e-pagamento.md) | 🔵 | **proposta em avaliação** — cadastro de gestor com checkout (Mercado Pago) + `Organizacao`; aciona a **Opção C** da SPEC-15 |
 
 ---
 
@@ -40,6 +43,19 @@ antes de ser implementado.
 | **DT-09** | `retorno_previsto` não coletado / tipo inconsistente | [SPEC-06 §2](specs/SPEC-06-viagens-rotineiras-e-imprevistas.md) | 🟡 Especificado — vira `horario_retorno` (LocalTime), ida/volta — aguarda #21 |
 | **DT-10** | Gestão de sessão (timeout/cookie) não especificada | [Plano §2.5](02-plano-tecnico.md) | 🟡 A formalizar — config **dinâmica** via SPEC de Configuração do Sistema (#18) |
 | **DT-11** | Teste de contexto (Testcontainers) falhava com Docker Engine novo | [Cenários](cenarios-de-teste.md) | ✅ Resolvido — Testcontainers **1.20.4 → 1.21.4** (negocia a API ≥ 1.40) |
+| **DT-12** | **Sem *lockout* do login por senha** — o OTP tem trava de tentativas (RN-VER-05), mas o `formLogin` aceita tentativas ilimitadas | [SPEC-12 §9](specs/SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md) | ⬜ Aberta — a auditoria já registra `LOGIN_FALHA`; falta bloquear (por conta e/ou IP) |
+| **DT-13** | **Cobertura de testes sem gate**: o JaCoCo relatava mas não media contra meta | [checklist](../../checklist.md) | ✅ Resolvido — `jacoco:check` com limiar **85% de linhas** no `verify` (falha o build abaixo disso) |
+| **DT-14** | Tabelas **dormentes** no schema (`solicitacoes_transporte` da V2, `assentos_viagem`, `escalas_motorista`, `perfis_*`) sem entidade nem uso | [Plano §2.2](02-plano-tecnico.md) | ⬜ Aberta — limpar (drop) ou mapear ao entrar o Incremento B/C; hoje só confundem quem lê o schema |
+| **DT-15** | **SPEC-08 × SPEC-12**: conta criada por Google não passa pela verificação de contato (RN-VER-08) | [SPEC-12](specs/SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md) | ⬜ Aberta — o e-mail do Google já vem verificado; falta decidir o telefone |
+| **DT-16** | **Janela de atendimento do WhatsApp** (início/fim): era persistida mas **nunca aplicada** — o bot respondia fora do horário e a tela dava a impressão contrária | [SPEC-11](specs/SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md) | 🅿️ **Em standby — removida do sistema (2026-07-29)** por decisão do dono do produto: a janela só faz sentido **quando existir um serviço de suporte humano** por trás. Enquanto o atendimento é 100% bot, silenciá-lo à noite deixaria sem resposta justamente quem solicita viagem de madrugada. Campos, DTO, chaves de config e testes removidos; **reintroduzir junto do suporte humano** (aí a janela define quando o bot diz "um atendente responde a partir das 8h", e não quando ele emudece) |
+| **DT-17** | **Home (`/`) mostra os totais do sistema para qualquer papel** | [CLAUDE.md](../../../CLAUDE.md) | ⬜ Aberta — esconder de não-gerente e dar landing por papel |
+| **DT-18** | **Cache de feature flags é por instância** (`FeatureFlagService`) — com várias réplicas, desligar uma flag não propaga | [SPEC-13 §4 D2](specs/SPEC-13-feature-toggle.md) | ⬜ Aberta (aceita) — hoje roda 1 container por ambiente; revisar se houver réplica |
+| **DT-20** | **Pareamento do WhatsApp não expira sozinho**: a instância fica em `connecting` na Evolution renovando o QR indefinidamente. Mitigado com o botão **"Cancelar pareamento"** (2026-07-29), mas não há **timeout automático** nem encerramento ao fim da sessão do gestor | [SPEC-10 §9](specs/SPEC-10-integracao-whatsapp.md) | ⬜ Aberta — avaliar um limite (ex.: desistir após N minutos sem leitura). **Não** amarrar à sessão HTTP: o pareamento é do *deploy*, não do usuário — o logout de um gestor não pode derrubar o pareamento que outro iniciou |
+| **DT-19** | **Painel `/whatsapp` desperdiça a coluna da direita**: os cards ("Configurações de envio", "Canais de mensagem", "Últimas mensagens") são empilhados em ~2/3 da largura, deixando o resto vazio. Pedido do dono do produto: pôr **"Canais de mensagem" ao lado** das configurações, em duas colunas | [SPEC-10 §9](specs/SPEC-10-integracao-whatsapp.md) | ⬜ Aberta — só layout (grid Bootstrap), sem mudança de comportamento; fazer junto da entrega de "Canais de mensagem", que hoje é um placeholder "Em breve" |
+
+> **Nota sobre DT-03/05/08/09**: continuam marcadas como "aguarda #21", mas o essencial já entrou
+> com a SPEC-06 (ciclo de status, painel semanal, designação). O que de fato falta é a **validação
+> de conflito de veículo/motorista** (DT-03) e o **bloqueio de data no passado** (DT-08).
 
 ---
 
@@ -121,12 +137,16 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
   de domínio + logs estruturados) com testes de unidade e de **cenário real**; infra dev (`grafana/otel-lgtm`) e prod
   (Dockerfile embute o agente; compose + `.env.example` com `OTEL_*`/`JAVA_TOOL_OPTIONS`).
 
-### Incremento G — Feature toggle ⬜
+### Incremento G — Feature toggle ✅
 - **Objetivo**: ligar/desligar funcionalidades em runtime pela área admin — **bot on/off**, **modo de
   manutenção**, **entitlement de pagamento por município** e **config toggles** (parâmetros de negócio)
   — [SPEC-13](specs/SPEC-13-feature-toggle.md), **ADR-17**.
-- **Status**: 🚧 **especificado** (SPEC-13); a implementar. Reusa `ConfiguracaoSistema` (ADR-10);
-  migration **V15** proposta só para `municipios.pagamento_habilitado`.
+- **Status**: ✅ **implementado** — migration **V15** (`municipios.pagamento_habilitado`); flags e
+  parâmetros como linhas em `configuracoes_sistema` (ADR-10, sem tabela nova).
+- **Entregue**: `FeatureFlagService` (cache + default seguro + auditoria), catálogos `ChaveFeature` e
+  `ParametroSistema`, `ManutencaoFilter` (503 + página pública, libera SYSADMIN e `/ping`), gate do bot
+  no `WhatsappWebhookController`, `MunicipioService` (entitlement) e as telas `/admin/features` e
+  `/admin/municipios`. `VerificacaoService`/`ConviteService` passaram a ler os parâmetros do toggle.
 - **Resolve**: move o item "Feature toggle" do `docs/checklist.md` de 🟡 para ✅.
 
 ### Incremento H — Multi-ambiente por secretaria (multi-tenancy) 🚧
@@ -141,6 +161,24 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 - **Falta**: operar de fato (VPS própria com Postgres por ambiente) e, se um dia precisar de visão
   consolidada entre secretarias, avaliar a migração para a Opção C.
 
+### Incremento I — Organização, planos e pagamento 🔵 (em avaliação)
+- **Objetivo**: **venda self-service** — quem se cadastra como gestor escolhe um plano, paga e só
+  então vira `GERENTE` da sua **organização** (secretaria) —
+  [SPEC-16](specs/SPEC-16-organizacao-planos-e-pagamento.md), **ADR-20** (proposta).
+- **Regra que sustenta tudo (RN-PAG-01)**: o papel `GERENTE` vem **só** da confirmação
+  servidor-a-servidor do pagamento (webhook + reconsulta na API) — nunca do formulário nem do
+  redirect de retorno do checkout. Sem isso, o seletor "sou gestor" seria escalonamento de privilégio.
+- **Faseamento** (SPEC-16 §9): **fase 1** = `Organizacao`/`Assinatura`/`Pagamento` + checkout +
+  webhook (**V16**); **fase 2** = tenant (`organizacao`) nas tabelas operacionais com `@TenantId` +
+  **testes de isolamento** (**V17**). ⚠️ Entre as fases, gestores de secretarias diferentes ainda se
+  enxergam — a fase 2 é **obrigatória** antes de cliente real.
+- **Impacto no login**: pequeno (o `UsuarioAutenticado` passa a carregar a organização; a tela de
+  login não muda). O caro é a fase 2 — ver [SPEC-16 §6](specs/SPEC-16-organizacao-planos-e-pagamento.md).
+- **Aciona a Opção C** da [SPEC-15 §7](specs/SPEC-15-multi-ambiente-por-secretaria.md) (auto-serviço de
+  cadastro + painel único eram exatamente os gatilhos previstos).
+- **Bloqueado por**: responder as decisões em aberto da SPEC-16 (planos/preços, resolução da
+  organização do passageiro, destino da `configuracoes_sistema`).
+
 ---
 
 ## 4. Backlog técnico transversal (não-funcional)
@@ -148,7 +186,7 @@ Cada um deve começar por uma **nova spec** em `specs/` e respeitar o
 | Item | Descrição |
 |---|---|
 | Alinhar `SECURITY.md` | Atualizar para o modelo real (auth no banco), removendo resíduos do boilerplate (DT-06). |
-| Cobertura de testes | Testes de `ViagemService`/`CidadeService` e de controllers; um teste por critério de aceite (DT-07). |
+| Cobertura de testes | ✅ **Resolvido (DT-07/DT-13)** — **346 testes**, **87,3% de linhas** (87,5% instruções, 69,7% ramos), com **gate de 85%** no `mvn verify` (`jacoco:check`). Serviços a 95,1%; controllers a 80,8%. Cenários documentados em [`docs/testes/`](../testes/). Falta: `CaladriusOidcUserService` e subir a cobertura de **ramos**. |
 | Regras de integridade | Proteções DT-01 (cidade referenciada) e DT-02 (último gerente). |
 | Sincronizar status do veículo | Marcar `EM_VIAGEM` ao alocar; liberar ao concluir/cancelar. |
 | Observabilidade | ✅ **Em produção** pela **[SPEC-14](specs/SPEC-14-observabilidade-opentelemetry.md)** (ADR-18): traces/métricas/**logs** via OpenTelemetry ao backend central (`dsc-eq14` no Grafana). |
