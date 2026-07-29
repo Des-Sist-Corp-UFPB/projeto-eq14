@@ -175,4 +175,23 @@ class EvolutionApiProvedorTest {
 
         assertThat(provedor.contaConectada()).isEmpty();
     }
+
+    // ------------------------------------------- contrato da porta (regressão)
+
+    @Test
+    @DisplayName("URL base malformada vira WhatsappException, não IllegalArgumentException (regressão 2026-07-29)")
+    void urlBaseMalformadaViraExcecaoDaPorta() {
+        // Sem esquema, o JDK HttpClient lança IllegalArgumentException("URI with undefined
+        // scheme"). Ela NÃO pode escapar crua: quem chama a porta trata WhatsappException.
+        EvolutionApiProvedor semEsquema = new EvolutionApiProvedor(
+                RestClient.builder().baseUrl("evo.teste.sem.esquema").build(),
+                "caladrius", "segredo-webhook", "https://app.teste");
+
+        assertThatThrownBy(semEsquema::statusConexao).isInstanceOf(WhatsappException.class);
+        assertThatThrownBy(() -> semEsquema.enviarTexto("83999990000", "oi"))
+                .isInstanceOf(WhatsappException.class);
+        assertThatThrownBy(semEsquema::registrarWebhook).isInstanceOf(WhatsappException.class);
+        assertThatThrownBy(semEsquema::contaConectada).isInstanceOf(WhatsappException.class);
+        assertThatThrownBy(semEsquema::desconectar).isInstanceOf(WhatsappException.class);
+    }
 }

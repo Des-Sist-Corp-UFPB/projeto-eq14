@@ -49,11 +49,9 @@ public class WhatsappController {
     @PostMapping("/configuracoes")
     public String salvarConfiguracoes(@RequestParam(value = "nomeExibicao", required = false) String nomeExibicao,
                                       @RequestParam(value = "mensagemConfirmacao", required = false) String mensagemConfirmacao,
-                                      @RequestParam(value = "atendimentoInicio", required = false) String atendimentoInicio,
-                                      @RequestParam(value = "atendimentoFim", required = false) String atendimentoFim,
                                       RedirectAttributes redirect) {
-        whatsappService.salvarConfiguracaoEnvio(new ConfiguracaoEnvioWhatsapp(
-                nomeExibicao, mensagemConfirmacao, atendimentoInicio, atendimentoFim));
+        whatsappService.salvarConfiguracaoEnvio(
+                new ConfiguracaoEnvioWhatsapp(nomeExibicao, mensagemConfirmacao));
         redirect.addFlashAttribute("sucesso", "Configurações de envio salvas.");
         return "redirect:/whatsapp";
     }

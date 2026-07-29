@@ -43,18 +43,10 @@
                         Use <code>{data}</code>, <code>{hora}</code>, <code>{destino}</code> para preencher automaticamente.
                         Enviada ao passageiro quando o gestor aprova a viagem.
                     </p>
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Início do atendimento</label>
-                            <input type="time" class="form-control" name="atendimentoInicio"
-                                   th:value="${configEnvio.atendimentoInicio()}"/>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Fim do atendimento</label>
-                            <input type="time" class="form-control" name="atendimentoFim"
-                                   th:value="${configEnvio.atendimentoFim()}"/>
-                        </div>
-                    </div>
+                    <!-- A janela de atendimento (início/fim) foi REMOVIDA em 2026-07-29 (DT-16):
+                         só faz sentido quando houver um serviço de suporte humano por trás.
+                         Silenciar o bot fora do horário deixaria sem resposta quem solicita
+                         viagem de madrugada — justamente o público que mais precisa. -->
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Salvar configurações</button>
                     </div>
@@ -109,6 +101,36 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== Confirmação de desconexão =====================
+         Fica FORA do fragmento de status (que o HTMX troca a cada 3 s durante o
+         pareamento): assim o modal nunca é removido do DOM no meio de um clique.
+         Substitui o confirm() nativo do navegador, que aparecia colado no topo da
+         janela e sem nenhuma relação visual com o sistema. -->
+    <div class="modal fade" id="modalDesconectar" tabindex="-1"
+         aria-labelledby="modalDesconectarTitulo" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h6 modal-title" id="modalDesconectarTitulo">Desconectar o WhatsApp?</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-0">
+                        O bot para de atender e as confirmações de viagem deixam de ser enviadas
+                        por WhatsApp até um novo pareamento. As solicitações já registradas
+                        <strong>não</strong> são perdidas.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Cancelar</button>
+                    <form th:action="@{/whatsapp/desconectar}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-primary">Sim, desconectar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

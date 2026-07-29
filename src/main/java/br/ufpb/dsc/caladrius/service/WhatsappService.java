@@ -48,13 +48,9 @@ public class WhatsappService {
     // Chaves das configurações de envio (persistidas via ConfiguracaoService).
     static final String CFG_NOME = "whatsapp.nome_exibicao";
     static final String CFG_MENSAGEM = "whatsapp.msg_confirmacao";
-    static final String CFG_INICIO = "whatsapp.atendimento_inicio";
-    static final String CFG_FIM = "whatsapp.atendimento_fim";
 
     private static final String MENSAGEM_PADRAO =
             "Olá! Sua viagem foi confirmada para {data} às {hora}, destino {destino}.";
-    private static final String INICIO_PADRAO = "06:00";
-    private static final String FIM_PADRAO = "18:00";
 
     private final ObjectProvider<ProvedorWhatsapp> provedor;
     private final MensagemWhatsappRepository mensagemRepository;
@@ -82,6 +78,13 @@ public class WhatsappService {
      * do túnel mudou entre reinícios — sem exigir novo pareamento; em produção é
      * um no-op inofensivo (re-registra a mesma URL estável). Best-effort: falha
      * na Evolution não impede a app de subir (RN-WPP-01).
+     *
+     * <p>O {@code catch} é de {@link RuntimeException} de propósito, não de
+     * {@link WhatsappException}: este método roda no {@code ApplicationReadyEvent}, e
+     * uma exceção aqui <strong>derruba a aplicação inteira</strong>. Foi o que aconteceu
+     * em 2026-07-29 com uma {@code EVOLUTION_URL} sem esquema — a causa foi corrigida
+     * (normalização + a porta embrulhando tudo em {@code WhatsappException}), mas a rede
+     * de proteção fica: nenhum defeito da integração pode impedir o app de subir.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void reRegistrarWebhookSeConectado() {
@@ -94,8 +97,9 @@ public class WhatsappService {
                 whatsapp.registrarWebhook();
                 log.info("WhatsApp conectado — webhook re-registrado para a URL pública atual.");
             }
-        } catch (WhatsappException e) {
-            log.warn("Não foi possível re-registrar o webhook do WhatsApp na inicialização: {}", e.getMessage());
+        } catch (RuntimeException e) {
+            log.warn("Não foi possível re-registrar o webhook do WhatsApp na inicialização "
+                    + "(a aplicação segue normalmente): {}", e.toString());
         }
     }
 
@@ -229,9 +233,7 @@ public class WhatsappService {
     public ConfiguracaoEnvioWhatsapp configuracaoEnvio() {
         return new ConfiguracaoEnvioWhatsapp(
                 configuracaoService.get(CFG_NOME).orElse(""),
-                configuracaoService.get(CFG_MENSAGEM).filter(StringUtils::hasText).orElse(MENSAGEM_PADRAO),
-                configuracaoService.get(CFG_INICIO).filter(StringUtils::hasText).orElse(INICIO_PADRAO),
-                configuracaoService.get(CFG_FIM).filter(StringUtils::hasText).orElse(FIM_PADRAO));
+                configuracaoService.get(CFG_MENSAGEM).filter(StringUtils::hasText).orElse(MENSAGEM_PADRAO));
     }
 
     /** Persiste as configurações de envio (upsert de cada chave). */
@@ -240,10 +242,6 @@ public class WhatsappService {
         configuracaoService.salvar(CFG_NOME, cfg.nomeExibicao() == null ? "" : cfg.nomeExibicao().trim());
         configuracaoService.salvar(CFG_MENSAGEM,
                 StringUtils.hasText(cfg.mensagemConfirmacao()) ? cfg.mensagemConfirmacao().trim() : MENSAGEM_PADRAO);
-        configuracaoService.salvar(CFG_INICIO,
-                StringUtils.hasText(cfg.atendimentoInicio()) ? cfg.atendimentoInicio().trim() : INICIO_PADRAO);
-        configuracaoService.salvar(CFG_FIM,
-                StringUtils.hasText(cfg.atendimentoFim()) ? cfg.atendimentoFim().trim() : FIM_PADRAO);
     }
 
     /**

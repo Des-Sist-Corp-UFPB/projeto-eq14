@@ -6,7 +6,6 @@ import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -19,8 +18,12 @@ import java.util.Optional;
  * <p>Todo o vocabulário da Evolution (paths, payloads, estados {@code open}/
  * {@code connecting}/{@code close}) fica <strong>encapsulado aqui</strong>;
  * qualquer divergência de versão da API se resolve neste arquivo, sem tocar em
- * bot, notificações ou telas. Falhas de comunicação viram {@link WhatsappException}
- * (exceção da porta).
+ * bot, notificações ou telas. <strong>Qualquer</strong> falha vira
+ * {@link WhatsappException} (exceção da porta) — inclusive as que não são de rede,
+ * como uma {@code EVOLUTION_URL} malformada ({@code IllegalArgumentException: URI with
+ * undefined scheme}). Isso é contrato: quem chama a porta trata um tipo só, e um erro de
+ * configuração não pode escapar como exceção crua (foi o que derrubou o boot em
+ * 2026-07-29 — ver {@code WhatsappConfig#normalizarUrl}).
  *
  * <p>Não é anotado como {@code @Component}: o bean é criado condicionalmente
  * pelo {@code WhatsappConfig} quando {@code EVOLUTION_URL}/{@code EVOLUTION_API_KEY}
@@ -58,7 +61,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
         } catch (HttpClientErrorException.NotFound e) {
             // Instância ainda não criada no provedor.
             return StatusConexaoWhatsapp.DESCONECTADO;
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao consultar o estado da conexão WhatsApp", e);
         }
     }
@@ -83,7 +86,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
             return new ConexaoWhatsapp(statusConexao(), null);
         } catch (WhatsappException e) {
             throw e;
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao iniciar a conexão WhatsApp", e);
         }
     }
@@ -95,7 +98,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
                     .uri("/instance/logout/{instancia}", instancia)
                     .retrieve()
                     .toBodilessEntity();
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao desconectar a sessão WhatsApp", e);
         }
     }
@@ -108,7 +111,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
                     .retrieve()
                     .body(JsonNode.class);
             return extrairConta(resposta);
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao consultar a conta WhatsApp conectada", e);
         }
     }
@@ -123,7 +126,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
                     .body(Map.of("number", "55" + Documentos.apenasDigitos(telefone), "text", texto))
                     .retrieve()
                     .toBodilessEntity();
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao enviar mensagem WhatsApp", e);
         }
     }
@@ -151,7 +154,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
                     .toBodilessEntity();
         } catch (HttpClientErrorException e) {
             // 403/409: a instância já existe — segue para o connect.
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao criar a instância WhatsApp", e);
         }
     }
@@ -177,7 +180,7 @@ public class EvolutionApiProvedor implements ProvedorWhatsapp {
                             "events", new String[]{"MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"})))
                     .retrieve()
                     .toBodilessEntity();
-        } catch (RestClientException e) {
+        } catch (RuntimeException e) {
             throw new WhatsappException("Falha ao registrar o webhook na Evolution", e);
         }
     }

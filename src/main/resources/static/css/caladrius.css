@@ -74,9 +74,11 @@ body { margin: 0; background-color: var(--cal-bg); font-family: var(--cal-font);
 .cal-navsec { color: var(--cal-faint); font-size: .68rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: .07em; padding: 12px 12px 4px; }
 
-/* item simples */
+/* item simples — o tom base é o dos itens de PRIMEIRO nível (Início, Operação,
+   Cadastros, WhatsApp, Administração): todos com o mesmo peso e cor. Os filhos
+   indentados é que ficam mais leves (ver .cal-nav--child). */
 .cal-nav {
-    font-size: 14px; font-weight: 500; color: var(--cal-muted); background: transparent;
+    font-size: 14px; font-weight: 600; color: var(--cal-text); background: transparent;
     padding: 9px 12px; border-radius: 8px; text-decoration: none; cursor: pointer;
     display: flex; align-items: center; gap: 11px; border: none; width: 100%; text-align: left;
 }
@@ -89,14 +91,18 @@ body { margin: 0; background-color: var(--cal-bg); font-family: var(--cal-font);
 
 /* grupo expansível */
 .cal-group { display: flex; flex-direction: column; gap: 2px; }
+/* mesmo tom do .cal-nav base; a regra fica explícita para o grupo não depender dele */
 .cal-group__btn { font-weight: 600; color: var(--cal-text); }
 .cal-group__chev { transition: transform .15s ease; }
 .cal-group.open > .cal-group__btn .cal-group__chev { transform: rotate(90deg); }
 .cal-group__children { display: flex; flex-direction: column; gap: 2px; }
 .cal-group:not(.open) > .cal-group__children { display: none; }
 
-/* filho indentado com bolinha */
-.cal-nav--child { padding: 8px 12px 8px 40px; position: relative; }
+/* filho indentado com bolinha — hierarquia visual: mais leve que o pai */
+.cal-nav--child {
+    padding: 8px 12px 8px 40px; position: relative;
+    font-weight: 500; color: var(--cal-muted);
+}
 .cal-nav--child .cal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cal-border); flex-shrink: 0; }
 .cal-nav--child.active .cal-dot { background: var(--cal-primary); }
 

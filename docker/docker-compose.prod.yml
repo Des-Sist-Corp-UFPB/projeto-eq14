@@ -62,6 +62,20 @@ services:
       # Interruptor mestre: liga o agente na JVM. Vazio por padrão (agente inerte). No
       # .env: JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
+      # Integração WhatsApp / Evolution API (SPEC-10) — OPCIONAL. Mesmo padrão das
+      # anteriores: sem EVOLUTION_URL/EVOLUTION_API_KEY o bean do provedor NÃO é criado
+      # (WhatsappConfig, @ConditionalOnExpression), o canal opera como stub e o painel
+      # /whatsapp informa "integração não configurada" (RN-WPP-02) — nada quebra.
+      #   EVOLUTION_URL          base da Evolution na VPS (https://evo.exemplo.com)
+      #   EVOLUTION_API_KEY      apikey enviada em toda chamada (SEGREDO)
+      #   EVOLUTION_INSTANCIA    nome da instância (default: caladrius)
+      #   WHATSAPP_WEBHOOK_TOKEN segredo validado no POST /webhooks/whatsapp (SEGREDO)
+      #   APP_URL_PUBLICA        URL pública do app, usada ao registrar o webhook
+      EVOLUTION_URL: ${EVOLUTION_URL:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      EVOLUTION_INSTANCIA: ${EVOLUTION_INSTANCIA:-caladrius}
+      WHATSAPP_WEBHOOK_TOKEN: ${WHATSAPP_WEBHOOK_TOKEN:-}
+      APP_URL_PUBLICA: ${APP_URL_PUBLICA:-}
     # A app escuta em 8080 dentro do container; publicamos APENAS em
     # 127.0.0.1:8114 do host (não em todas as interfaces), pois quem expõe
     # publicamente é o Caddy, fazendo proxy para essa porta.

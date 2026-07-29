@@ -51,10 +51,11 @@
                         <span th:text="'· ' + ${conta.numero()}">· 83999999999</span>
                     </p>
                     <p class="text-muted small mb-2" th:if="${conta == null}">Conta conectada. O bot e as notificações estão ativos.</p>
-                    <form th:action="@{/whatsapp/desconectar}" method="post" class="m-0"
-                          onsubmit="return confirm('Desconectar a conta WhatsApp? O bot e as notificações param até novo pareamento.');">
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Desconectar</button>
-                    </form>
+                    <!-- A confirmação é um modal estilizado (em whatsapp/inicio.html), não o
+                         popup nativo do navegador. O Bootstrap escuta o data-bs-toggle por
+                         delegação, então funciona mesmo com o fragmento trocado por HTMX. -->
+                    <button type="button" class="btn btn-outline-danger btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#modalDesconectar">Desconectar</button>
                 </div>
 
                 <!-- Desconectado ou aguardando: instruções + ações -->
@@ -64,14 +65,19 @@
                         <strong>Conectar um aparelho</strong> e aponte para o código ao lado.
                     </p>
                     <div class="d-flex flex-wrap gap-2">
+                        <!-- Um único botão: "Gerar novo código" postava exatamente para cá. -->
                         <form th:action="@{/whatsapp/conectar}" method="post" class="m-0">
                             <button type="submit" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
                                 <svg th:replace="~{fragments/icons :: icon('whatsapp')}"></svg>
-                                <span th:text="${conexao.status().name() == 'AGUARDANDO_QR'} ? 'Reconectar' : 'Conectar número'">Conectar número</span>
+                                <span>Conectar número</span>
                             </button>
                         </form>
-                        <form th:action="@{/whatsapp/conectar}" method="post" class="m-0">
-                            <button type="submit" class="btn btn-outline-secondary btn-sm">Gerar novo código</button>
+                        <!-- Sai do pareamento: sem isto, a instância fica em "connecting" na
+                             Evolution renovando QR indefinidamente, e o painel não tinha como
+                             voltar para "Desconectado" a não ser parear. -->
+                        <form th:if="${conexao.status().name() == 'AGUARDANDO_QR'}"
+                              th:action="@{/whatsapp/desconectar}" method="post" class="m-0">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Cancelar pareamento</button>
                         </form>
                     </div>
                 </div>
