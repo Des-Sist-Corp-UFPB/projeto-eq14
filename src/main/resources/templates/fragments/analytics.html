@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+  Fragmento de analytics de uso — Umami (SPEC-17).
+
+  Uso: <th:block th:replace="~{fragments/analytics :: umami}"></th:block> antes de </head>.
+
+  ATENÇÃO — NÃO inclua este fragmento em telas cujo endereço carrega segredo na query
+  string. O rastreador envia a URL da página, então o segredo iria junto para o servidor
+  de analytics. Hoje são duas (RN-ANL-03):
+    · /ativar?token=...          (AtivacaoController)     — define a senha da conta
+    · /verificar-email?token=... (VerificacaoController)  — confirma o e-mail
+  O data-exclude-search abaixo já remove a query string, mas a omissão nessas duas telas
+  é a segunda camada: se a instância do Umami for uma versão que ignore o atributo, o
+  token continuaria protegido.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<th:block th:fragment="umami">
+    <!--/*
+      Renderiza apenas quando UMAMI_URL e UMAMI_WEBSITE_ID estão definidas (RN-ANL-01):
+      em dev e nos testes nada é enviado.
+        · data-exclude-search: não envia a query string  (RN-ANL-03)
+        · data-domains:        só coleta no domínio de produção; omitido quando não
+                               configurado, pois o Umami aceita eventos pelo website-id
+                               e não filtra a origem por conta própria (RN-ANL-02)
+    */-->
+    <!--/*
+      Acesso aos componentes do record COM parênteses (umami.scriptUrl(), não umami.scriptUrl):
+      é a convenção que o projeto já usa para records em template (ver whatsapp/inicio.html),
+      porque o acessor de record não é um getter JavaBean.
+    */-->
+    <script th:if="${umami != null and umami.isAtivo()}"
+            defer
+            th:src="${umami.scriptUrl()}"
+            th:attr="data-website-id=${umami.websiteId()}, data-domains=${umami.dominios()}"
+            data-exclude-search="true"></script>
+</th:block>
+</head>
+</html>

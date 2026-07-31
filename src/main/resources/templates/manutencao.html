@@ -44,6 +44,8 @@
         }
         .cal-btn--primary { background: var(--cal-primary); border-color: var(--cal-primary); color: #fff; }
     </style>
+    <!-- Analytics de uso (Umami) — SPEC-17. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
+    <th:block th:replace="~{fragments/analytics :: umami}"></th:block>
 </head>
 <body>
 <div class="cal-card">

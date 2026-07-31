@@ -76,6 +76,15 @@ services:
       EVOLUTION_INSTANCIA: ${EVOLUTION_INSTANCIA:-caladrius}
       WHATSAPP_WEBHOOK_TOKEN: ${WHATSAPP_WEBHOOK_TOKEN:-}
       APP_URL_PUBLICA: ${APP_URL_PUBLICA:-}
+      # Analytics de uso / Umami (SPEC-17) — OPCIONAL, mesmo padrão condicional: sem
+      # UMAMI_URL/UMAMI_WEBSITE_ID nenhum script é renderizado nas páginas (RN-ANL-01).
+      # Aponta para a instância CENTRAL da disciplina (não subimos nada).
+      #   UMAMI_URL         base do Umami (https://umami.dsc.rodrigor.com)
+      #   UMAMI_WEBSITE_ID  data-website-id do site (público — não é segredo)
+      #   UMAMI_DOMINIOS    data-domains: restringe a coleta ao domínio de produção
+      UMAMI_URL: ${UMAMI_URL:-}
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      UMAMI_DOMINIOS: ${UMAMI_DOMINIOS:-}
     # A app escuta em 8080 dentro do container; publicamos APENAS em
     # 127.0.0.1:8114 do host (não em todas as interfaces), pois quem expõe
     # publicamente é o Caddy, fazendo proxy para essa porta.

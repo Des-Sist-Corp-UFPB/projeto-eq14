@@ -60,7 +60,8 @@ docs/
         ├── SPEC-13-feature-toggle.md                    ← ✅ flags, manutenção, parâmetros
         ├── SPEC-14-observabilidade-opentelemetry.md     ← ✅ traces/métricas/logs
         ├── SPEC-15-multi-ambiente-por-secretaria.md     ← 🚧 multi-tenancy (Opção A/silo)
-        └── SPEC-16-organizacao-planos-e-pagamento.md    ← 🔵 venda self-service + pagamento
+        ├── SPEC-16-organizacao-planos-e-pagamento.md    ← 🔵 venda self-service + pagamento
+        └── SPEC-17-healthcheck-de-banco-e-analytics-de-uso.md ← ✅ /ping com banco + Umami
 ```
 
 Os três documentos da raiz de `docs/` (`ARCHITECTURE`, `CONVENTIONS`, `SECURITY`) **continuam

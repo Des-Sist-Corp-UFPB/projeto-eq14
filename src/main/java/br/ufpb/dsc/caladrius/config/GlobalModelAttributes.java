@@ -1,10 +1,12 @@
 package br.ufpb.dsc.caladrius.config;
 
 import br.ufpb.dsc.caladrius.domain.Notificacao;
+import br.ufpb.dsc.caladrius.dto.ConfiguracaoUmami;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import br.ufpb.dsc.caladrius.service.NotificacaoService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -19,19 +21,25 @@ import java.util.List;
  * Expomos apenas o necessário via {@code @ModelAttribute} num {@code @ControllerAdvice},
  * aplicado antes de qualquer método de qualquer controller.
  *
- * <p>Publicamos a URI atual (destaque do menu) e as notificações in-app do
- * usuário logado (sino da barra superior).
+ * <p>Publicamos a URI atual (destaque do menu), as notificações in-app do usuário
+ * logado (sino da barra superior) e a configuração do analytics de uso (SPEC-17),
+ * consumida pelo fragmento {@code fragments/analytics.html}.
  */
 @ControllerAdvice
 public class GlobalModelAttributes {
 
     private final NotificacaoService notificacaoService;
     private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository;
+    private final ConfiguracaoUmami umami;
 
     public GlobalModelAttributes(NotificacaoService notificacaoService,
-                                 ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository) {
+                                 ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository,
+                                 @Value("${UMAMI_URL:}") String umamiUrl,
+                                 @Value("${UMAMI_WEBSITE_ID:}") String umamiWebsiteId,
+                                 @Value("${UMAMI_DOMINIOS:}") String umamiDominios) {
         this.notificacaoService = notificacaoService;
         this.clientRegistrationRepository = clientRegistrationRepository;
+        this.umami = ConfiguracaoUmami.de(umamiUrl, umamiWebsiteId, umamiDominios);
     }
 
     /**
@@ -42,6 +50,16 @@ public class GlobalModelAttributes {
     @ModelAttribute("googleHabilitado")
     public boolean googleHabilitado() {
         return clientRegistrationRepository.getIfAvailable() != null;
+    }
+
+    /**
+     * Configuração do analytics de uso (Umami) — SPEC-17. Lida do ambiente uma única
+     * vez, na construção: sem {@code UMAMI_URL}/{@code UMAMI_WEBSITE_ID} vem desligada
+     * e o fragmento {@code fragments/analytics.html} não renderiza script algum.
+     */
+    @ModelAttribute("umami")
+    public ConfiguracaoUmami umami() {
+        return umami;
     }
 
     /**

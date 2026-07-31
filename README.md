@@ -5,23 +5,45 @@ Projeto da disciplina **Desenvolvimento de Sistemas Corporativos** — equipe **
 
 ---
 
-## 📦 Primeira Entrega — guia de avaliação
+## 📦 Guia de avaliação
 
-Esta seção aponta **onde no código** estão os itens solicitados para a avaliação:
-**(1) logs de auditoria**, **(2) conexão com serviços externos** e **(3) cobertura de testes**.
+Esta seção aponta **onde no código** estão os itens cobrados na avaliação:
+[Log de Auditoria](#log-de-auditoria), [Integração com Serviço Externo](#integração-com-serviço-externo),
+[Cobertura de Testes](#cobertura-de-testes) e o [Healthcheck e Analytics de Uso](#healthcheck-e-analytics-de-uso).
 
-### 1. Logs de auditoria
+## Log de Auditoria
+
+**O que é auditado** — autenticação (`LOGIN_SUCESSO`, `LOGIN_FALHA`, `LOGOUT`, capturados por
+listener do Spring Security), operações de cadastro e ciclo de vida do domínio (usuários,
+veículos, cidades, viagens, linhas), ciclo das solicitações de transporte (criação, aprovação,
+recusa, cancelamento), ações administrativas (feature flags, parâmetros, convites, configuração de
+sessão) e o painel WhatsApp (conexão, desconexão, teste de envio, alteração de configuração).
+
+**Onde fica armazenado** — tabela **`log_auditoria`** (PostgreSQL), criada pela migration
+[`V6__criar_log_auditoria.sql`](src/main/resources/db/migration/V6__criar_log_auditoria.sql).
+Campos principais: `id` (UUID), `criado_em`, `categoria` (`SEGURANCA`/`OPERACAO`/`SISTEMA`),
+`acao`, `entidade`, `entidade_id`, `detalhe`, `usuario_id`, `usuario_nome`, `ip`.
+
+**Como foi implementado** — *service* dedicado (`AuditoriaService`) chamado pelos serviços de
+domínio, mais um **listener** de eventos de autenticação para o que é automático. A leitura é
+centralizada em `AuditoriaService.listar`, e a etiqueta de área de cada evento é **derivada** da
+ação/entidade pelo enum `AreaSistema` — sem coluna nova no banco.
+
+**Quais classes/arquivos participam:**
 
 | Item | Localização |
 |---|---|
 | Serviço que grava os logs (categorias `SEGURANCA` / `OPERACAO` / `SISTEMA`) | [`service/AuditoriaService.java`](src/main/java/br/ufpb/dsc/caladrius/service/AuditoriaService.java) |
 | Entidade + tabela | [`domain/LogAuditoria.java`](src/main/java/br/ufpb/dsc/caladrius/domain/LogAuditoria.java) · migration [`V6__criar_log_auditoria.sql`](src/main/resources/db/migration/V6__criar_log_auditoria.sql) |
+| Repositório (consultas da trilha) | [`repository/LogAuditoriaRepository.java`](src/main/java/br/ufpb/dsc/caladrius/repository/LogAuditoriaRepository.java) |
 | Auditoria **automática** de login/logout | [`config/AuditoriaSecurityListener.java`](src/main/java/br/ufpb/dsc/caladrius/config/AuditoriaSecurityListener.java) |
-| Controller das telas | [`controller/AuditoriaController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/AuditoriaController.java) |
+| Etiqueta de área por evento (derivada, sem coluna nova) | [`domain/enums/AreaSistema.java`](src/main/java/br/ufpb/dsc/caladrius/domain/enums/AreaSistema.java) |
+| Controllers das telas | [`controller/AuditoriaController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/AuditoriaController.java) · [`controller/LogController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/LogController.java) |
+| **Central de logs (GERENTE/SYSADMIN)** | rota **`GET /logs`** — trilha inteira, com filtro por área e busca |
 | **Tela da trilha completa (SYSADMIN)** | rota **`GET /admin/auditoria`** |
-| Tela do histórico de operação (GERENTE) | rota `GET /historico` |
+| Tela do histórico de solicitações (GERENTE) | rota `GET /historico` |
 | RBAC das rotas | [`config/SecurityConfig.java`](src/main/java/br/ufpb/dsc/caladrius/config/SecurityConfig.java) (`/admin/** → SYSADMIN`) |
-| Testes | [`service/AuditoriaServiceTest.java`](src/test/java/br/ufpb/dsc/caladrius/service/AuditoriaServiceTest.java) (unit) · [`web/PaginasAutenticadasTest.java`](src/test/java/br/ufpb/dsc/caladrius/web/PaginasAutenticadasTest.java) (rota com sysadmin → 200) |
+| Testes | [`service/AuditoriaServiceTest.java`](src/test/java/br/ufpb/dsc/caladrius/service/AuditoriaServiceTest.java) (unit) · [`domain/enums/AreaSistemaTest.java`](src/test/java/br/ufpb/dsc/caladrius/domain/enums/AreaSistemaTest.java) · [`web/LogControllerTest.java`](src/test/java/br/ufpb/dsc/caladrius/web/LogControllerTest.java) · [`web/PaginasAutenticadasTest.java`](src/test/java/br/ufpb/dsc/caladrius/web/PaginasAutenticadasTest.java) |
 
 > ⚠️ **Para visualizar a trilha de auditoria do sistema (`/admin/auditoria`) é preciso o papel
 > `SYSADMIN`.** O professor pode **criar a própria conta normalmente** (cadastro ou login com
@@ -30,7 +52,23 @@ Esta seção aponta **onde no código** estão os itens solicitados para a avali
 > e me informe o telefone/e-mail dela** que eu concedo o papel. (Sem SYSADMIN, um GERENTE ainda
 > enxerga o `/historico` de operação.)
 
-### 2. Conexão com serviços externos — Login social com Google (OAuth2 / OIDC)
+## Integração com Serviço Externo
+
+O sistema integra **quatro** serviços externos. O principal, para efeito desta avaliação, é o
+**login social com Google (OAuth2/OIDC)** — em produção. Todos seguem o mesmo padrão: o bean da
+integração só é criado quando as variáveis de ambiente existem; sem elas a aplicação sobe idêntica.
+
+| Serviço externo | Para que é usado | Configuração (variáveis) | Estado |
+|---|---|---|---|
+| **Google (OAuth2/OIDC)** | Login social — "Continuar com Google" | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | ✅ em produção |
+| **Evolution API (WhatsApp)** | Envio de avisos e **bot de atendimento** (solicitação de viagem pelo WhatsApp) | `EVOLUTION_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCIA`, `WHATSAPP_WEBHOOK_TOKEN`, `APP_URL_PUBLICA` | ✅ código · 🟡 infra |
+| **OpenTelemetry / Grafana da disciplina** | Exportação de traces, métricas e logs | `OTEL_*`, `JAVA_TOOL_OPTIONS` | ✅ em produção |
+| **Umami** | Analytics de uso das páginas | `UMAMI_URL`, `UMAMI_WEBSITE_ID`, `UMAMI_DOMINIOS` | ✅ código · 🟡 variáveis |
+
+> Nenhum segredo fica no repositório: todos vêm do `.env` do servidor (ver
+> [`.env.example`](.env.example)). O PostgreSQL da disciplina **não** conta como integração externa.
+
+### Serviço externo principal — Login social com Google (OAuth2 / OIDC)
 
 | Item | Localização |
 |---|---|
@@ -44,22 +82,84 @@ Esta seção aponta **onde no código** estão os itens solicitados para a avali
 
 O login social está **ativo em produção** (`https://eq14.dsc.rodrigor.com`). Sem as variáveis
 `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, a aplicação sobe normalmente só com senha e o botão
-some. *(O canal WhatsApp do `NotificacaoService` é um stub — a Evolution API é escopo futuro.)*
+some.
 
-### 3. Cobertura de testes
+### Segundo serviço externo — WhatsApp via Evolution API
+
+| Item | Localização |
+|---|---|
+| Porta (interface do provedor) | [`whatsapp/ProvedorWhatsapp.java`](src/main/java/br/ufpb/dsc/caladrius/whatsapp/ProvedorWhatsapp.java) |
+| Adaptador HTTP da Evolution | [`whatsapp/EvolutionApiProvedor.java`](src/main/java/br/ufpb/dsc/caladrius/whatsapp/EvolutionApiProvedor.java) |
+| Bean condicional às variáveis | [`config/WhatsappConfig.java`](src/main/java/br/ufpb/dsc/caladrius/config/WhatsappConfig.java) |
+| Fachada (envio + log + estado) | [`service/WhatsappService.java`](src/main/java/br/ufpb/dsc/caladrius/service/WhatsappService.java) |
+| Webhook de recebimento | [`controller/WhatsappWebhookController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/WhatsappWebhookController.java) → `POST /webhooks/whatsapp` |
+| Bot de atendimento | [`whatsapp/bot/BotAtendimentoService.java`](src/main/java/br/ufpb/dsc/caladrius/whatsapp/bot/BotAtendimentoService.java) |
+| Especificações | [SPEC-10](docs/sdd/specs/SPEC-10-integracao-whatsapp.md) · [SPEC-11](docs/sdd/specs/SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md) |
+
+## Cobertura de Testes
 
 - **Suíte:** `src/test/java/...` — JUnit 5 + Mockito (unitários de regra de negócio) e
-  Testcontainers (integração HTTP com PostgreSQL real).
-- **Rodar + gerar o relatório de cobertura (JaCoCo):**
+  Testcontainers (integração HTTP contra um PostgreSQL real).
+- **Gate no build:** `jacoco:check` **falha o build abaixo de 85%** de cobertura de linhas
+  (configurado no [`pom.xml`](pom.xml)) — a meta não depende de disciplina manual.
+- **Relatório commitado (exigência da avaliação):** [`cobertura/jacoco/index.html`](cobertura/jacoco/index.html)
+  — abra este arquivo no navegador; o resumo por pacote também está em `cobertura/jacoco/jacoco.csv`.
+- **Como gerar/atualizar o relatório:**
   ```bash
-  mvn verify          # requer Docker (Testcontainers)
-  # relatório HTML em: target/site/jacoco/index.html
+  mvn clean test jacoco:report     # requer Docker (Testcontainers)
+  rm -rf cobertura && mkdir -p cobertura && cp -r target/site/jacoco cobertura/
   ```
-- **Estado atual:** a **camada de negócio (`service`) está em ~96%** de cobertura de linha (todos
-  os serviços ≥ 86%). A cobertura **global** é de **~72%** de linha — o restante é infraestrutura
-  (controllers, wiring de config/segurança, canais de notificação e o `DevSeed` de demonstração,
-  que não roda no perfil de teste). **A meta de 85% global está em elevação** com testes de
-  integração das demais rotas.
+  Sem Java/Maven na máquina, o mesmo build roda em container:
+  ```bash
+  docker run --rm -v "$PWD":/app -w /app -v caladrius-m2:/root/.m2 \
+    -v /var/run/docker.sock:/var/run/docker.sock --network host \
+    maven:3.9.9-eclipse-temurin-21 mvn -B clean test jacoco:report
+  ```
+- **Percentual total:** **87,3% de linhas** (87,5% de instruções, 69,7% de ramos) na última
+  medição — **346 testes**, camada de serviços a 95,1% e controllers a 80,8%. Os cenários estão
+  documentados em [`docs/testes/`](docs/testes/).
+
+  > ℹ️ Esta medição é de **2026-07-29**. A entrega da [SPEC-17](docs/sdd/specs/SPEC-17-healthcheck-de-banco-e-analytics-de-uso.md)
+  > acrescentou código **e** testes depois disso (`BancoHealthIndicatorTest`, `ConfiguracaoUmamiTest`,
+  > `AnalyticsUmamiWebTest` e novos casos em `PaginasPublicasTest`); rode o comando acima para
+  > regerar o relatório e confirmar o número atual.
+
+## Healthcheck e Analytics de Uso
+
+**Healthcheck que consulta o banco** ([SPEC-17](docs/sdd/specs/SPEC-17-healthcheck-de-banco-e-analytics-de-uso.md)) —
+a verificação é código do projeto, não delegada ao framework:
+
+| Item | Localização |
+|---|---|
+| Indicador que **executa `SELECT 1`** com timeout | [`health/BancoHealthIndicator.java`](src/main/java/br/ufpb/dsc/caladrius/health/BancoHealthIndicator.java) |
+| Endpoint público com o estado do banco | [`controller/PingController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/PingController.java) → `GET /ping` |
+| Timeout e visibilidade dos componentes | [`application.yml`](src/main/resources/application.yml) (`caladrius.health.banco.timeout-segundos`, `show-components`) |
+| Testes | [`health/BancoHealthIndicatorTest.java`](src/test/java/br/ufpb/dsc/caladrius/health/BancoHealthIndicatorTest.java) · [`web/PaginasPublicasTest.java`](src/test/java/br/ufpb/dsc/caladrius/web/PaginasPublicasTest.java) |
+
+```bash
+curl -s https://eq14.dsc.rodrigor.com/ping
+# {"status":"ok","service":"eq14","database":"up","timestamp":"..."}
+
+curl -s https://eq14.dsc.rodrigor.com/actuator/health
+# {"status":"UP","components":{"banco":{"status":"UP"}, ...}}
+```
+
+O `/ping` **responde 200 mesmo com o banco fora** (é o contrato de *liveness* da disciplina) e
+reporta a falha no campo `database`; quem devolve **503** é o `/actuator/health`, usado pelo
+healthcheck do container.
+
+**Analytics de uso (Umami)** — instância central da disciplina (`umami.dsc.rodrigor.com`),
+sem cookies e sem dado pessoal:
+
+| Item | Localização |
+|---|---|
+| Fragmento do rastreador | [`templates/fragments/analytics.html`](src/main/resources/templates/fragments/analytics.html) |
+| Configuração por ambiente | [`dto/ConfiguracaoUmami.java`](src/main/java/br/ufpb/dsc/caladrius/dto/ConfiguracaoUmami.java) · [`config/GlobalModelAttributes.java`](src/main/java/br/ufpb/dsc/caladrius/config/GlobalModelAttributes.java) |
+| Testes | [`dto/ConfiguracaoUmamiTest.java`](src/test/java/br/ufpb/dsc/caladrius/dto/ConfiguracaoUmamiTest.java) · [`web/AnalyticsUmamiWebTest.java`](src/test/java/br/ufpb/dsc/caladrius/web/AnalyticsUmamiWebTest.java) |
+
+> 🔒 O rastreador usa `data-exclude-search` e é **deliberadamente omitido** em `/ativar` e
+> `/verificar-email`, que recebem token pela URL — sem isso, um token válido de definição de senha
+> seria enviado ao servidor de analytics.
 
 ---
 

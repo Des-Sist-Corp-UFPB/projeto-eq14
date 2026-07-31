@@ -22,3 +22,15 @@ management:
     health:
       # Detalhes do health só são exibidos para usuários autenticados
       show-details: when-authorized
+      # Já os COMPONENTES (nome + status, sem detalhe) aparecem para todos: é o que
+      # permite a um probe anônimo constatar que o banco é verificado (SPEC-17).
+      # Sem isto, /actuator/health devolve apenas {"status":"UP"} a quem não está logado.
+      show-components: always
+
+# Healthcheck do banco (SPEC-17) — ver health/BancoHealthIndicator.
+caladrius:
+  health:
+    banco:
+      # Teto do SELECT do healthcheck. Curto de propósito: um banco pendurado deve
+      # virar DOWN rápido, e não pendurar o /ping junto (RN-HC-02).
+      timeout-segundos: 2

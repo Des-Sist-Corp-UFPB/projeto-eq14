@@ -47,6 +47,12 @@
             background: oklch(0.96 0.03 25); color: oklch(0.5 0.17 25); }
         a { color: var(--cal-primary); text-decoration: none; font-weight: 600; }
     </style>
+    <!--
+      SEM analytics aqui, de propósito (SPEC-17, RN-ANL-03): esta tela é aberta como
+      /ativar?token=<segredo> e o rastreador envia a URL da página — o token de definição
+      de senha iria para o servidor de analytics. NÃO adicione o fragmento
+      fragments/analytics; se precisar medir este funil, meça o convite, não esta URL.
+    -->
 </head>
 <body>
 <div class="card">

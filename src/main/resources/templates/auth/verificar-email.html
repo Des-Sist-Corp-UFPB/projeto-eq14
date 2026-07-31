@@ -39,6 +39,12 @@
         }
         a { color: var(--cal-primary); text-decoration: none; font-weight: 600; }
     </style>
+    <!--
+      SEM analytics aqui, de propósito (SPEC-17, RN-ANL-03): esta tela é aberta como
+      /verificar-email?token=<segredo> e o rastreador envia a URL da página — o token de
+      verificação iria para o servidor de analytics. NÃO adicione o fragmento
+      fragments/analytics.
+    -->
 </head>
 <body>
 <div class="card">
