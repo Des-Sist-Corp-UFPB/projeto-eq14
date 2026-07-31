@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WhatsappConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">WhatsappConfig.java</span></div><h1>WhatsappConfig.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import br.ufpb.dsc.caladrius.whatsapp.EvolutionApiProvedor;
+import br.ufpb.dsc.caladrius.whatsapp.ProvedorWhatsapp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
+
+import java.util.regex.Pattern;
+
+/**
+ * Configuração da integração WhatsApp (Evolution API) — SPEC-10/ADR-14.
+ *
+ * &lt;p&gt;Mesmo padrão do {@link OAuth2ClientConfig} (SPEC-08): o bean da porta
+ * {@link ProvedorWhatsapp} só é criado quando {@code EVOLUTION_URL} e
+ * {@code EVOLUTION_API_KEY} estão presentes &lt;em&gt;e não-vazias&lt;/em&gt; no ambiente.
+ * Sem elas, não há provedor: o canal WhatsApp do {@code NotificacaoService}
+ * permanece como stub e o painel {@code /whatsapp} informa &quot;integração não
+ * configurada&quot; (RN-WPP-02). A expressão trata variável vazia como ausente —
+ * o Compose de produção pode injetar {@code EVOLUTION_URL=} em branco.
+ *
+ * &lt;p&gt;A {@code apikey} circula apenas aqui e no cliente HTTP — nunca aparece na
+ * UI nem em logs (RN-WPP-09).
+ */
+@Configuration
+@ConditionalOnExpression(&quot;'${EVOLUTION_URL:}' != '' &amp;&amp; '${EVOLUTION_API_KEY:}' != ''&quot;)
+<span class="nc" id="L31">public class WhatsappConfig {</span>
+
+<span class="fc" id="L33">    private static final Logger log = LoggerFactory.getLogger(WhatsappConfig.class);</span>
+
+    /** Detecta um esquema já presente na URL (`https://`, `http://`, …). */
+<span class="fc" id="L36">    private static final Pattern ESQUEMA = Pattern.compile(&quot;^[a-zA-Z][a-zA-Z0-9+.\\-]*://&quot;);</span>
+
+    @Bean
+    public ProvedorWhatsapp provedorWhatsapp(
+            @Value(&quot;${EVOLUTION_URL}&quot;) String url,
+            @Value(&quot;${EVOLUTION_API_KEY}&quot;) String apiKey,
+            @Value(&quot;${EVOLUTION_INSTANCIA:caladrius}&quot;) String instancia,
+            @Value(&quot;${WHATSAPP_WEBHOOK_TOKEN:}&quot;) String webhookToken,
+            @Value(&quot;${APP_URL_PUBLICA:}&quot;) String appUrlPublica) {
+<span class="nc" id="L45">        String base = normalizarUrl(url);</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (!base.equals(url)) {</span>
+<span class="nc" id="L47">            log.info(&quot;EVOLUTION_URL normalizada para {} (informada: {})&quot;, base, url);</span>
+        }
+<span class="nc" id="L49">        RestClient http = RestClient.builder()</span>
+<span class="nc" id="L50">                .baseUrl(base)</span>
+<span class="nc" id="L51">                .defaultHeader(&quot;apikey&quot;, apiKey)</span>
+<span class="nc" id="L52">                .build();</span>
+<span class="nc" id="L53">        return new EvolutionApiProvedor(http, instancia, webhookToken, normalizarUrl(appUrlPublica));</span>
+    }
+
+    /**
+     * Torna a URL utilizável como &lt;em&gt;base&lt;/em&gt; do {@link RestClient}.
+     *
+     * &lt;p&gt;Existe por um motivo concreto: os painéis de hospedagem (Railway, Portainer)
+     * mostram o endereço &lt;strong&gt;sem o esquema&lt;/strong&gt; — e é isso que a pessoa cola no
+     * {@code .env}. Sem {@code https://}, o JDK HttpClient recusa a URI relativa com
+     * {@code IllegalArgumentException: URI with undefined scheme}. Barra no final também
+     * é removida, porque o adaptador concatena os paths da Evolution.
+     *
+     * &lt;p&gt;Só o esquema é presumido: se a pessoa escreveu {@code http://}, respeita-se
+     * (é o caso do dev local).
+     */
+    static String normalizarUrl(String bruta) {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        String url = bruta == null ? &quot;&quot; : bruta.trim();</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (url.isEmpty()) {</span>
+<span class="fc" id="L71">            return url;</span>
+        }
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (!ESQUEMA.matcher(url).find()) {</span>
+<span class="fc" id="L74">            url = &quot;https://&quot; + url;</span>
+        }
+        // Remove as barras finais sem invadir o &quot;://&quot; do esquema.
+<span class="fc" id="L77">        int inicioHost = url.indexOf(&quot;://&quot;) + 3;</span>
+<span class="fc" id="L78">        int fim = url.length();</span>
+<span class="pc bpc" id="L79" title="1 of 4 branches missed.">        while (fim &gt; inicioHost &amp;&amp; url.charAt(fim - 1) == '/') {</span>
+<span class="fc" id="L80">            fim--;</span>
+        }
+<span class="fc" id="L82">        return url.substring(0, fim);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SolicitacaoViagemService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">SolicitacaoViagemService.java</span></div><h1>SolicitacaoViagemService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Cidade;
+import br.ufpb.dsc.caladrius.domain.LinhaProgramada;
+import br.ufpb.dsc.caladrius.domain.SolicitacaoViagem;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.Viagem;
+import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
+import br.ufpb.dsc.caladrius.domain.enums.StatusSolicitacao;
+import br.ufpb.dsc.caladrius.domain.enums.TipoSolicitacao;
+import br.ufpb.dsc.caladrius.dto.GradeDiaSemana;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
+import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
+import br.ufpb.dsc.caladrius.observabilidade.RastreamentoService;
+import br.ufpb.dsc.caladrius.repository.CidadeRepository;
+import br.ufpb.dsc.caladrius.repository.LinhaProgramadaRepository;
+import br.ufpb.dsc.caladrius.repository.SolicitacaoViagemRepository;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.repository.ViagemRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Lógica das solicitações de transporte do passageiro (SPEC-09).
+ *
+ * &lt;p&gt;O passageiro vê as linhas disponíveis e solicita transporte numa data. A
+ * &lt;strong&gt;alocação&lt;/strong&gt; acontece quando existe a viagem materializada da
+ * linha naquela data (designada pelo gerente — SPEC-06): a solicitação aponta
+ * para a viagem e o passageiro passa a ver os dados dela.
+ */
+@Service
+@Transactional(readOnly = true)
+public class SolicitacaoViagemService {
+
+<span class="fc" id="L47">    private static final Logger log = LoggerFactory.getLogger(SolicitacaoViagemService.class);</span>
+<span class="fc" id="L48">    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy&quot;);</span>
+
+    private final SolicitacaoViagemRepository solicitacaoRepository;
+    private final LinhaProgramadaRepository linhaRepository;
+    private final ViagemRepository viagemRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final CidadeRepository cidadeRepository;
+    private final NotificacaoService notificacaoService;
+    private final WhatsappService whatsappService;
+    private final RastreamentoService rastreamento;
+    private final AuditoriaService auditoriaService;
+
+    public SolicitacaoViagemService(SolicitacaoViagemRepository solicitacaoRepository,
+                                    LinhaProgramadaRepository linhaRepository,
+                                    ViagemRepository viagemRepository,
+                                    UsuarioRepository usuarioRepository,
+                                    CidadeRepository cidadeRepository,
+                                    NotificacaoService notificacaoService,
+                                    WhatsappService whatsappService,
+                                    RastreamentoService rastreamento,
+<span class="fc" id="L68">                                    AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L69">        this.solicitacaoRepository = solicitacaoRepository;</span>
+<span class="fc" id="L70">        this.linhaRepository = linhaRepository;</span>
+<span class="fc" id="L71">        this.viagemRepository = viagemRepository;</span>
+<span class="fc" id="L72">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L73">        this.cidadeRepository = cidadeRepository;</span>
+<span class="fc" id="L74">        this.notificacaoService = notificacaoService;</span>
+<span class="fc" id="L75">        this.whatsappService = whatsappService;</span>
+<span class="fc" id="L76">        this.rastreamento = rastreamento;</span>
+<span class="fc" id="L77">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L78">    }</span>
+
+    /** Linhas ativas oferecidas ao passageiro (aba &quot;Linhas disponíveis&quot;). */
+    public List&lt;LinhaProgramada&gt; linhasDisponiveis() {
+<span class="fc" id="L82">        return linhaRepository.findByAtivaTrueOrderByHorarioSaidaAsc();</span>
+    }
+
+    /** Cidades cadastradas oferecidas como destino no fluxo sob demanda (D4). */
+    public List&lt;Cidade&gt; cidadesDestino() {
+<span class="nc" id="L87">        return cidadeRepository.findAllByOrderByNomeAsc();</span>
+    }
+
+    /** Linhas ativas que operam no dia da semana de {@code data} (calendário). */
+    public List&lt;LinhaProgramada&gt; linhasQueOperamEm(LocalDate data) {
+<span class="fc" id="L92">        DiaSemana dia = DiaSemana.de(data.getDayOfWeek());</span>
+<span class="fc" id="L93">        return linhasDisponiveis().stream().filter(linha -&gt; linha.operaEm(dia)).toList();</span>
+    }
+
+    /**
+     * Grade semanal (domingo→sábado): em cada dia, as linhas ativas que operam.
+     * Alimenta o panorama da aba &quot;Linhas disponíveis&quot; (estilo grade de horários).
+     */
+    public List&lt;GradeDiaSemana&gt; gradeSemanal() {
+<span class="fc" id="L101">        List&lt;LinhaProgramada&gt; ativas = linhasDisponiveis();</span>
+<span class="fc" id="L102">        List&lt;GradeDiaSemana&gt; grade = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (DiaSemana dia : DiaSemana.values()) {</span>
+<span class="fc" id="L104">            grade.add(new GradeDiaSemana(dia,</span>
+<span class="fc" id="L105">                    ativas.stream().filter(linha -&gt; linha.operaEm(dia)).toList()));</span>
+        }
+<span class="fc" id="L107">        return grade;</span>
+    }
+
+    /**
+     * Registra uma solicitação do passageiro para uma linha numa data. Se a viagem
+     * dessa linha+data já estiver designada, o passageiro já entra {@code ALOCADA};
+     * caso contrário fica {@code PENDENTE} até a designação.
+     *
+     * @return a solicitação criada
+     */
+    @Transactional
+    public SolicitacaoViagem solicitar(UUID passageiroId, UUID linhaId, LocalDate data, String observacao) {
+<span class="fc" id="L119">        Usuario passageiro = usuarioRepository.findByIdAndRemovidoEmIsNull(passageiroId)</span>
+<span class="fc" id="L120">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, passageiroId));</span>
+<span class="fc" id="L121">        LinhaProgramada linha = linhaRepository.findById(linhaId)</span>
+<span class="fc" id="L122">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Linha programada&quot;, linhaId));</span>
+
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (!linha.isAtiva()) {</span>
+<span class="fc" id="L125">            throw new RegraNegocioException(&quot;Esta linha não está disponível para solicitação&quot;);</span>
+        }
+<span class="pc bpc" id="L127" title="1 of 4 branches missed.">        if (data == null || data.isBefore(LocalDate.now())) {</span>
+<span class="fc" id="L128">            throw new RegraNegocioException(&quot;Escolha uma data igual ou posterior a hoje&quot;);</span>
+        }
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (!linha.operaEm(DiaSemana.de(data.getDayOfWeek()))) {</span>
+<span class="fc" id="L131">            throw new RegraNegocioException(&quot;Esta linha não opera no dia da semana escolhido&quot;);</span>
+        }
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (solicitacaoRepository.existsByPassageiro_IdAndLinha_IdAndDataDesejadaAndStatusNot(</span>
+                passageiroId, linhaId, data, StatusSolicitacao.CANCELADA)) {
+<span class="fc" id="L135">            throw new RegraNegocioException(&quot;Você já tem uma solicitação para esta linha nesta data&quot;);</span>
+        }
+
+<span class="fc" id="L138">        SolicitacaoViagem solicitacao = new SolicitacaoViagem();</span>
+<span class="fc" id="L139">        solicitacao.setPassageiro(passageiro);</span>
+<span class="fc" id="L140">        solicitacao.setLinha(linha);</span>
+<span class="fc" id="L141">        solicitacao.setDataDesejada(data);</span>
+<span class="pc bpc" id="L142" title="1 of 4 branches missed.">        solicitacao.setObservacao(observacao != null &amp;&amp; !observacao.isBlank() ? observacao.trim() : null);</span>
+        // Já designada para esta data? Então a solicitação nasce alocada.
+<span class="fc" id="L144">        viagemRepository.findByLinhaProgramada_IdAndDataViagem(linhaId, data).ifPresentOrElse(</span>
+                viagem -&gt; {
+<span class="fc" id="L146">                    solicitacao.setViagem(viagem);</span>
+<span class="fc" id="L147">                    solicitacao.setStatus(StatusSolicitacao.ALOCADA);</span>
+<span class="fc" id="L148">                },</span>
+<span class="fc" id="L149">                () -&gt; solicitacao.setStatus(StatusSolicitacao.PENDENTE));</span>
+<span class="fc" id="L150">        SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);</span>
+<span class="fc" id="L151">        auditoriaService.registrarOperacao(&quot;SOLICITACAO_CRIADA&quot;, &quot;SolicitacaoViagem&quot;,</span>
+<span class="fc" id="L152">                String.valueOf(salva.getId()),</span>
+<span class="fc" id="L153">                &quot;Por linha — &quot; + nomeDestino(salva) + &quot; em &quot; + DATA_BR.format(data)</span>
+<span class="fc" id="L154">                        + &quot; (&quot; + salva.getStatus() + &quot;)&quot;);</span>
+<span class="fc" id="L155">        return salva;</span>
+    }
+
+    /**
+     * Solicitações do passageiro (aba &quot;Minhas viagens&quot;). Antes de listar,
+     * reavalia as {@code PENDENTE}: se a viagem da linha+data passou a existir
+     * (o gerente designou depois da solicitação), aloca-a — assim a tela reflete
+     * a designação sem ação do passageiro.
+     */
+    @Transactional
+    public List&lt;SolicitacaoViagem&gt; listarDoPassageiro(UUID passageiroId) {
+<span class="fc" id="L166">        List&lt;SolicitacaoViagem&gt; solicitacoes = solicitacaoRepository.listarDoPassageiro(passageiroId);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        for (SolicitacaoViagem solicitacao : solicitacoes) {</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">            if (solicitacao.getStatus() == StatusSolicitacao.PENDENTE) {</span>
+<span class="fc" id="L169">                viagemRepository.findByLinhaProgramada_IdAndDataViagem(</span>
+<span class="fc" id="L170">                                solicitacao.getLinha().getId(), solicitacao.getDataDesejada())</span>
+<span class="fc" id="L171">                        .ifPresent(viagem -&gt; {</span>
+<span class="fc" id="L172">                            solicitacao.setViagem(viagem);</span>
+<span class="fc" id="L173">                            solicitacao.setStatus(StatusSolicitacao.ALOCADA);</span>
+<span class="fc" id="L174">                            solicitacaoRepository.save(solicitacao);</span>
+<span class="fc" id="L175">                        });</span>
+            }
+<span class="fc" id="L177">        }</span>
+<span class="fc" id="L178">        return solicitacoes;</span>
+    }
+
+    /**
+     * Cancela uma solicitação. Só o próprio passageiro dono pode cancelar
+     * (não pode cancelar/ver a de outro).
+     */
+    @Transactional
+    public void cancelar(UUID solicitacaoId, UUID passageiroId) {
+<span class="fc" id="L187">        SolicitacaoViagem solicitacao = solicitacaoRepository.findById(solicitacaoId)</span>
+<span class="pc" id="L188">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Solicitação&quot;, solicitacaoId));</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">        if (!solicitacao.getPassageiro().getId().equals(passageiroId)) {</span>
+<span class="fc" id="L190">            throw new RegraNegocioException(&quot;Você só pode cancelar as suas próprias solicitações&quot;);</span>
+        }
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (solicitacao.getStatus() == StatusSolicitacao.CANCELADA) {</span>
+<span class="fc" id="L193">            return;</span>
+        }
+<span class="fc" id="L195">        solicitacao.setStatus(StatusSolicitacao.CANCELADA);</span>
+<span class="fc" id="L196">        solicitacao.setViagem(null);</span>
+<span class="fc" id="L197">        solicitacaoRepository.save(solicitacao);</span>
+<span class="fc" id="L198">        auditoriaService.registrarOperacao(&quot;SOLICITACAO_CANCELADA&quot;, &quot;SolicitacaoViagem&quot;,</span>
+<span class="fc" id="L199">                solicitacaoId.toString(), &quot;Cancelada pelo passageiro — &quot; + nomeDestino(solicitacao));</span>
+<span class="fc" id="L200">    }</span>
+
+    // ===================== SPEC-11 — sob demanda =====================
+
+    /**
+     * Registra uma solicitação &lt;strong&gt;sob demanda&lt;/strong&gt; (SPEC-11): sem linha,
+     * o passageiro informa destino + data + horário + condições. Nasce
+     * {@code PENDENTE} aguardando a &lt;strong&gt;avaliação do gestor&lt;/strong&gt; (não há
+     * alocação automática). Reaproveitada pelo bot do WhatsApp e por telas web.
+     *
+     * @return a solicitação criada
+     */
+    @Transactional
+    public SolicitacaoViagem solicitarSobDemanda(UUID passageiroId, UUID cidadeDestinoId,
+                                                 LocalDate data, LocalTime horario, String condicoes) {
+<span class="fc" id="L215">        Usuario passageiro = usuarioRepository.findByIdAndRemovidoEmIsNull(passageiroId)</span>
+<span class="pc" id="L216">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, passageiroId));</span>
+<span class="fc" id="L217">        Cidade destino = cidadeRepository.findById(cidadeDestinoId)</span>
+<span class="pc" id="L218">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Cidade&quot;, cidadeDestinoId));</span>
+
+        // Span de negócio (SPEC-14): nomeia a operação de domínio e anexa atributos
+        // (destino/tipo) — sem PII (RN-OBS-08). Uma violação de regra abaixo é gravada
+        // no span como ERROR; com o agente desligado, todo o rastrear() é no-op (RN-OBS-06).
+<span class="fc" id="L223">        Map&lt;String, String&gt; atributos = Map.of(</span>
+<span class="fc" id="L224">                &quot;solicitacao.tipo&quot;, TipoSolicitacao.SOB_DEMANDA.name(),</span>
+<span class="fc" id="L225">                &quot;solicitacao.cidade_destino&quot;, destino.getNome());</span>
+<span class="fc" id="L226">        return rastreamento.rastrear(&quot;solicitar-sob-demanda&quot;, atributos, () -&gt; {</span>
+<span class="pc bpc" id="L227" title="2 of 4 branches missed.">            if (data == null || data.isBefore(LocalDate.now())) {</span>
+<span class="nc" id="L228">                throw new RegraNegocioException(&quot;Escolha uma data igual ou posterior a hoje&quot;);</span>
+            }
+<span class="fc bfc" id="L230" title="All 2 branches covered.">            if (solicitacaoRepository.existsByPassageiro_IdAndCidadeDestino_IdAndDataDesejadaAndStatusNot(</span>
+                    passageiroId, cidadeDestinoId, data, StatusSolicitacao.CANCELADA)) {
+<span class="fc" id="L232">                throw new RegraNegocioException(&quot;Você já tem uma solicitação para este destino nesta data&quot;);</span>
+            }
+
+<span class="fc" id="L235">            SolicitacaoViagem solicitacao = new SolicitacaoViagem();</span>
+<span class="fc" id="L236">            solicitacao.setTipo(TipoSolicitacao.SOB_DEMANDA);</span>
+<span class="fc" id="L237">            solicitacao.setPassageiro(passageiro);</span>
+<span class="fc" id="L238">            solicitacao.setCidadeDestino(destino);</span>
+<span class="fc" id="L239">            solicitacao.setDataDesejada(data);</span>
+<span class="fc" id="L240">            solicitacao.setHorarioDesejado(horario);</span>
+<span class="pc bpc" id="L241" title="2 of 4 branches missed.">            solicitacao.setCondicoes(condicoes != null &amp;&amp; !condicoes.isBlank() ? condicoes.trim() : null);</span>
+<span class="fc" id="L242">            solicitacao.setStatus(StatusSolicitacao.PENDENTE);</span>
+<span class="fc" id="L243">            SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);</span>
+            // Log estruturado (vai ao Loki via agente, correlacionado ao trace) — sem PII.
+<span class="fc" id="L245">            log.info(&quot;solicitação sob demanda criada: solicitacao_id={} destino={} data={} status={}&quot;,</span>
+<span class="fc" id="L246">                    salva.getId(), destino.getNome(), data, salva.getStatus());</span>
+<span class="fc" id="L247">            auditoriaService.registrarOperacao(&quot;SOLICITACAO_CRIADA&quot;, &quot;SolicitacaoViagem&quot;,</span>
+<span class="fc" id="L248">                    String.valueOf(salva.getId()),</span>
+<span class="fc" id="L249">                    &quot;Sob demanda — &quot; + destino.getNome() + &quot; em &quot; + DATA_BR.format(data));</span>
+<span class="fc" id="L250">            return salva;</span>
+        });
+    }
+
+    /** Fila do gestor: demandas aguardando avaliação (mais antigas primeiro). */
+    public List&lt;SolicitacaoViagem&gt; listarDemandaPendente() {
+<span class="fc" id="L256">        return solicitacaoRepository.listarPorTipoEStatus(</span>
+                TipoSolicitacao.SOB_DEMANDA, StatusSolicitacao.PENDENTE);
+    }
+
+    /** Viagens candidatas (mesmo destino+data) para alocar uma demanda. */
+    public List&lt;Viagem&gt; viagensCandidatas(UUID solicitacaoId) {
+<span class="nc" id="L262">        SolicitacaoViagem solicitacao = solicitacaoRepository.findById(solicitacaoId)</span>
+<span class="nc" id="L263">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Solicitação&quot;, solicitacaoId));</span>
+<span class="nc" id="L264">        Cidade destino = solicitacao.getDestino();</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">        if (destino == null) {</span>
+<span class="nc" id="L266">            return List.of();</span>
+        }
+<span class="nc" id="L268">        return viagemRepository.candidatasParaDemanda(destino.getId(), solicitacao.getDataDesejada());</span>
+    }
+
+    /**
+     * O gestor &lt;strong&gt;aprova&lt;/strong&gt; uma demanda alocando-a a uma viagem
+     * (RN-AVU-03): vincula a viagem, marca {@code ALOCADA} e notifica o
+     * passageiro (WhatsApp + in-app). A viagem deve ser do mesmo destino da
+     * solicitação.
+     */
+    @Transactional
+    public SolicitacaoViagem aprovar(UUID solicitacaoId, UUID viagemId) {
+<span class="fc" id="L279">        SolicitacaoViagem solicitacao = solicitacaoRepository.findById(solicitacaoId)</span>
+<span class="pc" id="L280">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Solicitação&quot;, solicitacaoId));</span>
+
+        // 2º span de negócio (SPEC-14): a decisão do gestor (aprovar/alocar). Erros de
+        // regra (não pendente, destino divergente) e a viagem inexistente caem no span
+        // como ERROR; sem agente, todo o rastrear() é no-op (RN-OBS-06).
+<span class="fc" id="L285">        Map&lt;String, String&gt; atributos = Map.of(</span>
+<span class="fc" id="L286">                &quot;solicitacao.id&quot;, String.valueOf(solicitacaoId),</span>
+<span class="fc" id="L287">                &quot;solicitacao.cidade_destino&quot;, nomeDestino(solicitacao));</span>
+<span class="fc" id="L288">        return rastreamento.rastrear(&quot;aprovar-solicitacao&quot;, atributos, () -&gt; {</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">            if (solicitacao.getStatus() != StatusSolicitacao.PENDENTE) {</span>
+<span class="fc" id="L290">                throw new RegraNegocioException(&quot;Só é possível aprovar uma solicitação pendente&quot;);</span>
+            }
+<span class="fc" id="L292">            Viagem viagem = viagemRepository.findById(viagemId)</span>
+<span class="pc" id="L293">                    .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Viagem&quot;, viagemId));</span>
+<span class="fc" id="L294">            Cidade destino = solicitacao.getDestino();</span>
+<span class="pc bpc" id="L295" title="2 of 4 branches missed.">            if (destino != null &amp;&amp; !viagem.getCidadeDestino().getId().equals(destino.getId())) {</span>
+<span class="nc" id="L296">                throw new RegraNegocioException(&quot;A viagem escolhida tem destino diferente do solicitado&quot;);</span>
+            }
+
+<span class="fc" id="L299">            solicitacao.setViagem(viagem);</span>
+<span class="fc" id="L300">            solicitacao.setStatus(StatusSolicitacao.ALOCADA);</span>
+<span class="fc" id="L301">            solicitacao.setMotivoRecusa(null);</span>
+<span class="fc" id="L302">            SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);</span>
+
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">            String hora = viagem.getHorarioSaida() != null ? viagem.getHorarioSaida().toString() : &quot;&quot;;</span>
+<span class="fc" id="L305">            notificar(solicitacao.getPassageiro(), &quot;Transporte aprovado&quot;,</span>
+<span class="fc" id="L306">                    whatsappService.mensagemConfirmacao(nomeDestino(solicitacao),</span>
+<span class="fc" id="L307">                            DATA_BR.format(solicitacao.getDataDesejada()), hora));</span>
+<span class="fc" id="L308">            log.info(&quot;solicitação aprovada: solicitacao_id={} viagem_id={} destino={} status={}&quot;,</span>
+<span class="fc" id="L309">                    solicitacaoId, viagemId, nomeDestino(solicitacao), salva.getStatus());</span>
+<span class="fc" id="L310">            auditoriaService.registrarOperacao(&quot;SOLICITACAO_APROVADA&quot;, &quot;SolicitacaoViagem&quot;,</span>
+<span class="fc" id="L311">                    solicitacaoId.toString(),</span>
+<span class="fc" id="L312">                    nomeDestino(solicitacao) + &quot; — alocada na viagem &quot; + viagemId);</span>
+<span class="fc" id="L313">            return salva;</span>
+        });
+    }
+
+    /**
+     * O gestor &lt;strong&gt;recusa&lt;/strong&gt; uma demanda (RN-AVU-04): registra o motivo,
+     * marca {@code RECUSADA} e notifica o passageiro.
+     */
+    @Transactional
+    public SolicitacaoViagem recusar(UUID solicitacaoId, String motivo) {
+<span class="pc bpc" id="L323" title="1 of 4 branches missed.">        if (motivo == null || motivo.isBlank()) {</span>
+<span class="fc" id="L324">            throw new RegraNegocioException(&quot;Informe o motivo da recusa&quot;);</span>
+        }
+<span class="fc" id="L326">        SolicitacaoViagem solicitacao = solicitacaoRepository.findById(solicitacaoId)</span>
+<span class="pc" id="L327">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Solicitação&quot;, solicitacaoId));</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">        if (solicitacao.getStatus() != StatusSolicitacao.PENDENTE) {</span>
+<span class="nc" id="L329">            throw new RegraNegocioException(&quot;Só é possível recusar uma solicitação pendente&quot;);</span>
+        }
+
+<span class="fc" id="L332">        solicitacao.setStatus(StatusSolicitacao.RECUSADA);</span>
+<span class="fc" id="L333">        solicitacao.setMotivoRecusa(motivo.trim());</span>
+<span class="fc" id="L334">        solicitacao.setViagem(null);</span>
+<span class="fc" id="L335">        SolicitacaoViagem salva = solicitacaoRepository.save(solicitacao);</span>
+
+<span class="fc" id="L337">        notificar(solicitacao.getPassageiro(), &quot;Transporte não aprovado&quot;,</span>
+<span class="fc" id="L338">                &quot;Seu transporte para &quot; + nomeDestino(solicitacao) + &quot; em &quot;</span>
+<span class="fc" id="L339">                        + DATA_BR.format(solicitacao.getDataDesejada())</span>
+<span class="fc" id="L340">                        + &quot; não foi aprovado. Motivo: &quot; + motivo.trim());</span>
+<span class="fc" id="L341">        auditoriaService.registrarOperacao(&quot;SOLICITACAO_RECUSADA&quot;, &quot;SolicitacaoViagem&quot;,</span>
+<span class="fc" id="L342">                solicitacaoId.toString(), nomeDestino(solicitacao) + &quot; — motivo: &quot; + motivo.trim());</span>
+<span class="fc" id="L343">        return salva;</span>
+    }
+
+    // ----------------------------------------------------------- apoio
+
+    /** Notifica o passageiro pelos canais WhatsApp e in-app (RN-AVU-05/08). */
+    private void notificar(Usuario passageiro, String titulo, String mensagem) {
+<span class="fc" id="L350">        notificacaoService.enviar(</span>
+<span class="fc" id="L351">                new NotificacaoDestino(passageiro.getId(), passageiro.getEmail(), passageiro.getTelefone()),</span>
+                titulo, mensagem, CanalTipo.WHATSAPP, CanalTipo.IN_APP);
+<span class="fc" id="L353">    }</span>
+
+    private String nomeDestino(SolicitacaoViagem solicitacao) {
+<span class="fc" id="L356">        Cidade destino = solicitacao.getDestino();</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">        return destino != null ? destino.getNome() : &quot;seu destino&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

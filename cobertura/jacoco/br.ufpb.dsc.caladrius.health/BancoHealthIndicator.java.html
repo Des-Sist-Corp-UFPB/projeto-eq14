@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BancoHealthIndicator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.health</a> &gt; <span class="el_source">BancoHealthIndicator.java</span></div><h1>BancoHealthIndicator.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.health;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+
+import javax.sql.DataSource;
+
+/**
+ * Health check do &lt;strong&gt;banco de dados&lt;/strong&gt; (SPEC-17) — verificação
+ * &lt;em&gt;explícita&lt;/em&gt; de que o PostgreSQL responde a uma consulta.
+ *
+ * &lt;p&gt;&lt;strong&gt;Por que esta classe existe&lt;/strong&gt;, se o Spring Boot já traz o
+ * {@code DataSourceHealthIndicator}: o requisito da disciplina é um healthcheck que
+ * &lt;em&gt;consulta o banco&lt;/em&gt; e que seja &lt;strong&gt;legível no código do projeto&lt;/strong&gt;
+ * (RN-HC-01). O indicador embutido faz a consulta dentro do framework — não há nada
+ * no nosso repositório que comprove a verificação. Aqui a consulta está à vista:
+ * {@link #CONSULTA}, executada por {@link JdbcTemplate}, com timeout.
+ *
+ * &lt;p&gt;Entra automaticamente no agregado {@code /actuator/health} como o componente
+ * {@code banco} (o Spring deriva a chave do nome do bean) e é consumido também pelo
+ * {@code PingController}, que reporta o estado no contrato público {@code /ping} —
+ * &lt;strong&gt;sempre 200&lt;/strong&gt;, nunca 503 (RN-HC-03).
+ *
+ * &lt;p&gt;O {@link JdbcTemplate} é &lt;strong&gt;próprio&lt;/strong&gt;, construído a partir do
+ * {@link DataSource}, e não o bean compartilhado da aplicação: {@code queryTimeout} é
+ * estado do template, e alterá-lo no bean global imporia o timeout do healthcheck a
+ * todas as consultas do sistema.
+ */
+@Component
+public class BancoHealthIndicator implements HealthIndicator {
+
+<span class="fc" id="L38">    private static final Logger log = LoggerFactory.getLogger(BancoHealthIndicator.class);</span>
+
+    /**
+     * Consulta mínima do healthcheck. É deliberadamente independente do schema: contar
+     * linhas de uma tabela do domínio acoplaria a saúde do sistema ao modelo de dados e
+     * quebraria a cada migration que renomeasse algo.
+     */
+    static final String CONSULTA = &quot;SELECT 1&quot;;
+
+    private final JdbcTemplate jdbc;
+    private final int timeoutSegundos;
+
+    public BancoHealthIndicator(
+            DataSource dataSource,
+<span class="fc" id="L52">            @Value(&quot;${caladrius.health.banco.timeout-segundos:2}&quot;) int timeoutSegundos) {</span>
+<span class="fc" id="L53">        this.timeoutSegundos = timeoutSegundos;</span>
+<span class="fc" id="L54">        this.jdbc = new JdbcTemplate(dataSource);</span>
+        // Sem timeout, um banco pendurado pendura junto o /ping e o healthcheck do
+        // container — pior que um DOWN honesto e rápido (RN-HC-02).
+<span class="fc" id="L57">        this.jdbc.setQueryTimeout(timeoutSegundos);</span>
+<span class="fc" id="L58">    }</span>
+
+    /**
+     * Executa a consulta e diz se o banco respondeu.
+     *
+     * &lt;p&gt;É o único ponto que fala com o banco: {@link #health()} e o {@code /ping}
+     * derivam daqui, para não existirem duas verificações que possam divergir.
+     *
+     * @return {@code true} se o banco respondeu dentro do timeout
+     */
+    public boolean acessivel() {
+        try {
+<span class="fc" id="L70">            jdbc.queryForObject(CONSULTA, Integer.class);</span>
+<span class="fc" id="L71">            return true;</span>
+<span class="fc" id="L72">        } catch (DataAccessException e) {</span>
+            // Só a classe da exceção: a mensagem do driver pode conter host, base e
+            // usuário, e este detalhe chega ao /actuator/health (RN-HC-04).
+<span class="fc" id="L75">            log.warn(&quot;Healthcheck do banco falhou ({}): {}&quot;, e.getClass().getSimpleName(), e.getMessage());</span>
+<span class="fc" id="L76">            return false;</span>
+        }
+    }
+
+    @Override
+    public Health health() {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        Health.Builder resultado = acessivel() ? Health.up() : Health.down();</span>
+<span class="fc" id="L83">        return resultado</span>
+<span class="fc" id="L84">                .withDetail(&quot;consulta&quot;, CONSULTA)</span>
+<span class="fc" id="L85">                .withDetail(&quot;timeoutSegundos&quot;, timeoutSegundos)</span>
+<span class="fc" id="L86">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EvolutionApiProvedor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.whatsapp</a> &gt; <span class="el_source">EvolutionApiProvedor.java</span></div><h1>EvolutionApiProvedor.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.whatsapp;
+
+import br.ufpb.dsc.caladrius.util.Documentos;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
+
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Adaptador da porta {@link ProvedorWhatsapp} para a &lt;strong&gt;Evolution API v2&lt;/strong&gt;
+ * (SPEC-10/ADR-14) — self-hosted na VPS da equipe, autenticada pelo header
+ * {@code apikey}.
+ *
+ * &lt;p&gt;Todo o vocabulário da Evolution (paths, payloads, estados {@code open}/
+ * {@code connecting}/{@code close}) fica &lt;strong&gt;encapsulado aqui&lt;/strong&gt;;
+ * qualquer divergência de versão da API se resolve neste arquivo, sem tocar em
+ * bot, notificações ou telas. &lt;strong&gt;Qualquer&lt;/strong&gt; falha vira
+ * {@link WhatsappException} (exceção da porta) — inclusive as que não são de rede,
+ * como uma {@code EVOLUTION_URL} malformada ({@code IllegalArgumentException: URI with
+ * undefined scheme}). Isso é contrato: quem chama a porta trata um tipo só, e um erro de
+ * configuração não pode escapar como exceção crua (foi o que derrubou o boot em
+ * 2026-07-29 — ver {@code WhatsappConfig#normalizarUrl}).
+ *
+ * &lt;p&gt;Não é anotado como {@code @Component}: o bean é criado condicionalmente
+ * pelo {@code WhatsappConfig} quando {@code EVOLUTION_URL}/{@code EVOLUTION_API_KEY}
+ * estão presentes (RN-WPP-02).
+ */
+public class EvolutionApiProvedor implements ProvedorWhatsapp {
+
+    private final RestClient http;
+    private final String instancia;
+    private final String webhookToken;
+    private final String appUrlPublica;
+
+    /**
+     * @param http          cliente já configurado com a base URL da Evolution e o header {@code apikey}
+     * @param instancia     nome da instância (ex.: {@code caladrius})
+     * @param webhookToken  segredo enviado pela Evolution no header {@code X-Webhook-Token}
+     * @param appUrlPublica URL pública do CALADRIUS, destino do webhook (vazia = não registra webhook)
+     */
+    public EvolutionApiProvedor(RestClient http, String instancia,
+<span class="fc" id="L46">                                String webhookToken, String appUrlPublica) {</span>
+<span class="fc" id="L47">        this.http = http;</span>
+<span class="fc" id="L48">        this.instancia = instancia;</span>
+<span class="fc" id="L49">        this.webhookToken = webhookToken;</span>
+<span class="fc" id="L50">        this.appUrlPublica = appUrlPublica;</span>
+<span class="fc" id="L51">    }</span>
+
+    @Override
+    public StatusConexaoWhatsapp statusConexao() {
+        try {
+<span class="fc" id="L56">            JsonNode resposta = http.get()</span>
+<span class="fc" id="L57">                    .uri(&quot;/instance/connectionState/{instancia}&quot;, instancia)</span>
+<span class="fc" id="L58">                    .retrieve()</span>
+<span class="fc" id="L59">                    .body(JsonNode.class);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">            return traduzirEstado(resposta == null ? &quot;&quot; : resposta.path(&quot;instance&quot;).path(&quot;state&quot;).asText());</span>
+<span class="fc" id="L61">        } catch (HttpClientErrorException.NotFound e) {</span>
+            // Instância ainda não criada no provedor.
+<span class="fc" id="L63">            return StatusConexaoWhatsapp.DESCONECTADO;</span>
+<span class="fc" id="L64">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L65">            throw new WhatsappException(&quot;Falha ao consultar o estado da conexão WhatsApp&quot;, e);</span>
+        }
+    }
+
+    @Override
+    public ConexaoWhatsapp iniciarConexao() {
+        try {
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">            if (statusConexao() == StatusConexaoWhatsapp.DESCONECTADO) {</span>
+<span class="fc" id="L73">                criarInstanciaSeNaoExistir();</span>
+            }
+<span class="fc" id="L75">            registrarWebhook();</span>
+<span class="fc" id="L76">            JsonNode resposta = http.get()</span>
+<span class="fc" id="L77">                    .uri(&quot;/instance/connect/{instancia}&quot;, instancia)</span>
+<span class="fc" id="L78">                    .retrieve()</span>
+<span class="fc" id="L79">                    .body(JsonNode.class);</span>
+<span class="fc" id="L80">            String qr = extrairQr(resposta);</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">            if (StringUtils.hasText(qr)) {</span>
+<span class="fc" id="L82">                return ConexaoWhatsapp.aguardandoQr(qr);</span>
+            }
+            // Sem QR na resposta: ou já está pareada (conectada), ou o QR virá
+            // pelo evento QRCODE_UPDATED do webhook.
+<span class="nc" id="L86">            return new ConexaoWhatsapp(statusConexao(), null);</span>
+<span class="nc" id="L87">        } catch (WhatsappException e) {</span>
+<span class="nc" id="L88">            throw e;</span>
+<span class="nc" id="L89">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L90">            throw new WhatsappException(&quot;Falha ao iniciar a conexão WhatsApp&quot;, e);</span>
+        }
+    }
+
+    @Override
+    public void desconectar() {
+        try {
+<span class="fc" id="L97">            http.delete()</span>
+<span class="fc" id="L98">                    .uri(&quot;/instance/logout/{instancia}&quot;, instancia)</span>
+<span class="fc" id="L99">                    .retrieve()</span>
+<span class="fc" id="L100">                    .toBodilessEntity();</span>
+<span class="fc" id="L101">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L102">            throw new WhatsappException(&quot;Falha ao desconectar a sessão WhatsApp&quot;, e);</span>
+<span class="fc" id="L103">        }</span>
+<span class="fc" id="L104">    }</span>
+
+    @Override
+    public Optional&lt;ContaWhatsapp&gt; contaConectada() {
+        try {
+<span class="fc" id="L109">            JsonNode resposta = http.get()</span>
+<span class="fc" id="L110">                    .uri(&quot;/instance/fetchInstances?instanceName={instancia}&quot;, instancia)</span>
+<span class="fc" id="L111">                    .retrieve()</span>
+<span class="fc" id="L112">                    .body(JsonNode.class);</span>
+<span class="fc" id="L113">            return extrairConta(resposta);</span>
+<span class="fc" id="L114">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L115">            throw new WhatsappException(&quot;Falha ao consultar a conta WhatsApp conectada&quot;, e);</span>
+        }
+    }
+
+    @Override
+    public void enviarTexto(String telefone, String texto) {
+        try {
+<span class="fc" id="L122">            http.post()</span>
+<span class="fc" id="L123">                    .uri(&quot;/message/sendText/{instancia}&quot;, instancia)</span>
+<span class="fc" id="L124">                    .contentType(MediaType.APPLICATION_JSON)</span>
+                    // A Evolution espera o número com DDI (55 + DDD + número).
+<span class="fc" id="L126">                    .body(Map.of(&quot;number&quot;, &quot;55&quot; + Documentos.apenasDigitos(telefone), &quot;text&quot;, texto))</span>
+<span class="fc" id="L127">                    .retrieve()</span>
+<span class="fc" id="L128">                    .toBodilessEntity();</span>
+<span class="fc" id="L129">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L130">            throw new WhatsappException(&quot;Falha ao enviar mensagem WhatsApp&quot;, e);</span>
+<span class="fc" id="L131">        }</span>
+<span class="fc" id="L132">    }</span>
+
+    // ------------------------------------------------------------ internos
+
+    /** {@code open} → CONECTADO, {@code connecting} → AGUARDANDO_QR, demais → DESCONECTADO. */
+    private StatusConexaoWhatsapp traduzirEstado(String estado) {
+<span class="pc bpc" id="L138" title="1 of 5 branches missed.">        return switch (estado == null ? &quot;&quot; : estado) {</span>
+<span class="fc" id="L139">            case &quot;open&quot; -&gt; StatusConexaoWhatsapp.CONECTADO;</span>
+<span class="fc" id="L140">            case &quot;connecting&quot; -&gt; StatusConexaoWhatsapp.AGUARDANDO_QR;</span>
+<span class="fc" id="L141">            default -&gt; StatusConexaoWhatsapp.DESCONECTADO;</span>
+        };
+    }
+
+    private void criarInstanciaSeNaoExistir() {
+        try {
+<span class="fc" id="L147">            http.post()</span>
+<span class="fc" id="L148">                    .uri(&quot;/instance/create&quot;)</span>
+<span class="fc" id="L149">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L150">                    .body(Map.of(&quot;instanceName&quot;, instancia,</span>
+                            &quot;integration&quot;, &quot;WHATSAPP-BAILEYS&quot;,
+<span class="fc" id="L152">                            &quot;qrcode&quot;, true))</span>
+<span class="fc" id="L153">                    .retrieve()</span>
+<span class="fc" id="L154">                    .toBodilessEntity();</span>
+<span class="nc" id="L155">        } catch (HttpClientErrorException e) {</span>
+            // 403/409: a instância já existe — segue para o connect.
+<span class="nc" id="L157">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L158">            throw new WhatsappException(&quot;Falha ao criar a instância WhatsApp&quot;, e);</span>
+<span class="pc" id="L159">        }</span>
+<span class="fc" id="L160">    }</span>
+
+    /**
+     * Aponta o webhook da instância para o CALADRIUS, com o token secreto no
+     * header (RN-WPP-03). Sem {@code APP_URL_PUBLICA} (ex.: dev local sem URL
+     * pública), o registro é pulado — só o envio funciona.
+     */
+    @Override
+    public void registrarWebhook() {
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">        if (!StringUtils.hasText(appUrlPublica)) {</span>
+<span class="nc" id="L170">            return;</span>
+        }
+        try {
+<span class="fc" id="L173">            http.post()</span>
+<span class="fc" id="L174">                    .uri(&quot;/webhook/set/{instancia}&quot;, instancia)</span>
+<span class="fc" id="L175">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L176">                    .body(Map.of(&quot;webhook&quot;, Map.of(</span>
+<span class="fc" id="L177">                            &quot;enabled&quot;, true,</span>
+                            &quot;url&quot;, appUrlPublica + &quot;/webhooks/whatsapp&quot;,
+<span class="fc" id="L179">                            &quot;headers&quot;, Map.of(&quot;X-Webhook-Token&quot;, webhookToken),</span>
+                            &quot;events&quot;, new String[]{&quot;MESSAGES_UPSERT&quot;, &quot;CONNECTION_UPDATE&quot;, &quot;QRCODE_UPDATED&quot;})))
+<span class="fc" id="L181">                    .retrieve()</span>
+<span class="fc" id="L182">                    .toBodilessEntity();</span>
+<span class="fc" id="L183">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L184">            throw new WhatsappException(&quot;Falha ao registrar o webhook na Evolution&quot;, e);</span>
+<span class="fc" id="L185">        }</span>
+<span class="fc" id="L186">    }</span>
+
+    /** O QR vem como {@code base64} na raiz (v2) ou aninhado em {@code qrcode.base64}. */
+    private String extrairQr(JsonNode resposta) {
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (resposta == null) {</span>
+<span class="nc" id="L191">            return null;</span>
+        }
+<span class="fc" id="L193">        String qr = resposta.path(&quot;base64&quot;).asText(null);</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        if (qr == null) {</span>
+<span class="nc" id="L195">            qr = resposta.path(&quot;qrcode&quot;).path(&quot;base64&quot;).asText(null);</span>
+        }
+<span class="fc" id="L197">        return qr;</span>
+    }
+
+    /**
+     * O {@code fetchInstances} devolve uma lista; procura a nossa instância e
+     * extrai dono ({@code ownerJid}) e nome do perfil. Tolerante aos dois
+     * formatos conhecidos (objeto direto ou aninhado em {@code instance}).
+     */
+    private Optional&lt;ContaWhatsapp&gt; extrairConta(JsonNode resposta) {
+<span class="pc bpc" id="L206" title="2 of 4 branches missed.">        if (resposta == null || !resposta.isArray()) {</span>
+<span class="nc" id="L207">            return Optional.empty();</span>
+        }
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">        for (JsonNode item : resposta) {</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">            JsonNode dados = item.has(&quot;instance&quot;) ? item.path(&quot;instance&quot;) : item;</span>
+<span class="fc" id="L211">            String nome = dados.path(&quot;name&quot;).asText(dados.path(&quot;instanceName&quot;).asText(&quot;&quot;));</span>
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">            if (!instancia.equals(nome)) {</span>
+<span class="nc" id="L213">                continue;</span>
+            }
+<span class="fc" id="L215">            String jid = dados.path(&quot;ownerJid&quot;).asText(dados.path(&quot;owner&quot;).asText(null));</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">            if (!StringUtils.hasText(jid)) {</span>
+<span class="fc" id="L217">                return Optional.empty();</span>
+            }
+<span class="fc" id="L219">            return Optional.of(new ContaWhatsapp(</span>
+<span class="fc" id="L220">                    Documentos.telefoneDeJid(jid),</span>
+<span class="fc" id="L221">                    dados.path(&quot;profileName&quot;).asText(null)));</span>
+        }
+<span class="nc" id="L223">        return Optional.empty();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

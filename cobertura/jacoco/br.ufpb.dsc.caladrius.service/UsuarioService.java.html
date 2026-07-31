@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">UsuarioService.java</span></div><h1>UsuarioService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import br.ufpb.dsc.caladrius.dto.RegistroForm;
+import br.ufpb.dsc.caladrius.dto.UsuarioForm;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.util.Documentos;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Lógica de negócio dos usuários: auto-cadastro público (passageiro) e gestão
+ * completa pelo gerente.
+ *
+ * &lt;p&gt;Centraliza as regras transversais: normalização de telefone/CPF, validação
+ * de CPF, unicidade (telefone/e-mail/CPF entre ativos), hashing da senha (BCrypt)
+ * e soft-delete.
+ */
+@Service
+@Transactional(readOnly = true)
+public class UsuarioService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
+    private final VerificacaoService verificacaoService;
+    private final WhatsappService whatsappService;
+
+    /**
+     * Override do gate de verificação de telefone no cadastro (SPEC-12, D5):
+     * {@code null} (padrão) = exige verificação apenas quando o WhatsApp está
+     * configurado (degradação graciosa — RN-VER-07). No perfil {@code dev} é
+     * {@code true} para dar de testar o fluxo com o canal em stub (código no log).
+     */
+    private final Boolean exigirVerificacaoTelefone;
+
+    public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder,
+                          AuditoriaService auditoriaService, VerificacaoService verificacaoService,
+                          WhatsappService whatsappService,
+<span class="fc" id="L55">                          @Value(&quot;${caladrius.verificacao.exigir-telefone:#{null}}&quot;) Boolean exigirVerificacaoTelefone) {</span>
+<span class="fc" id="L56">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L57">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L58">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L59">        this.verificacaoService = verificacaoService;</span>
+<span class="fc" id="L60">        this.whatsappService = whatsappService;</span>
+<span class="fc" id="L61">        this.exigirVerificacaoTelefone = exigirVerificacaoTelefone;</span>
+<span class="fc" id="L62">    }</span>
+
+    // ===================== Consultas =====================
+
+    /** Lista/busca usuários ativos paginados. */
+    public Page&lt;Usuario&gt; buscar(String busca, Pageable pageable) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (!StringUtils.hasText(busca)) {</span>
+<span class="fc" id="L69">            return usuarioRepository.findByRemovidoEmIsNull(pageable);</span>
+        }
+<span class="fc" id="L71">        return usuarioRepository.buscar(busca.trim(), pageable);</span>
+    }
+
+    /** Busca um usuário ativo pelo id ou lança {@link RecursoNaoEncontradoException}. */
+    public Usuario buscarPorId(UUID id) {
+<span class="fc" id="L76">        return usuarioRepository.findByIdAndRemovidoEmIsNull(id)</span>
+<span class="fc" id="L77">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, id));</span>
+    }
+
+    /** Lista usuários ativos que possuem o papel informado (ex.: motoristas). */
+    public List&lt;Usuario&gt; listarPorPapel(Papel papel) {
+<span class="fc" id="L82">        return usuarioRepository.listarPorPapel(papel);</span>
+    }
+
+    // ===================== Auto-cadastro (passageiro) =====================
+
+    /**
+     * Cadastra um novo passageiro a partir do formulário público de registro.
+     *
+     * @param form dados do cadastro (já validados quanto ao formato pelo Bean Validation)
+     * @return o usuário criado
+     */
+    @Transactional
+    public Usuario registrarPassageiro(RegistroForm form) {
+<span class="fc" id="L95">        String telefone = Documentos.apenasDigitos(form.telefone());</span>
+<span class="fc" id="L96">        String cpf = normalizarCpf(form.cpf());</span>
+<span class="fc" id="L97">        String email = normalizarEmail(form.email());</span>
+
+<span class="fc" id="L99">        validarTelefone(telefone, null);</span>
+<span class="fc" id="L100">        validarCpf(cpf, null);</span>
+<span class="fc" id="L101">        validarEmail(email, null);</span>
+
+        // D5/RN-VER-07: exige verificar o telefone quando há canal para entregar o
+        // código (WhatsApp configurado). Sem canal, cria ATIVO (degradação graciosa).
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        boolean verificar = exigirVerificacaoTelefone != null</span>
+<span class="nc" id="L106">                ? exigirVerificacaoTelefone</span>
+<span class="fc" id="L107">                : whatsappService.configurada();</span>
+
+<span class="fc" id="L109">        Usuario usuario = new Usuario();</span>
+<span class="fc" id="L110">        usuario.setNomeCompleto(form.nomeCompleto().trim());</span>
+<span class="fc" id="L111">        usuario.setTelefone(telefone);</span>
+<span class="fc" id="L112">        usuario.setCpf(cpf);</span>
+<span class="fc" id="L113">        usuario.setEmail(email);</span>
+<span class="fc" id="L114">        usuario.setHashSenha(passwordEncoder.encode(form.senha()));</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        usuario.setStatus(verificar ? StatusUsuario.PENDENTE : StatusUsuario.ATIVO);</span>
+<span class="fc" id="L116">        usuario.setPapeis(EnumSet.of(Papel.PASSAGEIRO));</span>
+<span class="fc" id="L117">        usuario = usuarioRepository.save(usuario);</span>
+
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        if (verificar) {</span>
+<span class="fc" id="L120">            verificacaoService.enviarVerificacaoTelefone(usuario, AuditoriaService.ipDaRequisicao());</span>
+        }
+<span class="fc" id="L122">        return usuario;</span>
+    }
+
+    /**
+     * Completa o perfil de uma conta criada por login social (SPEC-08): grava o
+     * telefone obrigatório (validado e único) e remove o marcador de perfil
+     * incompleto. Idempotente em relação ao status (não altera papéis/status).
+     *
+     * @param id          usuário autenticado
+     * @param telefoneRaw telefone informado (qualquer formatação)
+     * @return o usuário atualizado
+     */
+    @Transactional
+    public Usuario completarPerfil(UUID id, String telefoneRaw) {
+<span class="fc" id="L136">        Usuario usuario = buscarPorId(id);</span>
+<span class="fc" id="L137">        String telefone = Documentos.apenasDigitos(telefoneRaw);</span>
+<span class="fc" id="L138">        validarTelefone(telefone, usuario);</span>
+<span class="fc" id="L139">        usuario.setTelefone(telefone);</span>
+<span class="fc" id="L140">        usuario.setPerfilIncompleto(false);</span>
+<span class="fc" id="L141">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L142">        auditoriaService.registrarOperacao(&quot;PERFIL_COMPLETADO&quot;, &quot;Usuario&quot;,</span>
+<span class="fc" id="L143">                usuario.getId().toString(), usuario.getNomeCompleto());</span>
+<span class="fc" id="L144">        return usuario;</span>
+    }
+
+    // ===================== Gestão (gerente) =====================
+
+    /** Cria um usuário pelo gerente (senha obrigatória). */
+    @Transactional
+    public Usuario criar(UsuarioForm form) {
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (!StringUtils.hasText(form.senha())) {</span>
+<span class="fc" id="L153">            throw new RegraNegocioException(&quot;A senha é obrigatória ao criar um usuário&quot;);</span>
+        }
+<span class="fc" id="L155">        String telefone = Documentos.apenasDigitos(form.telefone());</span>
+<span class="fc" id="L156">        String cpf = normalizarCpf(form.cpf());</span>
+<span class="fc" id="L157">        String email = normalizarEmail(form.email());</span>
+
+<span class="fc" id="L159">        validarTelefone(telefone, null);</span>
+<span class="fc" id="L160">        validarCpf(cpf, null);</span>
+<span class="fc" id="L161">        validarEmail(email, null);</span>
+
+<span class="fc" id="L163">        Usuario usuario = new Usuario();</span>
+<span class="fc" id="L164">        usuario.setNomeCompleto(form.nomeCompleto().trim());</span>
+<span class="fc" id="L165">        usuario.setTelefone(telefone);</span>
+<span class="fc" id="L166">        usuario.setCpf(cpf);</span>
+<span class="fc" id="L167">        usuario.setEmail(email);</span>
+<span class="fc" id="L168">        usuario.setHashSenha(passwordEncoder.encode(form.senha()));</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        usuario.setStatus(form.status() != null ? form.status() : StatusUsuario.ATIVO);</span>
+<span class="fc" id="L170">        usuario.setPapeis(papeisOuPadrao(form.papeis()));</span>
+<span class="fc" id="L171">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L172">        auditoriaService.registrarOperacao(&quot;USUARIO_CRIADO&quot;, &quot;Usuario&quot;,</span>
+<span class="fc" id="L173">                usuario.getId().toString(), usuario.getNomeCompleto());</span>
+<span class="fc" id="L174">        return usuario;</span>
+    }
+
+    /** Atualiza um usuário existente (senha em branco mantém a atual). */
+    @Transactional
+    public Usuario atualizar(UUID id, UsuarioForm form) {
+<span class="fc" id="L180">        Usuario usuario = buscarPorId(id);</span>
+<span class="fc" id="L181">        String telefone = Documentos.apenasDigitos(form.telefone());</span>
+<span class="fc" id="L182">        String cpf = normalizarCpf(form.cpf());</span>
+<span class="fc" id="L183">        String email = normalizarEmail(form.email());</span>
+
+<span class="fc" id="L185">        validarTelefone(telefone, usuario);</span>
+<span class="fc" id="L186">        validarCpf(cpf, usuario);</span>
+<span class="fc" id="L187">        validarEmail(email, usuario);</span>
+
+<span class="fc" id="L189">        usuario.setNomeCompleto(form.nomeCompleto().trim());</span>
+<span class="fc" id="L190">        usuario.setTelefone(telefone);</span>
+<span class="fc" id="L191">        usuario.setCpf(cpf);</span>
+<span class="fc" id="L192">        usuario.setEmail(email);</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        if (StringUtils.hasText(form.senha())) {</span>
+<span class="fc" id="L194">            usuario.setHashSenha(passwordEncoder.encode(form.senha()));</span>
+        }
+
+        // DT-02: antes de aplicar status/papéis, garante que não se está removendo
+        // o último gerente ativo (perda do papel GERENTE ou status != ATIVO).
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        StatusUsuario novoStatus = form.status() != null ? form.status() : usuario.getStatus();</span>
+<span class="fc" id="L200">        Set&lt;Papel&gt; novosPapeis = papeisOuPadrao(form.papeis());</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">        boolean continuaGerenteAtivo =</span>
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">                novoStatus == StatusUsuario.ATIVO &amp;&amp; novosPapeis.contains(Papel.GERENTE);</span>
+<span class="fc" id="L203">        protegerUltimoGerente(usuario, continuaGerenteAtivo);</span>
+
+<span class="fc" id="L205">        usuario.setStatus(novoStatus);</span>
+<span class="fc" id="L206">        usuario.setPapeis(novosPapeis);</span>
+<span class="fc" id="L207">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L208">        auditoriaService.registrarOperacao(&quot;USUARIO_ATUALIZADO&quot;, &quot;Usuario&quot;,</span>
+<span class="fc" id="L209">                usuario.getId().toString(), usuario.getNomeCompleto());</span>
+<span class="fc" id="L210">        return usuario;</span>
+    }
+
+    /**
+     * Exclusão lógica (soft-delete): preenche {@code removidoEm}.
+     *
+     * &lt;p&gt;DT-02: a exclusão é responsabilidade de um cargo superior — um usuário
+     * não pode excluir a própria conta (deve solicitar suspensão). Também não é
+     * possível excluir o último gerente ativo do sistema.
+     *
+     * @param id            usuário a remover
+     * @param solicitanteId usuário autenticado que disparou a ação (null em fluxos internos)
+     */
+    @Transactional
+    public void excluir(UUID id, UUID solicitanteId) {
+<span class="pc bpc" id="L225" title="1 of 4 branches missed.">        if (solicitanteId != null &amp;&amp; solicitanteId.equals(id)) {</span>
+<span class="fc" id="L226">            throw new RegraNegocioException(</span>
+                    &quot;Você não pode excluir a própria conta. Solicite a suspensão; &quot;
+                  + &quot;a exclusão é responsabilidade de um cargo superior.&quot;);
+        }
+<span class="fc" id="L230">        Usuario usuario = buscarPorId(id);</span>
+<span class="fc" id="L231">        protegerUltimoGerente(usuario, false);</span>
+<span class="fc" id="L232">        usuario.setRemovidoEm(Instant.now());</span>
+<span class="fc" id="L233">        usuarioRepository.save(usuario);</span>
+<span class="fc" id="L234">        auditoriaService.registrarOperacao(&quot;USUARIO_EXCLUIDO&quot;, &quot;Usuario&quot;,</span>
+<span class="fc" id="L235">                id.toString(), usuario.getNomeCompleto());</span>
+<span class="fc" id="L236">    }</span>
+
+    /**
+     * Solicitação de suspensão da própria conta (DT-02): qualquer usuário pode
+     * suspender a si mesmo, mas a trava do último gerente impede deixar o sistema
+     * sem gestor ativo.
+     */
+    @Transactional
+    public void solicitarSuspensao(UUID id) {
+<span class="fc" id="L245">        Usuario usuario = buscarPorId(id);</span>
+<span class="fc" id="L246">        protegerUltimoGerente(usuario, false);</span>
+<span class="fc" id="L247">        usuario.setStatus(StatusUsuario.SUSPENSO);</span>
+<span class="fc" id="L248">        usuarioRepository.save(usuario);</span>
+<span class="fc" id="L249">        auditoriaService.registrarOperacao(&quot;CONTA_SUSPENSA&quot;, &quot;Usuario&quot;,</span>
+<span class="fc" id="L250">                id.toString(), usuario.getNomeCompleto());</span>
+<span class="fc" id="L251">    }</span>
+
+    // ===================== Helpers de validação =====================
+
+    /**
+     * Garante a unicidade de telefone entre ativos. Quando {@code atual} é
+     * informado (edição), só valida se o telefone realmente mudou.
+     */
+    private void validarTelefone(String telefone, Usuario atual) {
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">        if (!StringUtils.hasText(telefone)) {</span>
+<span class="nc" id="L261">            throw new RegraNegocioException(&quot;O telefone é obrigatório&quot;);</span>
+        }
+<span class="fc bfc" id="L263" title="All 4 branches covered.">        boolean mudou = atual == null || !telefone.equals(atual.getTelefone());</span>
+<span class="fc bfc" id="L264" title="All 4 branches covered.">        if (mudou &amp;&amp; usuarioRepository.existsByTelefoneAndRemovidoEmIsNull(telefone)) {</span>
+<span class="fc" id="L265">            throw new RegraNegocioException(&quot;Telefone já cadastrado: &quot; + telefone);</span>
+        }
+<span class="fc" id="L267">    }</span>
+
+    private void validarCpf(String cpf, Usuario atual) {
+<span class="fc bfc" id="L270" title="All 2 branches covered.">        if (cpf == null) {</span>
+<span class="fc" id="L271">            return; // CPF é opcional</span>
+        }
+<span class="fc bfc" id="L273" title="All 2 branches covered.">        if (!Documentos.cpfValido(cpf)) {</span>
+<span class="fc" id="L274">            throw new RegraNegocioException(&quot;CPF inválido&quot;);</span>
+        }
+<span class="pc bpc" id="L276" title="3 of 4 branches missed.">        boolean mudou = atual == null || !cpf.equals(atual.getCpf());</span>
+<span class="pc bpc" id="L277" title="2 of 4 branches missed.">        if (mudou &amp;&amp; usuarioRepository.existsByCpfAndRemovidoEmIsNull(cpf)) {</span>
+<span class="fc" id="L278">            throw new RegraNegocioException(&quot;CPF já cadastrado&quot;);</span>
+        }
+<span class="nc" id="L280">    }</span>
+
+    private void validarEmail(String email, Usuario atual) {
+<span class="fc bfc" id="L283" title="All 2 branches covered.">        if (email == null) {</span>
+<span class="fc" id="L284">            return; // e-mail é opcional</span>
+        }
+<span class="pc bpc" id="L286" title="3 of 4 branches missed.">        boolean mudou = atual == null || !email.equalsIgnoreCase(atual.getEmail());</span>
+<span class="pc bpc" id="L287" title="2 of 4 branches missed.">        if (mudou &amp;&amp; usuarioRepository.existsByEmailIgnoreCaseAndRemovidoEmIsNull(email)) {</span>
+<span class="fc" id="L288">            throw new RegraNegocioException(&quot;E-mail já cadastrado: &quot; + email);</span>
+        }
+<span class="nc" id="L290">    }</span>
+
+    // ===================== Regras de RBAC / DT-02 =====================
+
+    /** Um usuário é &quot;gerente ativo&quot; se está ativo, não removido e tem o papel GERENTE. */
+    private boolean ehGerenteAtivo(Usuario u) {
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">        return u.getRemovidoEm() == null</span>
+<span class="pc bpc" id="L297" title="1 of 2 branches missed.">                &amp;&amp; u.getStatus() == StatusUsuario.ATIVO</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">                &amp;&amp; u.getPapeis().contains(Papel.GERENTE);</span>
+    }
+
+    /**
+     * Impede que uma operação remova o ÚLTIMO gerente ativo (DT-02). Bloqueia
+     * quando o alvo é gerente ativo, deixaria de sê-lo (perda do papel, status
+     * != ATIVO ou remoção) e não há outro gerente ativo no sistema.
+     */
+    private void protegerUltimoGerente(Usuario alvo, boolean continuaGerenteAtivo) {
+<span class="pc bpc" id="L307" title="1 of 4 branches missed.">        if (ehGerenteAtivo(alvo) &amp;&amp; !continuaGerenteAtivo</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">                &amp;&amp; usuarioRepository.contarPorStatusEPapel(StatusUsuario.ATIVO, Papel.GERENTE) &lt;= 1) {</span>
+<span class="fc" id="L309">            throw new RegraNegocioException(</span>
+                    &quot;Não é possível inativar, suspender ou remover o último gerente ativo. &quot;
+                  + &quot;Habilite outro gerente antes.&quot;);
+        }
+<span class="fc" id="L313">    }</span>
+
+    private Set&lt;Papel&gt; papeisOuPadrao(Set&lt;Papel&gt; papeis) {
+<span class="pc bpc" id="L316" title="1 of 4 branches missed.">        if (papeis == null || papeis.isEmpty()) {</span>
+<span class="fc" id="L317">            return EnumSet.of(Papel.PASSAGEIRO);</span>
+        }
+<span class="fc" id="L319">        return EnumSet.copyOf(papeis);</span>
+    }
+
+    private String normalizarCpf(String cpf) {
+<span class="fc" id="L323">        String digitos = Documentos.apenasDigitos(cpf);</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">        return digitos.isEmpty() ? null : digitos;</span>
+    }
+
+    private String normalizarEmail(String email) {
+<span class="fc bfc" id="L328" title="All 2 branches covered.">        if (!StringUtils.hasText(email)) {</span>
+<span class="fc" id="L329">            return null;</span>
+        }
+<span class="fc" id="L331">        return email.trim().toLowerCase();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

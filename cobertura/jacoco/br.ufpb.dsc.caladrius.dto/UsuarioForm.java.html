@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioForm.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.dto</a> &gt; <span class="el_source">UsuarioForm.java</span></div><h1>UsuarioForm.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.dto;
+
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.util.Set;
+
+/**
+ * Dados de criação/edição de um {@code Usuario} pelo gerente.
+ *
+ * &lt;p&gt;A {@code senha} é obrigatória na criação e opcional na edição (em branco =
+ * mantém a atual) — essa regra é aplicada no serviço. Os {@code papeis} definem
+ * o acesso (RBAC).
+ */
+<span class="fc" id="L18">public record UsuarioForm(</span>
+
+        @NotBlank(message = &quot;O nome completo é obrigatório&quot;)
+        @Size(max = 160, message = &quot;O nome deve ter no máximo 160 caracteres&quot;)
+        String nomeCompleto,
+
+        @NotBlank(message = &quot;O telefone é obrigatório&quot;)
+        @Size(max = 20, message = &quot;Telefone inválido&quot;)
+        String telefone,
+
+        @Size(max = 14, message = &quot;CPF inválido&quot;)
+        String cpf,
+
+        @Email(message = &quot;E-mail inválido&quot;)
+        @Size(max = 160, message = &quot;O e-mail deve ter no máximo 160 caracteres&quot;)
+        String email,
+
+        @Size(max = 72, message = &quot;A senha deve ter no máximo 72 caracteres&quot;)
+        String senha,
+
+        Set&lt;Papel&gt; papeis,
+
+        StatusUsuario status
+
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

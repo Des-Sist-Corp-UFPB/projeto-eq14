@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FeatureController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">FeatureController.java</span></div><h1>FeatureController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.service.ChaveFeature;
+import br.ufpb.dsc.caladrius.service.FeatureFlagService;
+import br.ufpb.dsc.caladrius.service.MunicipioService;
+import br.ufpb.dsc.caladrius.service.ParametroSistema;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Área de &lt;strong&gt;feature toggle&lt;/strong&gt; do SYSADMIN (SPEC-13, FR-FLG-01/02/03):
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code /admin/features} — liga/desliga as flags globais (bot do WhatsApp,
+ *       modo de manutenção) e edita os parâmetros de negócio;&lt;/li&gt;
+ *   &lt;li&gt;{@code /admin/municipios} — marca a adesão de cada município ao (futuro)
+ *       fluxo de pagamento (&lt;em&gt;entitlement&lt;/em&gt;, RN-FLG-05).&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Sem {@code @RequestMapping} de classe: as duas telas vivem sob {@code /admin}
+ * (restrito ao SYSADMIN no {@code SecurityConfig}) mas têm caminhos próprios. Os
+ * interruptores usam HTMX e devolvem o bloco atualizado — o token CSRF vai no
+ * {@code hx-headers} do container (estas rotas &lt;strong&gt;não&lt;/strong&gt; estão na lista de
+ * exceções de CSRF, por serem administrativas).
+ */
+@Controller
+public class FeatureController {
+
+    private final FeatureFlagService featureFlags;
+    private final MunicipioService municipioService;
+
+<span class="fc" id="L41">    public FeatureController(FeatureFlagService featureFlags, MunicipioService municipioService) {</span>
+<span class="fc" id="L42">        this.featureFlags = featureFlags;</span>
+<span class="fc" id="L43">        this.municipioService = municipioService;</span>
+<span class="fc" id="L44">    }</span>
+
+    // ------------------------------------------------------------ flags globais
+
+    @GetMapping(&quot;/admin/features&quot;)
+    public String features(Model model) {
+<span class="fc" id="L50">        model.addAttribute(&quot;titulo&quot;, &quot;Funcionalidades&quot;);</span>
+<span class="fc" id="L51">        carregarFlags(model);</span>
+<span class="fc" id="L52">        model.addAttribute(&quot;parametros&quot;, featureFlags.estadoDosParametros());</span>
+<span class="fc" id="L53">        model.addAttribute(&quot;municipiosAderidos&quot;, municipioService.listarAderidos());</span>
+<span class="fc" id="L54">        return &quot;admin/features&quot;;</span>
+    }
+
+    /** Alterna uma flag e devolve o bloco de flags atualizado (HTMX). */
+    @PostMapping(&quot;/admin/features/{chave}&quot;)
+    public String alternar(@PathVariable ChaveFeature chave,
+                           @RequestParam(name = &quot;ativo&quot;, defaultValue = &quot;false&quot;) boolean ativo,
+                           Model model) {
+<span class="fc" id="L62">        featureFlags.definir(chave, ativo);</span>
+<span class="fc" id="L63">        carregarFlags(model);</span>
+<span class="fc" id="L64">        return &quot;admin/fragments/flags :: lista&quot;;</span>
+    }
+
+    /** Salva os parâmetros de negócio (validação de intervalo no serviço — RN-FLG-06). */
+    @PostMapping(&quot;/admin/features/parametros&quot;)
+    public String salvarParametros(@RequestParam Map&lt;String, String&gt; valores,
+                                   RedirectAttributes redirect) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        for (ParametroSistema parametro : ParametroSistema.values()) {</span>
+<span class="fc" id="L72">            String informado = valores.get(parametro.name());</span>
+<span class="pc bpc" id="L73" title="1 of 4 branches missed.">            if (informado == null || informado.isBlank()) {</span>
+<span class="nc" id="L74">                continue;</span>
+            }
+            try {
+<span class="fc" id="L77">                featureFlags.definir(parametro, Integer.parseInt(informado.trim()));</span>
+<span class="fc" id="L78">            } catch (NumberFormatException e) {</span>
+<span class="fc" id="L79">                redirect.addFlashAttribute(&quot;erro&quot;,</span>
+<span class="fc" id="L80">                        parametro.getRotulo() + &quot;: informe um número inteiro.&quot;);</span>
+<span class="fc" id="L81">                return &quot;redirect:/admin/features&quot;;</span>
+<span class="fc" id="L82">            } catch (RegraNegocioException e) {</span>
+                // Fora do intervalo (RN-FLG-06): a escrita é recusada e o valor anterior fica.
+<span class="fc" id="L84">                redirect.addFlashAttribute(&quot;erro&quot;, e.getMessage());</span>
+<span class="fc" id="L85">                return &quot;redirect:/admin/features&quot;;</span>
+<span class="fc" id="L86">            }</span>
+        }
+<span class="fc" id="L88">        redirect.addFlashAttribute(&quot;sucesso&quot;, &quot;Parâmetros salvos — valem na próxima requisição.&quot;);</span>
+<span class="fc" id="L89">        return &quot;redirect:/admin/features&quot;;</span>
+    }
+
+    // ------------------------------------------- entitlement por município (V15)
+
+    @GetMapping(&quot;/admin/municipios&quot;)
+    public String municipios(@RequestParam(name = &quot;busca&quot;, required = false, defaultValue = &quot;&quot;) String busca,
+                             Model model) {
+<span class="nc" id="L97">        model.addAttribute(&quot;titulo&quot;, &quot;Adesão ao pagamento&quot;);</span>
+<span class="nc" id="L98">        carregarMunicipios(busca, model);</span>
+<span class="nc" id="L99">        return &quot;admin/municipios&quot;;</span>
+    }
+
+    /** Marca/desmarca a adesão e devolve a tabela atualizada (HTMX). */
+    @PostMapping(&quot;/admin/municipios/{id}&quot;)
+    public String alternarMunicipio(@PathVariable UUID id,
+                                    @RequestParam(name = &quot;habilitado&quot;, defaultValue = &quot;false&quot;) boolean habilitado,
+                                    @RequestParam(name = &quot;busca&quot;, required = false, defaultValue = &quot;&quot;) String busca,
+                                    Model model) {
+<span class="fc" id="L108">        municipioService.definirPagamentoHabilitado(id, habilitado);</span>
+<span class="fc" id="L109">        carregarMunicipios(busca, model);</span>
+<span class="fc" id="L110">        return &quot;admin/fragments/municipios :: tabela&quot;;</span>
+    }
+
+    // ----------------------------------------------------------------- apoio
+
+    private void carregarFlags(Model model) {
+<span class="fc" id="L116">        model.addAttribute(&quot;flags&quot;, featureFlags.estadoDasFlags());</span>
+<span class="fc" id="L117">    }</span>
+
+    private void carregarMunicipios(String busca, Model model) {
+<span class="fc" id="L120">        model.addAttribute(&quot;busca&quot;, busca);</span>
+<span class="fc" id="L121">        model.addAttribute(&quot;municipios&quot;, municipioService.listar(busca));</span>
+<span class="fc" id="L122">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

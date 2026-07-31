@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import br.ufpb.dsc.caladrius.security.CaladriusOidcUserService;
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
+import br.ufpb.dsc.caladrius.service.AuditoriaService;
+import br.ufpb.dsc.caladrius.service.FeatureFlagService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+
+/**
+ * Configuração de segurança do CALADRIUS (Spring Security 6).
+ *
+ * &lt;p&gt;&lt;strong&gt;Autenticação no banco:&lt;/strong&gt; diferente do boilerplate (que usava
+ * {@code InMemoryUserDetailsManager}), aqui os usuários vêm do PostgreSQL. O
+ * Spring Boot conecta automaticamente o nosso {@code CaladriusUserDetailsService}
+ * ao {@link PasswordEncoder} abaixo. O login aceita &lt;em&gt;e-mail OU telefone&lt;/em&gt;.
+ *
+ * &lt;p&gt;&lt;strong&gt;Autorização (RBAC):&lt;/strong&gt; os módulos de cadastro/operação exigem
+ * o papel {@code GERENTE}; as rotas públicas ({@code /login}, {@code /registrar},
+ * {@code /ping}) ficam liberadas; o restante exige apenas autenticação.
+ *
+ * @author Equipe eq14 — DSC/UFPB
+ */
+@Configuration
+@EnableWebSecurity
+<span class="fc" id="L34">public class SecurityConfig {</span>
+
+    /**
+     * Algoritmo de hash de senhas — BCrypt (adaptativo, com salt automático).
+     * É usado tanto na autenticação quanto no cadastro de usuários.
+     *
+     * @return codificador BCrypt
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+<span class="fc" id="L44">        return new BCryptPasswordEncoder();</span>
+    }
+
+    /**
+     * Cadeia de filtros de segurança HTTP.
+     *
+     * @param http construtor de configuração
+     * @return cadeia configurada
+     * @throws Exception em erro de configuração
+     */
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           AuditoriaService auditoriaService,
+                                           CaladriusOidcUserService oidcUserService,
+                                           FeatureFlagService featureFlagService,
+                                           ObjectProvider&lt;ClientRegistrationRepository&gt; clientRegistrationRepository) throws Exception {
+<span class="fc" id="L60">        http</span>
+<span class="fc" id="L61">                .authorizeHttpRequests(auth -&gt; auth</span>
+                        // Rotas públicas: login, cadastro, health check e estáticos.
+                        // /ping é o contrato público exigido pela disciplina (200 JSON).
+<span class="fc" id="L64">                        .requestMatchers(</span>
+                                &quot;/login&quot;, &quot;/registrar&quot;, &quot;/ativar&quot;,
+                                // Verificação de contato e recuperação de senha (SPEC-12).
+                                &quot;/verificar-telefone&quot;, &quot;/verificar-telefone/reenviar&quot;,
+                                &quot;/verificar-email&quot;, &quot;/esqueci-senha&quot;, &quot;/redefinir-senha&quot;,
+                                // Página de manutenção (SPEC-13, RN-FLG-03) — pública por
+                                // definição: é o que se vê quando o sistema está fora do ar.
+                                &quot;/manutencao&quot;,
+                                &quot;/ping&quot;, &quot;/actuator/health&quot;,
+                                &quot;/webjars/**&quot;, &quot;/css/**&quot;, &quot;/js/**&quot;
+<span class="fc" id="L74">                        ).permitAll()</span>
+                        // Webhook da Evolution (SPEC-10): chamada servidor-a-servidor,
+                        // autenticada pelo header X-Webhook-Token no controller (RN-WPP-03).
+<span class="fc" id="L77">                        .requestMatchers(&quot;/webhooks/whatsapp&quot;).permitAll()</span>
+                        // Administração do sistema — exclusiva do SYSADMIN (papel isolado).
+<span class="fc" id="L79">                        .requestMatchers(&quot;/admin/**&quot;).hasRole(&quot;SYSADMIN&quot;)</span>
+                        // Visão do motorista — exclusiva do MOTORISTA.
+<span class="fc" id="L81">                        .requestMatchers(&quot;/minhas-viagens/**&quot;).hasRole(&quot;MOTORISTA&quot;)</span>
+                        // Visão do passageiro (solicitar transporte) — exclusiva do PASSAGEIRO.
+<span class="fc" id="L83">                        .requestMatchers(&quot;/solicitacoes/**&quot;).hasRole(&quot;PASSAGEIRO&quot;)</span>
+                        // Central de logs (trilha completa) — gerente e sysadmin.
+<span class="fc" id="L85">                        .requestMatchers(&quot;/logs/**&quot;).hasAnyRole(&quot;GERENTE&quot;, &quot;SYSADMIN&quot;)</span>
+                        // Módulos de gestão — exclusivos do gerente.
+<span class="fc" id="L87">                        .requestMatchers(</span>
+                                &quot;/veiculos/**&quot;, &quot;/cidades/**&quot;,
+                                &quot;/usuarios/**&quot;, &quot;/viagens/**&quot;, &quot;/linhas/**&quot;,
+                                &quot;/historico/**&quot;, &quot;/analise/**&quot;, &quot;/whatsapp/**&quot;,
+                                // Avaliação das solicitações sob demanda (SPEC-11).
+                                &quot;/gestao/**&quot;
+<span class="fc" id="L93">                        ).hasRole(&quot;GERENTE&quot;)</span>
+                        // Qualquer outra rota exige apenas estar autenticado.
+<span class="fc" id="L95">                        .anyRequest().authenticated()</span>
+                )
+
+                // Página de login customizada (e-mail OU telefone + senha).
+<span class="fc" id="L99">                .formLogin(form -&gt; form</span>
+<span class="fc" id="L100">                        .loginPage(&quot;/login&quot;)</span>
+                        // Após autenticar, vai sempre para o painel inicial.
+<span class="fc" id="L102">                        .defaultSuccessUrl(&quot;/&quot;, true)</span>
+<span class="fc" id="L103">                        .permitAll()</span>
+                )
+
+<span class="fc" id="L106">                .logout(logout -&gt; logout</span>
+<span class="fc" id="L107">                        .logoutSuccessUrl(&quot;/login?logout&quot;)</span>
+                        // Auditoria de logout (#19, categoria SEGURANCA).
+<span class="fc" id="L109">                        .addLogoutHandler((request, response, authentication) -&gt; {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                            if (authentication != null</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                                    &amp;&amp; authentication.getPrincipal() instanceof UsuarioAutenticado u) {</span>
+<span class="nc" id="L112">                                auditoriaService.registrarSeguranca(&quot;LOGOUT&quot;, &quot;SUCESSO&quot;,</span>
+<span class="nc" id="L113">                                        u.getId(), u.getNomeCompleto(), request.getRemoteAddr());</span>
+                            }
+<span class="nc" id="L115">                        })</span>
+<span class="fc" id="L116">                        .permitAll()</span>
+                )
+
+                // CSRF permanece ATIVO para os formulários de página inteira
+                // (login e cadastro injetam o token via Thymeleaf). É desabilitado
+                // apenas para os endpoints HTMX de mutação (POST/PUT/DELETE via AJAX),
+                // seguindo o mesmo padrão do boilerplate.
+<span class="fc" id="L123">                .csrf(csrf -&gt; csrf</span>
+<span class="fc" id="L124">                        .ignoringRequestMatchers(</span>
+                                &quot;/veiculos/**&quot;, &quot;/cidades/**&quot;,
+                                &quot;/usuarios/**&quot;, &quot;/viagens/**&quot;,
+                                // Webhook servidor-a-servidor (SPEC-10): sem sessão/token
+                                // CSRF — a autenticação é o X-Webhook-Token.
+                                &quot;/webhooks/whatsapp&quot;
+                        )
+                );
+
+        // Login social (Google/OIDC) — SPEC-08. Só é ativado quando há credenciais
+        // configuradas (GOOGLE_CLIENT_ID/SECRET); sem elas, o Boot não cria o
+        // ClientRegistrationRepository e o app sobe normalmente apenas com o formLogin.
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        if (clientRegistrationRepository.getIfAvailable() != null) {</span>
+<span class="nc" id="L137">            http.oauth2Login(oauth -&gt; oauth</span>
+<span class="nc" id="L138">                    .loginPage(&quot;/login&quot;)</span>
+<span class="nc" id="L139">                    .defaultSuccessUrl(&quot;/&quot;, true)</span>
+<span class="nc" id="L140">                    .userInfoEndpoint(userInfo -&gt; userInfo.oidcUserService(oidcUserService))</span>
+            );
+        }
+
+        // Após a autenticação/autorização, dois filtros de navegação. A ordem importa:
+        //   1) manutenção (SPEC-13) — kill switch global, tem de vir primeiro, senão um
+        //      usuário de perfil incompleto seria mandado a /conta/completar em vez de
+        //      ver a página de manutenção;
+        //   2) perfil incompleto (SPEC-08) — leva contas sem telefone a /conta/completar.
+<span class="fc" id="L149">        http.addFilterAfter(new ManutencaoFilter(featureFlagService), AuthorizationFilter.class);</span>
+<span class="fc" id="L150">        http.addFilterAfter(new PerfilIncompletoFilter(), ManutencaoFilter.class);</span>
+
+<span class="fc" id="L152">        return http.build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

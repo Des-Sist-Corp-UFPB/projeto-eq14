@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LinhaProgramadaForm.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.dto</a> &gt; <span class="el_source">LinhaProgramadaForm.java</span></div><h1>LinhaProgramadaForm.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.dto;
+
+import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Dados de uma linha programada (template recorrente — SPEC-06). A origem é
+ * opcional (default = cidade-sede); os dias da semana definem a recorrência.
+ */
+<span class="fc" id="L16">public record LinhaProgramadaForm(</span>
+
+        UUID cidadeOrigemId,
+
+        @NotNull(message = &quot;Selecione a cidade de destino&quot;)
+        UUID cidadeDestinoId,
+
+        @NotNull(message = &quot;Informe o horário de saída&quot;)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+        LocalTime horarioSaida,
+
+        @NotNull(message = &quot;Informe o horário de chegada&quot;)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+        LocalTime horarioChegada,
+
+        @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+        LocalTime horarioRetorno,
+
+        Set&lt;DiaSemana&gt; dias,
+
+        Boolean ativa
+
+) {
+    public Set&lt;DiaSemana&gt; diasOuVazio() {
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">        return dias == null ? new LinkedHashSet&lt;&gt;() : dias;</span>
+    }
+
+    public boolean ativaOuPadrao() {
+<span class="pc bpc" id="L44" title="2 of 4 branches missed.">        return ativa == null || ativa;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

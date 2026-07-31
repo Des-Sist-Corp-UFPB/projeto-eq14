@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RecuperacaoSenhaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">RecuperacaoSenhaService.java</span></div><h1>RecuperacaoSenhaService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.FinalidadeCodigo;
+import br.ufpb.dsc.caladrius.domain.enums.MetodoVerificacao;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.util.Documentos;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.Optional;
+
+/**
+ * Recuperação de senha (&quot;esqueci a senha&quot;) — SPEC-12, área {@code REC}.
+ *
+ * &lt;p&gt;A pessoa escolhe o &lt;strong&gt;método&lt;/strong&gt; (E-mail ou Telefone); ele define
+ * o campo de busca e o canal do OTP. A solicitação é &lt;strong&gt;anti-enumeração&lt;/strong&gt;
+ * (RN-REC-02): responde igual exista ou não a conta. A redefinição valida o código
+ * (via {@link VerificacaoService}) e grava a nova senha em BCrypt.
+ */
+@Service
+@Transactional(readOnly = true)
+public class RecuperacaoSenhaService {
+
+    static final int SENHA_MIN = 6;
+    static final int SENHA_MAX = 72;
+
+    private final UsuarioRepository usuarioRepository;
+    private final VerificacaoService verificacaoService;
+    private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
+
+    public RecuperacaoSenhaService(UsuarioRepository usuarioRepository,
+                                   VerificacaoService verificacaoService,
+                                   PasswordEncoder passwordEncoder,
+<span class="fc" id="L39">                                   AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L40">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L41">        this.verificacaoService = verificacaoService;</span>
+<span class="fc" id="L42">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L43">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L44">    }</span>
+
+    /**
+     * Emite um OTP de {@code RESET_SENHA} para o usuário do método/valor informado,
+     * &lt;strong&gt;se&lt;/strong&gt; ele existir e estiver ativo. Sempre retorna normalmente
+     * (anti-enumeração — RN-REC-02); o chamador exibe uma mensagem genérica.
+     */
+    @Transactional
+    public void solicitarReset(MetodoVerificacao metodo, String valor, String ip) {
+<span class="fc" id="L53">        resolver(metodo, valor)</span>
+<span class="fc" id="L54">                .filter(Usuario::isAtivo)</span>
+<span class="fc" id="L55">                .ifPresent(u -&gt; verificacaoService.enviarCodigo(</span>
+<span class="fc" id="L56">                        u, FinalidadeCodigo.RESET_SENHA, metodo.getCanal(), ip));</span>
+<span class="fc" id="L57">    }</span>
+
+    /**
+     * Redefine a senha: valida o código {@code RESET_SENHA} e grava a nova senha
+     * (BCrypt). Conta ativa &lt;strong&gt;sem senha&lt;/strong&gt; (passageiro do bot — SPEC-11)
+     * define aqui a primeira senha (RN-REC-05).
+     */
+    @Transactional
+    public void redefinir(MetodoVerificacao metodo, String valor, String codigo, String novaSenha) {
+<span class="fc" id="L66">        Usuario usuario = resolver(metodo, valor)</span>
+<span class="fc" id="L67">                .filter(Usuario::isAtivo)</span>
+<span class="fc" id="L68">                .orElseThrow(() -&gt; new RegraNegocioException(</span>
+                        &quot;Não foi possível redefinir a senha. Confira os dados e o código.&quot;));
+
+<span class="pc bpc" id="L71" title="2 of 6 branches missed.">        if (novaSenha == null || novaSenha.length() &lt; SENHA_MIN || novaSenha.length() &gt; SENHA_MAX) {</span>
+<span class="fc" id="L72">            throw new RegraNegocioException(</span>
+                    &quot;A senha deve ter entre &quot; + SENHA_MIN + &quot; e &quot; + SENHA_MAX + &quot; caracteres.&quot;);
+        }
+
+<span class="fc" id="L76">        verificacaoService.validar(usuario.getId(), FinalidadeCodigo.RESET_SENHA, codigo);</span>
+
+<span class="fc" id="L78">        usuario.setHashSenha(passwordEncoder.encode(novaSenha));</span>
+<span class="fc" id="L79">        usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L81">        auditoriaService.registrarSeguranca(&quot;SENHA_REDEFINIDA&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L82">                usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());</span>
+<span class="fc" id="L83">    }</span>
+
+    /** Resolve o usuário pelo campo do método escolhido (não usa a heurística &quot;@&quot;). */
+    private Optional&lt;Usuario&gt; resolver(MetodoVerificacao metodo, String valor) {
+<span class="pc bpc" id="L87" title="2 of 4 branches missed.">        if (metodo == null || !StringUtils.hasText(valor)) {</span>
+<span class="nc" id="L88">            return Optional.empty();</span>
+        }
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        return switch (metodo) {</span>
+<span class="fc" id="L91">            case EMAIL -&gt; usuarioRepository.findByEmailIgnoreCaseAndRemovidoEmIsNull(valor.trim().toLowerCase());</span>
+<span class="fc" id="L92">            case TELEFONE -&gt; usuarioRepository.findByTelefoneAndRemovidoEmIsNull(Documentos.apenasDigitos(valor));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

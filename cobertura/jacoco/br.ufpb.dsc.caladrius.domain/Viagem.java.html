@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Viagem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">Viagem.java</span></div><h1>Viagem.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.StatusViagem;
+import br.ufpb.dsc.caladrius.domain.enums.TipoViagem;
+import jakarta.persistence.*;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.UUID;
+
+/**
+ * Viagem planejada pelo gestor: associa um {@link Veiculo}, um motorista
+ * ({@link Usuario} com papel {@code MOTORISTA}) e uma {@link Cidade} de destino
+ * a uma data e horários.
+ *
+ * &lt;p&gt;Mapeada para a tabela {@code viagens}. Os relacionamentos usam
+ * {@code @ManyToOne} apontando para as colunas FK ({@code veiculo},
+ * {@code motorista}, {@code cidade_destino}, {@code criado_por}).
+ *
+ * &lt;p&gt;Datas/horários usam tipos próprios do Java ({@link LocalDate}/{@link LocalTime}),
+ * mapeados para {@code DATE}/{@code TIME} no PostgreSQL.
+ */
+@Entity
+@Table(name = &quot;viagens&quot;)
+public class Viagem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = &quot;veiculo&quot;, nullable = false)
+    private Veiculo veiculo;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = &quot;motorista&quot;, nullable = false)
+    private Usuario motorista;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = &quot;cidade_destino&quot;, nullable = false)
+    private Cidade cidadeDestino;
+
+    /** Origem (cidade-sede por padrão); pode ser nula em favor de {@link #origemImprovisada}. */
+    @ManyToOne
+    @JoinColumn(name = &quot;cidade_origem&quot;)
+    private Cidade cidadeOrigem;
+
+    /** Local de partida improvisado (texto livre), para imprevistas fora da sede. */
+    @Column(name = &quot;origem_improvisada&quot;, length = 180)
+    private String origemImprovisada;
+
+    /** Tipo da viagem (rotineira deriva de uma linha; imprevista é avulsa). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;tipo&quot;, nullable = false, length = 20)
+    private TipoViagem tipo;
+
+    /** Linha que originou a viagem rotineira (nula para imprevista). */
+    @ManyToOne
+    @JoinColumn(name = &quot;linha_programada&quot;)
+    private LinhaProgramada linhaProgramada;
+
+    @Column(name = &quot;data_viagem&quot;, nullable = false)
+    private LocalDate dataViagem;
+
+    @Column(name = &quot;horario_saida&quot;, nullable = false)
+    private LocalTime horarioSaida;
+
+    @Column(name = &quot;horario_chegada&quot;, nullable = false)
+    private LocalTime horarioChegada;
+
+    /** Horário previsto de saída da volta (DT-09). */
+    @Column(name = &quot;horario_retorno&quot;)
+    private LocalTime horarioRetorno;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;status&quot;, nullable = false, length = 30)
+    private StatusViagem status;
+
+    /** Gestor (gerente) que criou a viagem. */
+    @ManyToOne(optional = false)
+    @JoinColumn(name = &quot;criado_por&quot;, nullable = false)
+    private Usuario criadoPor;
+
+<span class="fc" id="L85">    public Viagem() {</span>
+<span class="fc" id="L86">    }</span>
+
+    @PrePersist
+    protected void prePersist() {
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">        if (this.status == null) {</span>
+<span class="nc" id="L91">            this.status = StatusViagem.PLANEJADA;</span>
+        }
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">        if (this.tipo == null) {</span>
+<span class="nc" id="L94">            this.tipo = TipoViagem.IMPREVISTA;</span>
+        }
+<span class="fc" id="L96">    }</span>
+
+    public UUID getId() {
+<span class="fc" id="L99">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L103">        this.id = id;</span>
+<span class="fc" id="L104">    }</span>
+
+    public Veiculo getVeiculo() {
+<span class="fc" id="L107">        return veiculo;</span>
+    }
+
+    public void setVeiculo(Veiculo veiculo) {
+<span class="fc" id="L111">        this.veiculo = veiculo;</span>
+<span class="fc" id="L112">    }</span>
+
+    public Usuario getMotorista() {
+<span class="fc" id="L115">        return motorista;</span>
+    }
+
+    public void setMotorista(Usuario motorista) {
+<span class="fc" id="L119">        this.motorista = motorista;</span>
+<span class="fc" id="L120">    }</span>
+
+    public Cidade getCidadeDestino() {
+<span class="fc" id="L123">        return cidadeDestino;</span>
+    }
+
+    public void setCidadeDestino(Cidade cidadeDestino) {
+<span class="fc" id="L127">        this.cidadeDestino = cidadeDestino;</span>
+<span class="fc" id="L128">    }</span>
+
+    public LocalDate getDataViagem() {
+<span class="fc" id="L131">        return dataViagem;</span>
+    }
+
+    public void setDataViagem(LocalDate dataViagem) {
+<span class="fc" id="L135">        this.dataViagem = dataViagem;</span>
+<span class="fc" id="L136">    }</span>
+
+    public LocalTime getHorarioSaida() {
+<span class="fc" id="L139">        return horarioSaida;</span>
+    }
+
+    public void setHorarioSaida(LocalTime horarioSaida) {
+<span class="fc" id="L143">        this.horarioSaida = horarioSaida;</span>
+<span class="fc" id="L144">    }</span>
+
+    public LocalTime getHorarioChegada() {
+<span class="fc" id="L147">        return horarioChegada;</span>
+    }
+
+    public void setHorarioChegada(LocalTime horarioChegada) {
+<span class="fc" id="L151">        this.horarioChegada = horarioChegada;</span>
+<span class="fc" id="L152">    }</span>
+
+    public Cidade getCidadeOrigem() {
+<span class="fc" id="L155">        return cidadeOrigem;</span>
+    }
+
+    public void setCidadeOrigem(Cidade cidadeOrigem) {
+<span class="fc" id="L159">        this.cidadeOrigem = cidadeOrigem;</span>
+<span class="fc" id="L160">    }</span>
+
+    public String getOrigemImprovisada() {
+<span class="nc" id="L163">        return origemImprovisada;</span>
+    }
+
+    public void setOrigemImprovisada(String origemImprovisada) {
+<span class="nc" id="L167">        this.origemImprovisada = origemImprovisada;</span>
+<span class="nc" id="L168">    }</span>
+
+    public TipoViagem getTipo() {
+<span class="fc" id="L171">        return tipo;</span>
+    }
+
+    public void setTipo(TipoViagem tipo) {
+<span class="fc" id="L175">        this.tipo = tipo;</span>
+<span class="fc" id="L176">    }</span>
+
+    public LinhaProgramada getLinhaProgramada() {
+<span class="nc" id="L179">        return linhaProgramada;</span>
+    }
+
+    public void setLinhaProgramada(LinhaProgramada linhaProgramada) {
+<span class="fc" id="L183">        this.linhaProgramada = linhaProgramada;</span>
+<span class="fc" id="L184">    }</span>
+
+    public LocalTime getHorarioRetorno() {
+<span class="nc" id="L187">        return horarioRetorno;</span>
+    }
+
+    public void setHorarioRetorno(LocalTime horarioRetorno) {
+<span class="fc" id="L191">        this.horarioRetorno = horarioRetorno;</span>
+<span class="fc" id="L192">    }</span>
+
+    public StatusViagem getStatus() {
+<span class="fc" id="L195">        return status;</span>
+    }
+
+    public void setStatus(StatusViagem status) {
+<span class="fc" id="L199">        this.status = status;</span>
+<span class="fc" id="L200">    }</span>
+
+    public Usuario getCriadoPor() {
+<span class="nc" id="L203">        return criadoPor;</span>
+    }
+
+    public void setCriadoPor(Usuario criadoPor) {
+<span class="fc" id="L207">        this.criadoPor = criadoPor;</span>
+<span class="fc" id="L208">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L212">        return &quot;Viagem{id=&quot; + id + &quot;, data=&quot; + dataViagem + &quot;, status=&quot; + status + &quot;}&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

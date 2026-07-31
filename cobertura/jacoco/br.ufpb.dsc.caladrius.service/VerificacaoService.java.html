@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificacaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">VerificacaoService.java</span></div><h1>VerificacaoService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.CodigoVerificacao;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.FinalidadeCodigo;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
+import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
+import br.ufpb.dsc.caladrius.repository.CodigoVerificacaoRepository;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.util.Documentos;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Engine de códigos OTP de verificação (SPEC-12): gera, envia, valida (com
+ * expiração, uso único e &lt;em&gt;lockout&lt;/em&gt; de tentativas) e confirma o telefone.
+ *
+ * &lt;p&gt;Guarda apenas o &lt;strong&gt;hash&lt;/strong&gt; do código (nunca os 6 dígitos), como
+ * o {@code TokenAtivacao} (Art. XI). Falha de validação sempre devolve mensagem
+ * &lt;strong&gt;genérica&lt;/strong&gt; (RN-VER-04). A entrega usa o {@link NotificacaoService},
+ * mantendo o canal desacoplado.
+ */
+@Service
+@Transactional(readOnly = true)
+public class VerificacaoService {
+
+    static final int TAMANHO_CODIGO = 6;
+
+    private static final String ERRO_GENERICO = &quot;Código inválido ou expirado.&quot;;
+
+    private final CodigoVerificacaoRepository codigoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final NotificacaoService notificacaoService;
+    private final AuditoriaService auditoriaService;
+    private final FeatureFlagService featureFlags;
+<span class="fc" id="L49">    private final SecureRandom random = new SecureRandom();</span>
+
+    public VerificacaoService(CodigoVerificacaoRepository codigoRepository,
+                              UsuarioRepository usuarioRepository,
+                              NotificacaoService notificacaoService,
+                              AuditoriaService auditoriaService,
+<span class="fc" id="L55">                              FeatureFlagService featureFlags) {</span>
+<span class="fc" id="L56">        this.codigoRepository = codigoRepository;</span>
+<span class="fc" id="L57">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L58">        this.notificacaoService = notificacaoService;</span>
+<span class="fc" id="L59">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L60">        this.featureFlags = featureFlags;</span>
+<span class="fc" id="L61">    }</span>
+
+    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06). Os valores
+    // de fábrica (10 min / 5 tentativas / 60 s) continuam sendo os defaults do código:
+    // sem configuração no banco, o comportamento é exatamente o de antes (RN-FLG-02).
+
+    private int validadeMinutos() {
+<span class="fc" id="L68">        return featureFlags.parametro(ParametroSistema.OTP_VALIDADE_MINUTOS);</span>
+    }
+
+    private int maxTentativas() {
+<span class="fc" id="L72">        return featureFlags.parametro(ParametroSistema.OTP_MAX_TENTATIVAS);</span>
+    }
+
+    private int cooldownSegundos() {
+<span class="fc" id="L76">        return featureFlags.parametro(ParametroSistema.OTP_COOLDOWN_SEGUNDOS);</span>
+    }
+
+    /**
+     * Gera um código OTP, invalida os anteriores da mesma finalidade (RN-VER-09)
+     * e o envia pelo canal indicado. Só o hash é persistido; o valor cru vai na
+     * mensagem entregue à pessoa.
+     */
+    @Transactional
+    public void enviarCodigo(Usuario usuario, FinalidadeCodigo finalidade, CanalTipo canal, String ip) {
+        // Cooldown de reenvio (RN-VER-06): evita disparo em rajada.
+<span class="fc" id="L87">        int cooldownSegundos = cooldownSegundos();</span>
+<span class="fc" id="L88">        codigoRepository.findFirstByUsuarioIdAndFinalidadeOrderByCriadoEmDesc(usuario.getId(), finalidade)</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">                .filter(c -&gt; c.getCriadoEm() != null</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">                        &amp;&amp; c.getCriadoEm().isAfter(Instant.now().minusSeconds(cooldownSegundos)))</span>
+<span class="fc" id="L91">                .ifPresent(c -&gt; {</span>
+<span class="fc" id="L92">                    throw new RegraNegocioException(&quot;Aguarde alguns segundos para pedir um novo código.&quot;);</span>
+                });
+
+        // Invalida códigos ativos anteriores da mesma finalidade (um código vigente por vez).
+<span class="fc" id="L96">        List&lt;CodigoVerificacao&gt; ativos =</span>
+<span class="fc" id="L97">                codigoRepository.findByUsuarioIdAndFinalidadeAndUsadoEmIsNull(usuario.getId(), finalidade);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (!ativos.isEmpty()) {</span>
+<span class="fc" id="L99">            Instant agora = Instant.now();</span>
+<span class="fc" id="L100">            ativos.forEach(c -&gt; c.setUsadoEm(agora));</span>
+<span class="fc" id="L101">            codigoRepository.saveAll(ativos);</span>
+        }
+
+<span class="fc" id="L104">        int validadeMinutos = validadeMinutos();</span>
+<span class="fc" id="L105">        String codigoCru = gerarCodigo();</span>
+<span class="fc" id="L106">        CodigoVerificacao codigo = new CodigoVerificacao();</span>
+<span class="fc" id="L107">        codigo.setUsuarioId(usuario.getId());</span>
+<span class="fc" id="L108">        codigo.setCodigoHash(hash(codigoCru));</span>
+<span class="fc" id="L109">        codigo.setFinalidade(finalidade);</span>
+<span class="fc" id="L110">        codigo.setCanal(canal);</span>
+<span class="fc" id="L111">        codigo.setTentativas(0);</span>
+<span class="fc" id="L112">        codigo.setExpiraEm(Instant.now().plus(validadeMinutos, ChronoUnit.MINUTES));</span>
+<span class="fc" id="L113">        codigo.setCriadoIp(ip);</span>
+<span class="fc" id="L114">        codigoRepository.save(codigo);</span>
+
+<span class="fc" id="L116">        String titulo = &quot;Código de verificação — CALADRIUS&quot;;</span>
+<span class="fc" id="L117">        String mensagem = &quot;Seu código para &quot; + finalidade.getRotulo() + &quot; é: &quot; + codigoCru</span>
+                + &quot;\nEle expira em &quot; + validadeMinutos + &quot; minutos. Não compartilhe este código.&quot;;
+<span class="fc" id="L119">        notificacaoService.enviar(</span>
+<span class="fc" id="L120">                new NotificacaoDestino(usuario.getId(), usuario.getEmail(), usuario.getTelefone()),</span>
+                titulo, mensagem, canal);
+
+<span class="fc" id="L123">        auditoriaService.registrarSeguranca(&quot;CODIGO_ENVIADO&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L124">                usuario.getId(), usuario.getNomeCompleto(), ip);</span>
+<span class="fc" id="L125">    }</span>
+
+    /**
+     * Valida o código informado para a finalidade. Em erro, incrementa as
+     * tentativas e faz o &lt;em&gt;lockout&lt;/em&gt; ao atingir o teto (RN-VER-05),
+     * lançando sempre uma mensagem genérica. Em sucesso, marca o código usado.
+     */
+    @Transactional
+    public void validar(UUID usuarioId, FinalidadeCodigo finalidade, String codigoInformado) {
+<span class="fc" id="L134">        CodigoVerificacao codigo = codigoRepository</span>
+<span class="fc" id="L135">                .findFirstByUsuarioIdAndFinalidadeAndUsadoEmIsNullOrderByCriadoEmDesc(usuarioId, finalidade)</span>
+<span class="fc" id="L136">                .orElseThrow(() -&gt; new RegraNegocioException(ERRO_GENERICO));</span>
+
+<span class="fc" id="L138">        int maxTentativas = maxTentativas();</span>
+        // Expirado ou já bloqueado: não conta como nova tentativa.
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (!codigo.valido(maxTentativas)) {</span>
+<span class="fc" id="L141">            throw new RegraNegocioException(ERRO_GENERICO);</span>
+        }
+
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">        boolean confere = codigoInformado != null</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">                &amp;&amp; MessageDigest.isEqual(</span>
+<span class="fc" id="L146">                        hash(codigoInformado).getBytes(StandardCharsets.UTF_8),</span>
+<span class="fc" id="L147">                        codigo.getCodigoHash().getBytes(StandardCharsets.UTF_8));</span>
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!confere) {</span>
+<span class="fc" id="L150">            codigo.setTentativas(codigo.getTentativas() + 1);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">            if (codigo.getTentativas() &gt;= maxTentativas) {</span>
+<span class="fc" id="L152">                codigo.setUsadoEm(Instant.now()); // lockout: invalida o código</span>
+            }
+<span class="fc" id="L154">            codigoRepository.save(codigo);</span>
+<span class="fc" id="L155">            throw new RegraNegocioException(ERRO_GENERICO);</span>
+        }
+
+<span class="fc" id="L158">        codigo.setUsadoEm(Instant.now());</span>
+<span class="fc" id="L159">        codigoRepository.save(codigo);</span>
+<span class="fc" id="L160">    }</span>
+
+    /**
+     * Confirma o telefone: valida o OTP {@code VERIFICAR_TELEFONE}, grava
+     * {@code telefone_verificado_em} e, se o cadastro estava PENDENTE, promove
+     * para ATIVO (RN-VER-02).
+     */
+    @Transactional
+    public void confirmarTelefone(UUID usuarioId, String codigoInformado) {
+<span class="fc" id="L169">        validar(usuarioId, FinalidadeCodigo.VERIFICAR_TELEFONE, codigoInformado);</span>
+
+<span class="fc" id="L171">        Usuario usuario = usuarioRepository.findById(usuarioId)</span>
+<span class="pc" id="L172">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, usuarioId));</span>
+<span class="fc" id="L173">        usuario.setTelefoneVerificadoEm(Instant.now());</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if (usuario.getStatus() == StatusUsuario.PENDENTE) {</span>
+<span class="fc" id="L175">            usuario.setStatus(StatusUsuario.ATIVO);</span>
+        }
+<span class="fc" id="L177">        usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L179">        auditoriaService.registrarSeguranca(&quot;TELEFONE_VERIFICADO&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L180">                usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());</span>
+<span class="fc" id="L181">    }</span>
+
+    // -------------------------------------------------- fluxos públicos (por telefone)
+
+    /** Atalho: dispara um OTP de verificação de telefone pelo WhatsApp. */
+    @Transactional
+    public void enviarVerificacaoTelefone(Usuario usuario, String ip) {
+<span class="nc" id="L188">        enviarCodigo(usuario, FinalidadeCodigo.VERIFICAR_TELEFONE, CanalTipo.WHATSAPP, ip);</span>
+<span class="nc" id="L189">    }</span>
+
+    /** Reenvia o OTP de telefone resolvendo o usuário pelo próprio telefone (tela pública). */
+    @Transactional
+    public void reenviarPorTelefone(String telefoneRaw, String ip) {
+<span class="nc" id="L194">        enviarVerificacaoTelefone(resolverPorTelefone(telefoneRaw), ip);</span>
+<span class="nc" id="L195">    }</span>
+
+    /** Confirma o telefone resolvendo o usuário pelo próprio telefone (tela pública). */
+    @Transactional
+    public void confirmarTelefonePorTelefone(String telefoneRaw, String codigo) {
+<span class="fc" id="L200">        confirmarTelefone(resolverPorTelefone(telefoneRaw).getId(), codigo);</span>
+<span class="fc" id="L201">    }</span>
+
+    private Usuario resolverPorTelefone(String telefoneRaw) {
+<span class="fc" id="L204">        return usuarioRepository.findByTelefoneAndRemovidoEmIsNull(Documentos.apenasDigitos(telefoneRaw))</span>
+<span class="fc" id="L205">                .orElseThrow(() -&gt; new RegraNegocioException(&quot;Não encontramos um cadastro com esse telefone.&quot;));</span>
+    }
+
+    // ----------------------------------------------------------- helpers
+
+    /** Código numérico de 6 dígitos (com zeros à esquerda), via {@link SecureRandom}. */
+    private String gerarCodigo() {
+<span class="fc" id="L212">        int n = random.nextInt(1_000_000); // 0..999999</span>
+<span class="fc" id="L213">        return String.format(&quot;%0&quot; + TAMANHO_CODIGO + &quot;d&quot;, n);</span>
+    }
+
+    /** SHA-256 (hex) — só o hash é persistido (mesma política do TokenAtivacao). */
+    private String hash(String valor) {
+        try {
+<span class="fc" id="L219">            MessageDigest md = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L220">            return HexFormat.of().formatHex(md.digest(valor.getBytes(StandardCharsets.UTF_8)));</span>
+<span class="nc" id="L221">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L222">            throw new IllegalStateException(&quot;SHA-256 indisponível&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

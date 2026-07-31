@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WhatsappController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">WhatsappController.java</span></div><h1>WhatsappController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.dto.ConfiguracaoEnvioWhatsapp;
+import br.ufpb.dsc.caladrius.service.AuditoriaService;
+import br.ufpb.dsc.caladrius.service.WhatsappService;
+import br.ufpb.dsc.caladrius.util.Documentos;
+import br.ufpb.dsc.caladrius.whatsapp.ConexaoWhatsapp;
+import br.ufpb.dsc.caladrius.whatsapp.StatusConexaoWhatsapp;
+import br.ufpb.dsc.caladrius.whatsapp.WhatsappException;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+/**
+ * Painel WhatsApp do GERENTE (SPEC-10 §9) — o &quot;manager dissolvido&quot;: status da
+ * conexão, QR code de pareamento (com polling HTMX), conta conectada, teste de
+ * envio e as últimas mensagens do log.
+ *
+ * &lt;p&gt;Tudo passa pela fachada {@link WhatsappService} (que fala com a porta) —
+ * a view nunca vê URL/apikey da Evolution (RN-WPP-09). Sem a integração
+ * configurada no ambiente, o painel informa e nada quebra (RN-WPP-02).
+ *
+ * &lt;p&gt;As mutações (conectar/desconectar/teste) são form-posts comuns com token
+ * CSRF (via Thymeleaf) — {@code /whatsapp} não entra na lista de exceção do
+ * CSRF; o HTMX é usado só no polling GET do status.
+ */
+@Controller
+@RequestMapping(&quot;/whatsapp&quot;)
+public class WhatsappController {
+
+    private final WhatsappService whatsappService;
+    private final AuditoriaService auditoriaService;
+
+<span class="fc" id="L38">    public WhatsappController(WhatsappService whatsappService, AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L39">        this.whatsappService = whatsappService;</span>
+<span class="fc" id="L40">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L41">    }</span>
+
+    @GetMapping
+    public String painel(Model model) {
+<span class="fc" id="L45">        model.addAttribute(&quot;titulo&quot;, &quot;WhatsApp&quot;);</span>
+<span class="fc" id="L46">        carregarStatus(model);</span>
+<span class="fc" id="L47">        model.addAttribute(&quot;configEnvio&quot;, whatsappService.configuracaoEnvio());</span>
+<span class="fc" id="L48">        model.addAttribute(&quot;mensagens&quot;, whatsappService.ultimasMensagens());</span>
+<span class="fc" id="L49">        return &quot;whatsapp/inicio&quot;;</span>
+    }
+
+    @PostMapping(&quot;/configuracoes&quot;)
+    public String salvarConfiguracoes(@RequestParam(value = &quot;nomeExibicao&quot;, required = false) String nomeExibicao,
+                                      @RequestParam(value = &quot;mensagemConfirmacao&quot;, required = false) String mensagemConfirmacao,
+                                      RedirectAttributes redirect) {
+<span class="fc" id="L56">        whatsappService.salvarConfiguracaoEnvio(</span>
+                new ConfiguracaoEnvioWhatsapp(nomeExibicao, mensagemConfirmacao));
+<span class="fc" id="L58">        auditoriaService.registrarSistema(&quot;WHATSAPP_CONFIG_ALTERADA&quot;,</span>
+                &quot;Nome de exibição e mensagem de confirmação do canal WhatsApp&quot;);
+<span class="fc" id="L60">        redirect.addFlashAttribute(&quot;sucesso&quot;, &quot;Configurações de envio salvas.&quot;);</span>
+<span class="fc" id="L61">        return &quot;redirect:/whatsapp&quot;;</span>
+    }
+
+    /** Fragmento do card de status — polling HTMX (~3 s) enquanto aguarda o QR. */
+    @GetMapping(&quot;/status&quot;)
+    public String status(Model model) {
+<span class="fc" id="L67">        carregarStatus(model);</span>
+<span class="fc" id="L68">        return &quot;whatsapp/fragments/status :: status&quot;;</span>
+    }
+
+    @PostMapping(&quot;/conectar&quot;)
+    public String conectar(RedirectAttributes redirect) {
+        try {
+<span class="nc" id="L74">            ConexaoWhatsapp conexao = whatsappService.conectar();</span>
+<span class="nc" id="L75">            auditoriaService.registrarSistema(&quot;WHATSAPP_CONECTADO&quot;,</span>
+<span class="nc" id="L76">                    &quot;Pareamento iniciado no painel — estado: &quot; + conexao.status());</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            redirect.addFlashAttribute(&quot;sucesso&quot;, conexao.status() == StatusConexaoWhatsapp.CONECTADO</span>
+<span class="nc" id="L78">                    ? &quot;A conta já está conectada.&quot;</span>
+<span class="nc" id="L79">                    : &quot;Conexão iniciada — escaneie o QR code com o WhatsApp do número da secretaria.&quot;);</span>
+<span class="nc" id="L80">        } catch (WhatsappException e) {</span>
+<span class="nc" id="L81">            redirect.addFlashAttribute(&quot;erro&quot;, &quot;Não foi possível iniciar a conexão. Verifique a integração e tente novamente.&quot;);</span>
+<span class="nc" id="L82">        }</span>
+<span class="nc" id="L83">        return &quot;redirect:/whatsapp&quot;;</span>
+    }
+
+    @PostMapping(&quot;/desconectar&quot;)
+    public String desconectar(RedirectAttributes redirect) {
+        try {
+<span class="nc" id="L89">            whatsappService.desconectar();</span>
+<span class="nc" id="L90">            auditoriaService.registrarSistema(&quot;WHATSAPP_DESCONECTADO&quot;,</span>
+                    &quot;Sessão encerrada pelo painel — bot e notificações pausados&quot;);
+<span class="nc" id="L92">            redirect.addFlashAttribute(&quot;sucesso&quot;, &quot;Sessão desconectada.&quot;);</span>
+<span class="nc" id="L93">        } catch (WhatsappException e) {</span>
+<span class="nc" id="L94">            redirect.addFlashAttribute(&quot;erro&quot;, &quot;Não foi possível desconectar. Tente novamente.&quot;);</span>
+<span class="nc" id="L95">        }</span>
+<span class="nc" id="L96">        return &quot;redirect:/whatsapp&quot;;</span>
+    }
+
+    @PostMapping(&quot;/teste&quot;)
+    public String teste(@RequestParam(&quot;telefone&quot;) String telefone,
+                        @RequestParam(&quot;texto&quot;) String texto,
+                        RedirectAttributes redirect) {
+<span class="fc" id="L103">        String digitos = Documentos.apenasDigitos(telefone);</span>
+<span class="pc bpc" id="L104" title="3 of 6 branches missed.">        if (digitos.length() &lt; 10 || texto == null || texto.isBlank()) {</span>
+<span class="nc" id="L105">            redirect.addFlashAttribute(&quot;erro&quot;, &quot;Informe um telefone válido (DDD + número) e o texto da mensagem.&quot;);</span>
+<span class="nc" id="L106">            return &quot;redirect:/whatsapp&quot;;</span>
+        }
+<span class="fc" id="L108">        boolean enviado = whatsappService.enviarTexto(digitos, texto.trim());</span>
+<span class="fc" id="L109">        auditoriaService.registrarSistema(&quot;WHATSAPP_TESTE_ENVIADO&quot;,</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">                &quot;Teste de envio para &quot; + digitos + (enviado ? &quot; — aceito&quot; : &quot; — falhou&quot;));</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (enviado) {</span>
+<span class="nc" id="L112">            redirect.addFlashAttribute(&quot;sucesso&quot;, &quot;Mensagem de teste enviada para &quot; + digitos + &quot;.&quot;);</span>
+        } else {
+<span class="fc" id="L114">            redirect.addFlashAttribute(&quot;erro&quot;, &quot;O envio falhou — confira a conexão no card de status.&quot;);</span>
+        }
+<span class="fc" id="L116">        return &quot;redirect:/whatsapp&quot;;</span>
+    }
+
+    private void carregarStatus(Model model) {
+<span class="fc" id="L120">        boolean configurada = whatsappService.configurada();</span>
+<span class="fc" id="L121">        ConexaoWhatsapp conexao = whatsappService.estadoConexao();</span>
+<span class="fc" id="L122">        model.addAttribute(&quot;configurada&quot;, configurada);</span>
+<span class="fc" id="L123">        model.addAttribute(&quot;conexao&quot;, conexao);</span>
+        // Número/perfil só interessam (e só custam uma chamada) quando conectado.
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        model.addAttribute(&quot;conta&quot;, conexao.status() == StatusConexaoWhatsapp.CONECTADO</span>
+<span class="pc" id="L126">                ? whatsappService.contaConectada().orElse(null) : null);</span>
+<span class="fc" id="L127">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

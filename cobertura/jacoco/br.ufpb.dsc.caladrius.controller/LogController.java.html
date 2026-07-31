@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">LogController.java</span></div><h1>LogController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.domain.LogAuditoria;
+import br.ufpb.dsc.caladrius.domain.enums.AreaSistema;
+import br.ufpb.dsc.caladrius.service.AuditoriaService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+/**
+ * Central de logs do sistema ({@code /logs}) — item de primeiro nível no menu,
+ * sem submenus.
+ *
+ * &lt;p&gt;Reúne &lt;strong&gt;tudo&lt;/strong&gt; o que o sistema registra (acessos, cadastros,
+ * viagens, solicitações, WhatsApp, configuração), cada evento com a etiqueta da
+ * {@link AreaSistema} que ele tocou. Complementa — e não substitui — as duas telas
+ * que já existiam: {@code /historico} (o ciclo das solicitações, visão do gerente)
+ * e {@code /admin/auditoria} (a mesma trilha dentro da área do SYSADMIN).
+ *
+ * &lt;p&gt;Quando existir organização/secretaria ([SPEC-16]), esta listagem passa a ser
+ * filtrada pelo tenant — é o mesmo ponto único de leitura.
+ */
+@Controller
+public class LogController {
+
+    private static final int TAMANHO_PAGINA = 25;
+
+    private final AuditoriaService auditoriaService;
+
+<span class="fc" id="L33">    public LogController(AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L34">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L35">    }</span>
+
+    @GetMapping(&quot;/logs&quot;)
+    public String logs(@RequestParam(name = &quot;area&quot;, required = false) AreaSistema area,
+                       @RequestParam(name = &quot;busca&quot;, required = false, defaultValue = &quot;&quot;) String busca,
+                       @RequestParam(name = &quot;pagina&quot;, defaultValue = &quot;0&quot;) int pagina,
+                       Model model) {
+<span class="fc" id="L42">        Page&lt;LogAuditoria&gt; logs =</span>
+<span class="fc" id="L43">                auditoriaService.listar(area, busca, PageRequest.of(pagina, TAMANHO_PAGINA));</span>
+
+<span class="fc" id="L45">        model.addAttribute(&quot;titulo&quot;, &quot;Logs do sistema&quot;);</span>
+<span class="fc" id="L46">        model.addAttribute(&quot;logs&quot;, logs);</span>
+<span class="fc" id="L47">        model.addAttribute(&quot;areas&quot;, AreaSistema.values());</span>
+<span class="fc" id="L48">        model.addAttribute(&quot;area&quot;, area);</span>
+<span class="fc" id="L49">        model.addAttribute(&quot;busca&quot;, busca);</span>
+<span class="fc" id="L50">        model.addAttribute(&quot;paginaAtual&quot;, pagina);</span>
+<span class="fc" id="L51">        return &quot;logs/lista&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CidadeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">CidadeService.java</span></div><h1>CidadeService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Cidade;
+import br.ufpb.dsc.caladrius.dto.CidadeForm;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.repository.CidadeRepository;
+import br.ufpb.dsc.caladrius.repository.ViagemRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Lógica de negócio das cidades (origem e destinos metropolitanos).
+ */
+@Service
+@Transactional(readOnly = true)
+public class CidadeService {
+
+    private final CidadeRepository cidadeRepository;
+    private final ViagemRepository viagemRepository;
+    private final AuditoriaService auditoriaService;
+
+    public CidadeService(CidadeRepository cidadeRepository, ViagemRepository viagemRepository,
+<span class="fc" id="L29">                         AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L30">        this.cidadeRepository = cidadeRepository;</span>
+<span class="fc" id="L31">        this.viagemRepository = viagemRepository;</span>
+<span class="fc" id="L32">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L33">    }</span>
+
+    /** Lista/busca cidades paginadas. Busca vazia retorna todas. */
+    public Page&lt;Cidade&gt; buscar(String busca, Pageable pageable) {
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if (!StringUtils.hasText(busca)) {</span>
+<span class="fc" id="L38">            return cidadeRepository.findAll(pageable);</span>
+        }
+<span class="fc" id="L40">        return cidadeRepository.buscar(busca.trim(), pageable);</span>
+    }
+
+    /** Busca uma cidade pelo id ou lança {@link RecursoNaoEncontradoException}. */
+    public Cidade buscarPorId(UUID id) {
+<span class="fc" id="L45">        return cidadeRepository.findById(id)</span>
+<span class="fc" id="L46">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Cidade&quot;, id));</span>
+    }
+
+    /** Lista todas as cidades ordenadas por nome (para selects de viagem). */
+    public List&lt;Cidade&gt; listarTodas() {
+<span class="fc" id="L51">        return cidadeRepository.findAllByOrderByNomeAsc();</span>
+    }
+
+    /** Cria uma nova cidade. */
+    @Transactional
+    public Cidade criar(CidadeForm form) {
+<span class="fc" id="L57">        Cidade cidade = new Cidade(form.nome().trim(), form.uf().trim().toUpperCase(), form.tipo());</span>
+<span class="fc" id="L58">        cidade = cidadeRepository.save(cidade);</span>
+<span class="fc" id="L59">        auditoriaService.registrarOperacao(&quot;CIDADE_CRIADA&quot;, &quot;Cidade&quot;,</span>
+<span class="fc" id="L60">                cidade.getId().toString(), cidade.getNome() + &quot;/&quot; + cidade.getUf());</span>
+<span class="fc" id="L61">        return cidade;</span>
+    }
+
+    /** Atualiza uma cidade existente. */
+    @Transactional
+    public Cidade atualizar(UUID id, CidadeForm form) {
+<span class="fc" id="L67">        Cidade cidade = buscarPorId(id);</span>
+<span class="fc" id="L68">        cidade.setNome(form.nome().trim());</span>
+<span class="fc" id="L69">        cidade.setUf(form.uf().trim().toUpperCase());</span>
+<span class="fc" id="L70">        cidade.setTipo(form.tipo());</span>
+<span class="fc" id="L71">        cidade = cidadeRepository.save(cidade);</span>
+<span class="fc" id="L72">        auditoriaService.registrarOperacao(&quot;CIDADE_ATUALIZADA&quot;, &quot;Cidade&quot;,</span>
+<span class="fc" id="L73">                cidade.getId().toString(), cidade.getNome() + &quot;/&quot; + cidade.getUf());</span>
+<span class="fc" id="L74">        return cidade;</span>
+    }
+
+    /** Conta quantas viagens têm esta cidade como destino (DT-01: aviso de exclusão). */
+    public long contarViagensVinculadas(UUID id) {
+<span class="fc" id="L79">        return viagemRepository.countByCidadeDestino_Id(id);</span>
+    }
+
+    /**
+     * Exclui uma cidade (remoção física — cidades são dados de referência).
+     *
+     * &lt;p&gt;DT-01: como as viagens referenciam a cidade de destino (FK), as viagens
+     * vinculadas são removidas antes da cidade, evitando violação de integridade.
+     * O usuário é avisado no popup de confirmação antes de chamar este método.
+     *
+     * @return quantidade de viagens removidas em cascata
+     */
+    @Transactional
+    public long excluir(UUID id) {
+<span class="fc" id="L93">        Cidade cidade = buscarPorId(id);</span>
+<span class="fc" id="L94">        long viagensRemovidas = viagemRepository.countByCidadeDestino_Id(id);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (viagensRemovidas &gt; 0) {</span>
+<span class="fc" id="L96">            viagemRepository.deleteByCidadeDestino_Id(id);</span>
+        }
+<span class="fc" id="L98">        cidadeRepository.delete(cidade);</span>
+<span class="fc" id="L99">        auditoriaService.registrarOperacao(&quot;CIDADE_EXCLUIDA&quot;, &quot;Cidade&quot;, id.toString(),</span>
+<span class="fc" id="L100">                cidade.getNome() + &quot;/&quot; + cidade.getUf() + &quot; — &quot; + viagensRemovidas + &quot; viagem(ns) removida(s)&quot;);</span>
+<span class="fc" id="L101">        return viagensRemovidas;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SolicitacaoViagem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">SolicitacaoViagem.java</span></div><h1>SolicitacaoViagem.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.StatusSolicitacao;
+import br.ufpb.dsc.caladrius.domain.enums.TipoSolicitacao;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.UUID;
+
+/**
+ * Solicitação de transporte feita por um passageiro para uma
+ * {@link LinhaProgramada} numa data (SPEC-09).
+ *
+ * &lt;p&gt;Mapeada para {@code solicitacoes_viagem} (migração V11). Quando o gerente
+ * designa a viagem da linha naquela data (materializa a {@link Viagem} — SPEC-06),
+ * a solicitação é &lt;strong&gt;alocada&lt;/strong&gt;: {@link #viagem} é preenchida e o
+ * {@link #status} passa a {@code ALOCADA}. A partir daí o passageiro vê apenas os
+ * dados da viagem (motorista, veículo, horário, destino) — nunca informações de
+ * outros passageiros.
+ *
+ * &lt;p&gt;O destino e os horários derivam da {@link #linha} (e da {@link #viagem}
+ * quando alocada); não há local de partida, pois o carro busca o passageiro no
+ * próprio endereço.
+ */
+@Entity
+@Table(name = &quot;solicitacoes_viagem&quot;)
+public class SolicitacaoViagem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = &quot;passageiro&quot;, nullable = false)
+    private Usuario passageiro;
+
+    /** Tipo da solicitação: por linha (SPEC-09) ou sob demanda (SPEC-11). */
+<span class="fc" id="L51">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;tipo&quot;, nullable = false, length = 20)
+    private TipoSolicitacao tipo = TipoSolicitacao.POR_LINHA;
+
+    /** Linha escolhida — obrigatória em {@code POR_LINHA}, nula em {@code SOB_DEMANDA}. */
+    @ManyToOne
+    @JoinColumn(name = &quot;linha_programada&quot;)
+    private LinhaProgramada linha;
+
+    /** Destino informado — obrigatório em {@code SOB_DEMANDA}, nulo em {@code POR_LINHA}. */
+    @ManyToOne
+    @JoinColumn(name = &quot;cidade_destino&quot;)
+    private Cidade cidadeDestino;
+
+    @Column(name = &quot;data_desejada&quot;, nullable = false)
+    private LocalDate dataDesejada;
+
+    /** Horário desejado da viagem/consulta (sob demanda). */
+    @Column(name = &quot;horario_desejado&quot;)
+    private LocalTime horarioDesejado;
+
+    /** Condições de saúde (comorbidade/deficiência) que informam a prioridade. */
+    @Column(name = &quot;condicoes&quot;, length = 280)
+    private String condicoes;
+
+    /** Motivo preenchido quando o gestor recusa a solicitação sob demanda. */
+    @Column(name = &quot;motivo_recusa&quot;, length = 280)
+    private String motivoRecusa;
+
+    /** Viagem materializada da linha+data (preenchida na alocação); nula enquanto pendente. */
+    @ManyToOne
+    @JoinColumn(name = &quot;viagem&quot;)
+    private Viagem viagem;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;status&quot;, nullable = false, length = 20)
+    private StatusSolicitacao status;
+
+    @Column(name = &quot;observacao&quot;, length = 280)
+    private String observacao;
+
+    @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+    private Instant criadoEm;
+
+<span class="fc" id="L95">    public SolicitacaoViagem() {</span>
+<span class="fc" id="L96">    }</span>
+
+    @PrePersist
+    protected void prePersist() {
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        if (this.criadoEm == null) {</span>
+<span class="fc" id="L101">            this.criadoEm = Instant.now();</span>
+        }
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (this.status == null) {</span>
+<span class="nc" id="L104">            this.status = StatusSolicitacao.PENDENTE;</span>
+        }
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (this.tipo == null) {</span>
+<span class="nc" id="L107">            this.tipo = TipoSolicitacao.POR_LINHA;</span>
+        }
+<span class="fc" id="L109">    }</span>
+
+    /** {@code true} se a solicitação já tem uma viagem designada (alocada). */
+    public boolean isAlocada() {
+<span class="pc bpc" id="L113" title="3 of 4 branches missed.">        return viagem != null &amp;&amp; status == StatusSolicitacao.ALOCADA;</span>
+    }
+
+    /**
+     * Cidade de destino da solicitação, resolvida pelo tipo: em {@code POR_LINHA}
+     * vem da linha; em {@code SOB_DEMANDA} é a {@link #cidadeDestino} informada.
+     */
+    public Cidade getDestino() {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (cidadeDestino != null) {</span>
+<span class="fc" id="L122">            return cidadeDestino;</span>
+        }
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        return linha != null ? linha.getCidadeDestino() : null;</span>
+    }
+
+    public TipoSolicitacao getTipo() {
+<span class="fc" id="L128">        return tipo;</span>
+    }
+
+    public void setTipo(TipoSolicitacao tipo) {
+<span class="fc" id="L132">        this.tipo = tipo;</span>
+<span class="fc" id="L133">    }</span>
+
+    public Cidade getCidadeDestino() {
+<span class="fc" id="L136">        return cidadeDestino;</span>
+    }
+
+    public void setCidadeDestino(Cidade cidadeDestino) {
+<span class="fc" id="L140">        this.cidadeDestino = cidadeDestino;</span>
+<span class="fc" id="L141">    }</span>
+
+    public LocalTime getHorarioDesejado() {
+<span class="fc" id="L144">        return horarioDesejado;</span>
+    }
+
+    public void setHorarioDesejado(LocalTime horarioDesejado) {
+<span class="fc" id="L148">        this.horarioDesejado = horarioDesejado;</span>
+<span class="fc" id="L149">    }</span>
+
+    public String getCondicoes() {
+<span class="fc" id="L152">        return condicoes;</span>
+    }
+
+    public void setCondicoes(String condicoes) {
+<span class="fc" id="L156">        this.condicoes = condicoes;</span>
+<span class="fc" id="L157">    }</span>
+
+    public String getMotivoRecusa() {
+<span class="fc" id="L160">        return motivoRecusa;</span>
+    }
+
+    public void setMotivoRecusa(String motivoRecusa) {
+<span class="fc" id="L164">        this.motivoRecusa = motivoRecusa;</span>
+<span class="fc" id="L165">    }</span>
+
+    public UUID getId() {
+<span class="fc" id="L168">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L172">        this.id = id;</span>
+<span class="fc" id="L173">    }</span>
+
+    public Usuario getPassageiro() {
+<span class="fc" id="L176">        return passageiro;</span>
+    }
+
+    public void setPassageiro(Usuario passageiro) {
+<span class="fc" id="L180">        this.passageiro = passageiro;</span>
+<span class="fc" id="L181">    }</span>
+
+    public LinhaProgramada getLinha() {
+<span class="fc" id="L184">        return linha;</span>
+    }
+
+    public void setLinha(LinhaProgramada linha) {
+<span class="fc" id="L188">        this.linha = linha;</span>
+<span class="fc" id="L189">    }</span>
+
+    public LocalDate getDataDesejada() {
+<span class="fc" id="L192">        return dataDesejada;</span>
+    }
+
+    public void setDataDesejada(LocalDate dataDesejada) {
+<span class="fc" id="L196">        this.dataDesejada = dataDesejada;</span>
+<span class="fc" id="L197">    }</span>
+
+    public Viagem getViagem() {
+<span class="fc" id="L200">        return viagem;</span>
+    }
+
+    public void setViagem(Viagem viagem) {
+<span class="fc" id="L204">        this.viagem = viagem;</span>
+<span class="fc" id="L205">    }</span>
+
+    public StatusSolicitacao getStatus() {
+<span class="fc" id="L208">        return status;</span>
+    }
+
+    public void setStatus(StatusSolicitacao status) {
+<span class="fc" id="L212">        this.status = status;</span>
+<span class="fc" id="L213">    }</span>
+
+    public String getObservacao() {
+<span class="fc" id="L216">        return observacao;</span>
+    }
+
+    public void setObservacao(String observacao) {
+<span class="fc" id="L220">        this.observacao = observacao;</span>
+<span class="fc" id="L221">    }</span>
+
+    public Instant getCriadoEm() {
+<span class="nc" id="L224">        return criadoEm;</span>
+    }
+
+    public void setCriadoEm(Instant criadoEm) {
+<span class="nc" id="L228">        this.criadoEm = criadoEm;</span>
+<span class="nc" id="L229">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

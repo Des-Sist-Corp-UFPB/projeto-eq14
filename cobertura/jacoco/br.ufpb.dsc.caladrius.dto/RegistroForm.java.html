@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistroForm.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.dto</a> &gt; <span class="el_source">RegistroForm.java</span></div><h1>RegistroForm.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.util.UUID;
+
+/**
+ * Dados do auto-cadastro público (passageiro).
+ *
+ * &lt;p&gt;Conforme o redesenho v3: o &lt;strong&gt;telefone&lt;/strong&gt; é obrigatório; o
+ * &lt;strong&gt;e-mail&lt;/strong&gt; é opcional, mas, quando informado, também serve para
+ * entrar e recuperar a conta. O CPF é opcional (validado no serviço quando
+ * preenchido).
+ *
+ * &lt;p&gt;SPEC-07: o &lt;strong&gt;endereço é opcional&lt;/strong&gt; no cadastro (pode ser
+ * completado depois no perfil); a obrigatoriedade vale na solicitação de viagem.
+ */
+<span class="fc" id="L20">public record RegistroForm(</span>
+
+        @NotBlank(message = &quot;Informe seu nome completo&quot;)
+        @Size(max = 160, message = &quot;O nome deve ter no máximo 160 caracteres&quot;)
+        String nomeCompleto,
+
+        @NotBlank(message = &quot;Informe seu telefone&quot;)
+        @Size(max = 20, message = &quot;Telefone inválido&quot;)
+        String telefone,
+
+        @Size(max = 14, message = &quot;CPF inválido&quot;)
+        String cpf,
+
+        @Email(message = &quot;E-mail inválido&quot;)
+        @Size(max = 160, message = &quot;O e-mail deve ter no máximo 160 caracteres&quot;)
+        String email,
+
+        @NotBlank(message = &quot;Crie uma senha&quot;)
+        @Size(min = 6, max = 72, message = &quot;A senha deve ter entre 6 e 72 caracteres&quot;)
+        String senha,
+
+        // ----- Endereço (opcional, SPEC-07) -----
+        UUID municipioId,
+        @Size(max = 120) String bairro,
+        @Size(max = 180) String logradouro,
+        @Size(max = 20) String numero,
+        @Size(max = 120) String complemento,
+        @Size(max = 180) String pontoReferencia,
+        @Size(max = 9) String cep
+
+) {
+    /** Converte os campos de endereço deste cadastro para um {@link EnderecoForm}. */
+    public EnderecoForm paraEnderecoForm() {
+<span class="fc" id="L53">        return new EnderecoForm(municipioId, bairro, logradouro, numero, complemento, pontoReferencia, cep);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

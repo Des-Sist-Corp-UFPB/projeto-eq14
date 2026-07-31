@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Veiculo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">Veiculo.java</span></div><h1>Veiculo.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.StatusVeiculo;
+import br.ufpb.dsc.caladrius.domain.enums.TipoVeiculo;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Veículo da frota usada nas viagens.
+ *
+ * &lt;p&gt;Mapeado para a tabela {@code veiculos}. Usa &lt;strong&gt;soft-delete&lt;/strong&gt;:
+ * ao &quot;excluir&quot;, preenchemos {@link #removidoEm} em vez de apagar a linha, e as
+ * consultas filtram {@code removido_em IS NULL}. A {@code placa} é única apenas
+ * entre veículos ativos (índice único parcial — ver migração {@code V2}).
+ *
+ * &lt;p&gt;A {@code capacidade} (assentos) governa quantos passageiros cabem em uma
+ * viagem — é o insumo central da futura alocação automática.
+ */
+@Entity
+@Table(name = &quot;veiculos&quot;)
+public class Veiculo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @NotBlank(message = &quot;A placa é obrigatória&quot;)
+    @Size(min = 7, max = 8, message = &quot;A placa deve ter 7 caracteres (ex.: ABC1D23)&quot;)
+    @Column(name = &quot;placa&quot;, nullable = false, length = 8)
+    private String placa;
+
+    @NotBlank(message = &quot;A marca é obrigatória&quot;)
+    @Size(max = 60, message = &quot;A marca deve ter no máximo 60 caracteres&quot;)
+    @Column(name = &quot;marca&quot;, nullable = false, length = 60)
+    private String marca;
+
+    @NotBlank(message = &quot;O modelo é obrigatório&quot;)
+    @Size(max = 60, message = &quot;O modelo deve ter no máximo 60 caracteres&quot;)
+    @Column(name = &quot;modelo&quot;, nullable = false, length = 60)
+    private String modelo;
+
+    @NotNull(message = &quot;O ano é obrigatório&quot;)
+    @Min(value = 1950, message = &quot;Ano inválido&quot;)
+    @Max(value = 2100, message = &quot;Ano inválido&quot;)
+    @Column(name = &quot;ano&quot;, nullable = false)
+    private Integer ano;
+
+    @NotNull(message = &quot;O tipo é obrigatório&quot;)
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;tipo&quot;, nullable = false, length = 30)
+    private TipoVeiculo tipo;
+
+    @NotNull(message = &quot;A capacidade é obrigatória&quot;)
+    @Min(value = 1, message = &quot;A capacidade deve ser ao menos 1&quot;)
+    @Max(value = 100, message = &quot;Capacidade máxima de 100 assentos&quot;)
+    @Column(name = &quot;capacidade&quot;, nullable = false)
+    private Integer capacidade;
+
+    @Column(name = &quot;possui_acessibilidade&quot;, nullable = false)
+    private boolean possuiAcessibilidade;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;status&quot;, nullable = false, length = 30)
+    private StatusVeiculo status;
+
+    /** Timestamp de exclusão lógica (soft-delete). {@code null} = veículo ativo. */
+    @Column(name = &quot;removido_em&quot;)
+    private Instant removidoEm;
+
+<span class="fc" id="L75">    public Veiculo() {</span>
+<span class="fc" id="L76">    }</span>
+
+    public Veiculo(String placa, String marca, String modelo, Integer ano,
+<span class="fc" id="L79">                   TipoVeiculo tipo, Integer capacidade, boolean possuiAcessibilidade) {</span>
+<span class="fc" id="L80">        this.placa = placa;</span>
+<span class="fc" id="L81">        this.marca = marca;</span>
+<span class="fc" id="L82">        this.modelo = modelo;</span>
+<span class="fc" id="L83">        this.ano = ano;</span>
+<span class="fc" id="L84">        this.tipo = tipo;</span>
+<span class="fc" id="L85">        this.capacidade = capacidade;</span>
+<span class="fc" id="L86">        this.possuiAcessibilidade = possuiAcessibilidade;</span>
+<span class="fc" id="L87">        this.status = StatusVeiculo.DISPONIVEL;</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Define o status padrão antes do INSERT, caso não tenha sido informado.
+     */
+    @PrePersist
+    protected void prePersist() {
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">        if (this.status == null) {</span>
+<span class="nc" id="L96">            this.status = StatusVeiculo.DISPONIVEL;</span>
+        }
+<span class="fc" id="L98">    }</span>
+
+    public UUID getId() {
+<span class="fc" id="L101">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L105">        this.id = id;</span>
+<span class="fc" id="L106">    }</span>
+
+    public String getPlaca() {
+<span class="fc" id="L109">        return placa;</span>
+    }
+
+    public void setPlaca(String placa) {
+<span class="fc" id="L113">        this.placa = placa;</span>
+<span class="fc" id="L114">    }</span>
+
+    public String getMarca() {
+<span class="fc" id="L117">        return marca;</span>
+    }
+
+    public void setMarca(String marca) {
+<span class="fc" id="L121">        this.marca = marca;</span>
+<span class="fc" id="L122">    }</span>
+
+    public String getModelo() {
+<span class="fc" id="L125">        return modelo;</span>
+    }
+
+    public void setModelo(String modelo) {
+<span class="fc" id="L129">        this.modelo = modelo;</span>
+<span class="fc" id="L130">    }</span>
+
+    public Integer getAno() {
+<span class="fc" id="L133">        return ano;</span>
+    }
+
+    public void setAno(Integer ano) {
+<span class="fc" id="L137">        this.ano = ano;</span>
+<span class="fc" id="L138">    }</span>
+
+    public TipoVeiculo getTipo() {
+<span class="fc" id="L141">        return tipo;</span>
+    }
+
+    public void setTipo(TipoVeiculo tipo) {
+<span class="fc" id="L145">        this.tipo = tipo;</span>
+<span class="fc" id="L146">    }</span>
+
+    public Integer getCapacidade() {
+<span class="fc" id="L149">        return capacidade;</span>
+    }
+
+    public void setCapacidade(Integer capacidade) {
+<span class="fc" id="L153">        this.capacidade = capacidade;</span>
+<span class="fc" id="L154">    }</span>
+
+    public boolean isPossuiAcessibilidade() {
+<span class="fc" id="L157">        return possuiAcessibilidade;</span>
+    }
+
+    public void setPossuiAcessibilidade(boolean possuiAcessibilidade) {
+<span class="fc" id="L161">        this.possuiAcessibilidade = possuiAcessibilidade;</span>
+<span class="fc" id="L162">    }</span>
+
+    public StatusVeiculo getStatus() {
+<span class="fc" id="L165">        return status;</span>
+    }
+
+    public void setStatus(StatusVeiculo status) {
+<span class="fc" id="L169">        this.status = status;</span>
+<span class="fc" id="L170">    }</span>
+
+    public Instant getRemovidoEm() {
+<span class="fc" id="L173">        return removidoEm;</span>
+    }
+
+    public void setRemovidoEm(Instant removidoEm) {
+<span class="fc" id="L177">        this.removidoEm = removidoEm;</span>
+<span class="fc" id="L178">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L182">        return &quot;Veiculo{id=&quot; + id + &quot;, placa='&quot; + placa + &quot;'}&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

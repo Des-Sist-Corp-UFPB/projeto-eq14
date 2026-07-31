@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ParametroSistema.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">ParametroSistema.java</span></div><h1>ParametroSistema.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import java.util.Optional;
+
+/**
+ * Catálogo dos &lt;strong&gt;parâmetros de negócio&lt;/strong&gt; externalizados (SPEC-13 §5.2,
+ * D4) — constantes que antes viviam &quot;chumbadas&quot; no código e passaram a ser
+ * configuráveis em runtime pelo SYSADMIN.
+ *
+ * &lt;p&gt;Cada parâmetro declara o &lt;strong&gt;default&lt;/strong&gt; (o valor que o código usava
+ * antes) e o &lt;strong&gt;intervalo válido&lt;/strong&gt;. Valor ausente, não-numérico ou fora
+ * do intervalo ⇒ vale o default (RN-FLG-02/RN-FLG-06) — o sistema nunca quebra por
+ * configuração faltante ou torta.
+ */
+<span class="fc" id="L15">public enum ParametroSistema {</span>
+
+    /** Validade do código OTP, em minutos (SPEC-12). */
+<span class="fc" id="L18">    OTP_VALIDADE_MINUTOS(&quot;param.otp.validade_minutos&quot;, 10, 1, 60,</span>
+            &quot;Validade do código OTP (minutos)&quot;),
+
+    /** Tentativas erradas até o &lt;em&gt;lockout&lt;/em&gt; do código (SPEC-12, RN-VER-05). */
+<span class="fc" id="L22">    OTP_MAX_TENTATIVAS(&quot;param.otp.max_tentativas&quot;, 5, 1, 10,</span>
+            &quot;Tentativas até bloquear o código OTP&quot;),
+
+    /** Espera mínima entre dois pedidos de código (SPEC-12, RN-VER-06). */
+<span class="fc" id="L26">    OTP_COOLDOWN_SEGUNDOS(&quot;param.otp.cooldown_segundos&quot;, 60, 0, 600,</span>
+            &quot;Espera entre reenvios de OTP (segundos)&quot;),
+
+    /** Validade do link de convite/ativação, em dias (#20, ADR-11). */
+<span class="fc" id="L30">    CONVITE_VALIDADE_DIAS(&quot;param.convite.validade_dias&quot;, 7, 1, 90,</span>
+            &quot;Validade do convite (dias)&quot;),
+
+    /** Tamanho mínimo de senha aceito no convite/definição de senha. */
+<span class="fc" id="L34">    SENHA_MIN(&quot;param.senha.min&quot;, 6, 6, 72,</span>
+            &quot;Tamanho mínimo da senha (caracteres)&quot;);
+
+    private final String chave;
+    private final int padrao;
+    private final int minimo;
+    private final int maximo;
+    private final String rotulo;
+
+<span class="fc" id="L43">    ParametroSistema(String chave, int padrao, int minimo, int maximo, String rotulo) {</span>
+<span class="fc" id="L44">        this.chave = chave;</span>
+<span class="fc" id="L45">        this.padrao = padrao;</span>
+<span class="fc" id="L46">        this.minimo = minimo;</span>
+<span class="fc" id="L47">        this.maximo = maximo;</span>
+<span class="fc" id="L48">        this.rotulo = rotulo;</span>
+<span class="fc" id="L49">    }</span>
+
+    /** Chave em {@code configuracoes_sistema} (ex.: {@code param.otp.max_tentativas}). */
+    public String getChave() {
+<span class="fc" id="L53">        return chave;</span>
+    }
+
+    /** Valor de fábrica — usado sempre que o configurado for ausente ou inválido. */
+    public int getPadrao() {
+<span class="fc" id="L58">        return padrao;</span>
+    }
+
+    public int getMinimo() {
+<span class="fc" id="L62">        return minimo;</span>
+    }
+
+    public int getMaximo() {
+<span class="fc" id="L66">        return maximo;</span>
+    }
+
+    /** Nome exibido na tela de administração. */
+    public String getRotulo() {
+<span class="fc" id="L71">        return rotulo;</span>
+    }
+
+    /** {@code true} se o valor está no intervalo aceito (RN-FLG-06). */
+    public boolean valido(int valor) {
+<span class="pc bpc" id="L76" title="1 of 4 branches missed.">        return valor &gt;= minimo &amp;&amp; valor &lt;= maximo;</span>
+    }
+
+    /** Resolve o parâmetro pela chave persistida (vazio se desconhecida). */
+    public static Optional&lt;ParametroSistema&gt; porChave(String chave) {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        for (ParametroSistema p : values()) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (p.chave.equals(chave)) {</span>
+<span class="nc" id="L83">                return Optional.of(p);</span>
+            }
+        }
+<span class="nc" id="L86">        return Optional.empty();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

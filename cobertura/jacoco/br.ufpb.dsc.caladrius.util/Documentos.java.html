@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Documentos.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.util</a> &gt; <span class="el_source">Documentos.java</span></div><h1>Documentos.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.util;
+
+/**
+ * Utilitários para normalização e validação de identificadores (telefone, CPF)
+ * e detecção do formato de login (e-mail vs telefone).
+ *
+ * &lt;p&gt;Centralizado aqui para ser reutilizado pelo login (detectar e-mail/telefone,
+ * normalizar telefone) e pelo cadastro (validar CPF, normalizar telefone/CPF) —
+ * evitando duplicação de regra.
+ */
+public final class Documentos {
+
+    private Documentos() {
+        // utilitário estático — não instanciar
+    }
+
+    /** Remove tudo que não for dígito (ex.: &quot;(83) 99999-9999&quot; → &quot;83999999999&quot;). */
+    public static String apenasDigitos(String valor) {
+<span class="fc bfc" id="L19" title="All 2 branches covered.">        if (valor == null) {</span>
+<span class="fc" id="L20">            return &quot;&quot;;</span>
+        }
+<span class="fc" id="L22">        return valor.replaceAll(&quot;\\D&quot;, &quot;&quot;);</span>
+    }
+
+    /**
+     * Heurística simples: um identificador de login é tratado como e-mail quando
+     * contém &quot;@&quot;. Caso contrário, é tratado como telefone. Espelha o comportamento
+     * &quot;Detectamos automaticamente o formato&quot; da tela de login.
+     */
+    public static boolean pareceEmail(String identificador) {
+<span class="fc bfc" id="L31" title="All 4 branches covered.">        return identificador != null &amp;&amp; identificador.contains(&quot;@&quot;);</span>
+    }
+
+    /**
+     * Extrai o telefone brasileiro de um JID do WhatsApp
+     * (ex.: {@code &quot;5583999999999@s.whatsapp.net&quot;} → {@code &quot;83999999999&quot;}):
+     * descarta o sufixo após o {@code @} e remove o DDI {@code 55} quando
+     * presente. O resultado fica no formato de {@code usuarios.telefone}
+     * (apenas dígitos, DDD + número) — SPEC-10 §4.5.
+     */
+    public static String telefoneDeJid(String jid) {
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (jid == null) {</span>
+<span class="fc" id="L43">            return &quot;&quot;;</span>
+        }
+<span class="fc" id="L45">        int arroba = jid.indexOf('@');</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        String digitos = apenasDigitos(arroba &gt;= 0 ? jid.substring(0, arroba) : jid);</span>
+        // DDI 55 + DDD (2) + número (8 ou 9 dígitos) = 12 ou 13 dígitos.
+<span class="pc bpc" id="L48" title="1 of 6 branches missed.">        if (digitos.startsWith(&quot;55&quot;) &amp;&amp; (digitos.length() == 12 || digitos.length() == 13)) {</span>
+<span class="fc" id="L49">            return digitos.substring(2);</span>
+        }
+<span class="fc" id="L51">        return digitos;</span>
+    }
+
+    /**
+     * Variantes de um telefone brasileiro para busca: JIDs antigos do WhatsApp
+     * podem vir &lt;em&gt;sem&lt;/em&gt; o 9º dígito após o DDD. Devolve o telefone como
+     * veio e, quando tem 10 dígitos (DDD + 8), também a variante com o {@code 9}
+     * inserido — SPEC-10 §4.5.
+     */
+    public static java.util.List&lt;String&gt; variantesTelefoneBr(String telefone) {
+<span class="fc" id="L61">        String digitos = apenasDigitos(telefone);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (digitos.length() == 10) {</span>
+<span class="fc" id="L63">            return java.util.List.of(digitos, digitos.substring(0, 2) + &quot;9&quot; + digitos.substring(2));</span>
+        }
+<span class="fc" id="L65">        return java.util.List.of(digitos);</span>
+    }
+
+    /**
+     * Valida um CPF brasileiro: 11 dígitos, não todos iguais e com os dois
+     * dígitos verificadores corretos. Aceita CPF com ou sem formatação.
+     *
+     * @param cpf CPF (com ou sem máscara)
+     * @return {@code true} se for um CPF válido
+     */
+    public static boolean cpfValido(String cpf) {
+<span class="fc" id="L76">        String c = apenasDigitos(cpf);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (c.length() != 11) {</span>
+<span class="fc" id="L78">            return false;</span>
+        }
+        // Rejeita sequências de dígitos iguais (00000000000, 11111111111, ...).
+<span class="fc" id="L81">        boolean todosIguais = true;</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (int i = 1; i &lt; 11; i++) {</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">            if (c.charAt(i) != c.charAt(0)) {</span>
+<span class="fc" id="L84">                todosIguais = false;</span>
+<span class="fc" id="L85">                break;</span>
+            }
+        }
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (todosIguais) {</span>
+<span class="fc" id="L89">            return false;</span>
+        }
+        // Confere os dois dígitos verificadores.
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        for (int j = 9; j &lt; 11; j++) {</span>
+<span class="fc" id="L93">            int soma = 0;</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">            for (int i = 0; i &lt; j; i++) {</span>
+<span class="fc" id="L95">                soma += (c.charAt(i) - '0') * (j + 1 - i);</span>
+            }
+<span class="fc" id="L97">            int resto = (soma * 10) % 11;</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">            if (resto == 10) {</span>
+<span class="nc" id="L99">                resto = 0;</span>
+            }
+<span class="fc bfc" id="L101" title="All 2 branches covered.">            if (resto != (c.charAt(j) - '0')) {</span>
+<span class="fc" id="L102">                return false;</span>
+            }
+        }
+<span class="fc" id="L105">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

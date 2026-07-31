@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnderecoForm.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.dto</a> &gt; <span class="el_source">EnderecoForm.java</span></div><h1>EnderecoForm.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.dto;
+
+import jakarta.validation.constraints.Size;
+
+import java.util.UUID;
+
+/**
+ * Dados do endereço do passageiro (SPEC-07). Todos os campos são opcionais — o
+ * endereço pode ser completado depois (regra RN-END-01); a obrigatoriedade para
+ * solicitar viagem é aplicada no fluxo de solicitação (futuro).
+ */
+<span class="fc" id="L12">public record EnderecoForm(</span>
+
+        UUID municipioId,
+
+        @Size(max = 120, message = &quot;Bairro muito longo&quot;)
+        String bairro,
+
+        @Size(max = 180, message = &quot;Logradouro muito longo&quot;)
+        String logradouro,
+
+        @Size(max = 20)
+        String numero,
+
+        @Size(max = 120)
+        String complemento,
+
+        @Size(max = 180, message = &quot;Ponto de referência muito longo&quot;)
+        String pontoReferencia,
+
+        @Size(max = 9, message = &quot;CEP inválido&quot;)
+        String cep
+
+) {
+    /** Verdadeiro se o formulário não traz nenhum dado de endereço. */
+    public boolean vazio() {
+<span class="pc bpc" id="L37" title="1 of 2 branches missed.">        return municipioId == null</span>
+<span class="pc bpc" id="L38" title="2 of 6 branches missed.">                &amp;&amp; vazio(bairro) &amp;&amp; vazio(logradouro) &amp;&amp; vazio(numero)</span>
+<span class="pc bpc" id="L39" title="3 of 6 branches missed.">                &amp;&amp; vazio(complemento) &amp;&amp; vazio(pontoReferencia) &amp;&amp; vazio(cep);</span>
+    }
+
+    private static boolean vazio(String s) {
+<span class="pc bpc" id="L43" title="1 of 4 branches missed.">        return s == null || s.isBlank();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

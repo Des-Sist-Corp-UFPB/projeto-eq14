@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdentidadeOauth.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">IdentidadeOauth.java</span></div><h1>IdentidadeOauth.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.ProvedorOauth;
+import jakarta.persistence.*;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Vínculo entre um {@link Usuario} e uma identidade de provedor externo
+ * (OAuth2/OIDC), como o Google — SPEC-08.
+ *
+ * &lt;p&gt;A chave de identidade é o par &lt;strong&gt;({@link #provedor}, {@link #subjectId})&lt;/strong&gt;,
+ * único. O {@code subjectId} é o {@code sub} &lt;em&gt;imutável&lt;/em&gt; do provedor — preferido
+ * ao e-mail, que pode mudar. O {@link #emailProvedor} é informativo (auditoria/diagnóstico).
+ */
+@Entity
+@Table(name = &quot;identidades_oauth&quot;)
+public class IdentidadeOauth {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    /** Usuário do sistema vinculado a esta identidade externa. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = &quot;usuario&quot;, nullable = false)
+    private Usuario usuario;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;provedor&quot;, nullable = false, length = 20)
+    private ProvedorOauth provedor;
+
+    /** Identificador estável do usuário no provedor (claim {@code sub}). */
+    @Column(name = &quot;subject_id&quot;, nullable = false, length = 255)
+    private String subjectId;
+
+    /** E-mail no provedor no momento do vínculo (informativo). */
+    @Column(name = &quot;email_provedor&quot;, length = 160)
+    private String emailProvedor;
+
+    @Column(name = &quot;vinculado_em&quot;, nullable = false, updatable = false)
+    private Instant vinculadoEm;
+
+<span class="fc" id="L46">    public IdentidadeOauth() {</span>
+<span class="fc" id="L47">    }</span>
+
+<span class="fc" id="L49">    public IdentidadeOauth(Usuario usuario, ProvedorOauth provedor, String subjectId, String emailProvedor) {</span>
+<span class="fc" id="L50">        this.usuario = usuario;</span>
+<span class="fc" id="L51">        this.provedor = provedor;</span>
+<span class="fc" id="L52">        this.subjectId = subjectId;</span>
+<span class="fc" id="L53">        this.emailProvedor = emailProvedor;</span>
+<span class="fc" id="L54">    }</span>
+
+    @PrePersist
+    protected void prePersist() {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (this.vinculadoEm == null) {</span>
+<span class="nc" id="L59">            this.vinculadoEm = Instant.now();</span>
+        }
+<span class="nc" id="L61">    }</span>
+
+    // ===================== Getters e Setters =====================
+
+    public UUID getId() {
+<span class="nc" id="L66">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="nc" id="L70">        this.id = id;</span>
+<span class="nc" id="L71">    }</span>
+
+    public Usuario getUsuario() {
+<span class="fc" id="L74">        return usuario;</span>
+    }
+
+    public void setUsuario(Usuario usuario) {
+<span class="nc" id="L78">        this.usuario = usuario;</span>
+<span class="nc" id="L79">    }</span>
+
+    public ProvedorOauth getProvedor() {
+<span class="nc" id="L82">        return provedor;</span>
+    }
+
+    public void setProvedor(ProvedorOauth provedor) {
+<span class="nc" id="L86">        this.provedor = provedor;</span>
+<span class="nc" id="L87">    }</span>
+
+    public String getSubjectId() {
+<span class="nc" id="L90">        return subjectId;</span>
+    }
+
+    public void setSubjectId(String subjectId) {
+<span class="nc" id="L94">        this.subjectId = subjectId;</span>
+<span class="nc" id="L95">    }</span>
+
+    public String getEmailProvedor() {
+<span class="nc" id="L98">        return emailProvedor;</span>
+    }
+
+    public void setEmailProvedor(String emailProvedor) {
+<span class="nc" id="L102">        this.emailProvedor = emailProvedor;</span>
+<span class="nc" id="L103">    }</span>
+
+    public Instant getVinculadoEm() {
+<span class="nc" id="L106">        return vinculadoEm;</span>
+    }
+
+    public void setVinculadoEm(Instant vinculadoEm) {
+<span class="nc" id="L110">        this.vinculadoEm = vinculadoEm;</span>
+<span class="nc" id="L111">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

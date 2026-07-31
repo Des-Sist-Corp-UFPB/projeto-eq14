@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfiguracaoUmami.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.dto</a> &gt; <span class="el_source">ConfiguracaoUmami.java</span></div><h1>ConfiguracaoUmami.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.dto;
+
+import org.springframework.util.StringUtils;
+
+import java.util.regex.Pattern;
+
+/**
+ * Configuração do &lt;strong&gt;analytics de uso (Umami)&lt;/strong&gt; — SPEC-17.
+ *
+ * &lt;p&gt;Carrega o que o fragmento {@code fragments/analytics.html} precisa para montar a
+ * tag do rastreador. Segue o padrão de ativação condicional do projeto (SPEC-08/10/14):
+ * &lt;strong&gt;sem {@code UMAMI_URL} e {@code UMAMI_WEBSITE_ID}, {@link #isAtivo()} é
+ * {@code false} e nenhum script é renderizado&lt;/strong&gt; — em dev e nos testes a
+ * aplicação sobe idêntica, sem enviar nada (RN-ANL-01).
+ *
+ * @param scriptUrl  URL completa do rastreador ({@code &lt;base&gt;/script.js}); vazia quando desligado
+ * @param websiteId  identificador do site no Umami; vazio quando desligado
+ * @param dominios   valor de {@code data-domains} — &lt;strong&gt;{@code null} quando não restrito&lt;/strong&gt;,
+ *                   para o Thymeleaf simplesmente omitir o atributo
+ */
+<span class="fc" id="L21">public record ConfiguracaoUmami(String scriptUrl, String websiteId, String dominios) {</span>
+
+    /** Detecta um esquema já presente na URL (`https://`, `http://`, …). */
+<span class="fc" id="L24">    private static final Pattern ESQUEMA = Pattern.compile(&quot;^[a-zA-Z][a-zA-Z0-9+.\\-]*://&quot;);</span>
+
+    /** Instância desligada — o que vale em dev, nos testes e sem as variáveis. */
+    public static ConfiguracaoUmami desligado() {
+<span class="fc" id="L28">        return new ConfiguracaoUmami(&quot;&quot;, &quot;&quot;, null);</span>
+    }
+
+    /**
+     * Monta a configuração a partir das variáveis de ambiente, normalizando a URL base.
+     *
+     * @param url       base do Umami (ex.: {@code https://umami.dsc.rodrigor.com})
+     * @param websiteId {@code data-website-id} fornecido pelo painel
+     * @param dominios  lista para {@code data-domains} (ex.: {@code eq14.dsc.rodrigor.com}); opcional
+     */
+    public static ConfiguracaoUmami de(String url, String websiteId, String dominios) {
+<span class="fc" id="L39">        String base = normalizarUrl(url);</span>
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        String id = StringUtils.hasText(websiteId) ? websiteId.trim() : &quot;&quot;;</span>
+<span class="fc bfc" id="L41" title="All 4 branches covered.">        if (base.isEmpty() || id.isEmpty()) {</span>
+<span class="fc" id="L42">            return desligado();</span>
+        }
+<span class="fc" id="L44">        return new ConfiguracaoUmami(</span>
+                base + &quot;/script.js&quot;,
+                id,
+<span class="fc bfc" id="L47" title="All 2 branches covered.">                StringUtils.hasText(dominios) ? dominios.trim() : null);</span>
+    }
+
+    /** {@code true} quando há base e website id — só então o script é renderizado. */
+    public boolean isAtivo() {
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">        return !scriptUrl.isEmpty() &amp;&amp; !websiteId.isEmpty();</span>
+    }
+
+    /**
+     * Presume {@code https://} quando o esquema falta e remove a barra final.
+     *
+     * &lt;p&gt;Mesma armadilha já vivida na integração WhatsApp: os painéis mostram o endereço
+     * sem o esquema, é isso que a pessoa cola no {@code .env}, e o resultado seria um
+     * {@code src} &lt;em&gt;relativo&lt;/em&gt; ({@code umami.exemplo.com/script.js}) — o navegador
+     * pediria à própria aplicação, o script não carregaria e não haveria erro visível.
+     */
+    private static String normalizarUrl(String bruta) {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        String url = bruta == null ? &quot;&quot; : bruta.trim();</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (url.isEmpty()) {</span>
+<span class="fc" id="L66">            return url;</span>
+        }
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (!ESQUEMA.matcher(url).find()) {</span>
+<span class="fc" id="L69">            url = &quot;https://&quot; + url;</span>
+        }
+<span class="fc" id="L71">        int inicioHost = url.indexOf(&quot;://&quot;) + 3;</span>
+<span class="fc" id="L72">        int fim = url.length();</span>
+<span class="pc bpc" id="L73" title="1 of 4 branches missed.">        while (fim &gt; inicioHost &amp;&amp; url.charAt(fim - 1) == '/') {</span>
+<span class="fc" id="L74">            fim--;</span>
+        }
+<span class="fc" id="L76">        return url.substring(0, fim);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

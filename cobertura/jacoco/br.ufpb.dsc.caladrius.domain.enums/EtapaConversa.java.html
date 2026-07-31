@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EtapaConversa.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain.enums</a> &gt; <span class="el_source">EtapaConversa.java</span></div><h1>EtapaConversa.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain.enums;
+
+/**
+ * Etapa da máquina de estados do bot de atendimento WhatsApp (SPEC-10).
+ *
+ * &lt;p&gt;Menu (SPEC-11): solicitar viagem &lt;strong&gt;sob demanda&lt;/strong&gt;
+ * ({@code ESCOLHER_DESTINO} → {@code ESCOLHER_DATA} → {@code ESCOLHER_HORARIO} →
+ * {@code CONDICOES} → {@code CONFIRMAR_DEMANDA}), minhas viagens (+
+ * {@code CANCELAR}) e &quot;acesso à plataforma&quot;. Número novo passa antes pelo
+ * &lt;strong&gt;cadastro&lt;/strong&gt; ({@code ONBOARDING_NOME} → {@code ONBOARDING_ENDERECO}
+ * → {@code ONBOARDING_CPF}) e cai no {@code MENU}.
+ *
+ * &lt;p&gt;{@code ESCOLHER_LINHA}/{@code CONFIRMAR} (fluxo por linha da SPEC-10) e
+ * {@code HUMANO} (RN-WPP-08) permanecem para compatibilidade de schema/uso
+ * futuro, fora do menu atual. {@code ENCERRADA} marca a despedida/expiração.
+ */
+<span class="fc" id="L17">public enum EtapaConversa {</span>
+
+<span class="fc" id="L19">    INICIO,</span>
+<span class="fc" id="L20">    MENU,</span>
+    // Fluxo por linha (SPEC-10) — mantido para compatibilidade.
+<span class="fc" id="L22">    ESCOLHER_LINHA,</span>
+<span class="fc" id="L23">    CONFIRMAR,</span>
+    // Comum aos fluxos.
+<span class="fc" id="L25">    ESCOLHER_DATA,</span>
+<span class="fc" id="L26">    CANCELAR,</span>
+<span class="fc" id="L27">    HUMANO,</span>
+<span class="fc" id="L28">    ENCERRADA,</span>
+    // Cadastro pelo WhatsApp (SPEC-11).
+<span class="fc" id="L30">    ONBOARDING_NOME,</span>
+<span class="fc" id="L31">    ONBOARDING_ENDERECO,</span>
+<span class="fc" id="L32">    ONBOARDING_CPF,</span>
+    // Solicitação sob demanda (SPEC-11).
+<span class="fc" id="L34">    ESCOLHER_DESTINO,</span>
+<span class="fc" id="L35">    ESCOLHER_HORARIO,</span>
+<span class="fc" id="L36">    CONDICOES,</span>
+<span class="fc" id="L37">    CONFIRMAR_DEMANDA</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

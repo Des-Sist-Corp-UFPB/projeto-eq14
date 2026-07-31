@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ViagemService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">ViagemService.java</span></div><h1>ViagemService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Cidade;
+import br.ufpb.dsc.caladrius.domain.LinhaProgramada;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.Veiculo;
+import br.ufpb.dsc.caladrius.domain.Viagem;
+import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusViagem;
+import br.ufpb.dsc.caladrius.domain.enums.TipoViagem;
+import br.ufpb.dsc.caladrius.dto.DesignacaoForm;
+import br.ufpb.dsc.caladrius.dto.PainelSemana;
+import br.ufpb.dsc.caladrius.dto.ViagemForm;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.repository.CidadeRepository;
+import br.ufpb.dsc.caladrius.repository.LinhaProgramadaRepository;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.repository.VeiculoRepository;
+import br.ufpb.dsc.caladrius.repository.ViagemRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Lógica de negócio das viagens. Resolve as referências (veículo, motorista,
+ * cidade de destino) e valida as regras de criação.
+ */
+@Service
+@Transactional(readOnly = true)
+public class ViagemService {
+
+    private final ViagemRepository viagemRepository;
+    private final VeiculoRepository veiculoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final CidadeRepository cidadeRepository;
+    private final LinhaProgramadaRepository linhaRepository;
+    private final ConfiguracaoService configuracaoService;
+    private final AuditoriaService auditoriaService;
+
+    public ViagemService(ViagemRepository viagemRepository,
+                         VeiculoRepository veiculoRepository,
+                         UsuarioRepository usuarioRepository,
+                         CidadeRepository cidadeRepository,
+                         LinhaProgramadaRepository linhaRepository,
+                         ConfiguracaoService configuracaoService,
+<span class="fc" id="L55">                         AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L56">        this.viagemRepository = viagemRepository;</span>
+<span class="fc" id="L57">        this.veiculoRepository = veiculoRepository;</span>
+<span class="fc" id="L58">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L59">        this.cidadeRepository = cidadeRepository;</span>
+<span class="fc" id="L60">        this.linhaRepository = linhaRepository;</span>
+<span class="fc" id="L61">        this.configuracaoService = configuracaoService;</span>
+<span class="fc" id="L62">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L63">    }</span>
+
+    /** Lista viagens (com veículo/motorista/cidade já carregados) paginadas. */
+    public Page&lt;Viagem&gt; listar(Pageable pageable) {
+<span class="fc" id="L67">        return viagemRepository.listarComRelacionamentos(pageable);</span>
+    }
+
+    /** Busca uma viagem pelo id ou lança {@link RecursoNaoEncontradoException}. */
+    public Viagem buscarPorId(UUID id) {
+<span class="fc" id="L72">        return viagemRepository.findById(id)</span>
+<span class="fc" id="L73">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Viagem&quot;, id));</span>
+    }
+
+    /**
+     * Cria uma viagem.
+     *
+     * @param form          dados do formulário (referências por UUID + data/horários)
+     * @param criadoPorId   id do gerente autenticado que está criando a viagem
+     * @return a viagem criada
+     */
+    @Transactional
+    public Viagem criar(ViagemForm form, UUID criadoPorId) {
+<span class="fc" id="L85">        Veiculo veiculo = veiculoRepository.findByIdAndRemovidoEmIsNull(form.veiculoId())</span>
+<span class="pc" id="L86">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Veículo&quot;, form.veiculoId()));</span>
+
+<span class="fc" id="L88">        Usuario motorista = usuarioRepository.findByIdAndRemovidoEmIsNull(form.motoristaId())</span>
+<span class="pc" id="L89">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Motorista&quot;, form.motoristaId()));</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (!motorista.temPapel(Papel.MOTORISTA)) {</span>
+<span class="fc" id="L91">            throw new RegraNegocioException(&quot;O usuário selecionado não possui o papel de motorista&quot;);</span>
+        }
+
+<span class="fc" id="L94">        Cidade cidadeDestino = cidadeRepository.findById(form.cidadeDestinoId())</span>
+<span class="pc" id="L95">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Cidade&quot;, form.cidadeDestinoId()));</span>
+
+<span class="fc" id="L97">        Usuario criadoPor = usuarioRepository.findById(criadoPorId)</span>
+<span class="pc" id="L98">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, criadoPorId));</span>
+
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (!form.horarioChegada().isAfter(form.horarioSaida())) {</span>
+<span class="fc" id="L101">            throw new RegraNegocioException(&quot;O horário de chegada deve ser após o horário de saída&quot;);</span>
+        }
+<span class="fc" id="L103">        validarDisponibilidade(veiculo.getId(), motorista.getId(),</span>
+<span class="fc" id="L104">                form.dataViagem(), form.horarioSaida(), form.horarioChegada(), null);</span>
+
+<span class="fc" id="L106">        Viagem viagem = new Viagem();</span>
+<span class="fc" id="L107">        viagem.setVeiculo(veiculo);</span>
+<span class="fc" id="L108">        viagem.setMotorista(motorista);</span>
+<span class="fc" id="L109">        viagem.setCidadeDestino(cidadeDestino);</span>
+<span class="fc" id="L110">        viagem.setCidadeOrigem(sede());</span>
+<span class="fc" id="L111">        viagem.setTipo(TipoViagem.IMPREVISTA);</span>
+<span class="fc" id="L112">        viagem.setDataViagem(form.dataViagem());</span>
+<span class="fc" id="L113">        viagem.setHorarioSaida(form.horarioSaida());</span>
+<span class="fc" id="L114">        viagem.setHorarioChegada(form.horarioChegada());</span>
+<span class="fc" id="L115">        viagem.setStatus(StatusViagem.PLANEJADA);</span>
+<span class="fc" id="L116">        viagem.setCriadoPor(criadoPor);</span>
+<span class="fc" id="L117">        viagem = viagemRepository.save(viagem);</span>
+<span class="fc" id="L118">        auditoriaService.registrarOperacao(&quot;VIAGEM_CRIADA&quot;, &quot;Viagem&quot;, viagem.getId().toString(),</span>
+<span class="fc" id="L119">                &quot;Imprevista p/ &quot; + cidadeDestino.getNome() + &quot; em &quot; + form.dataViagem());</span>
+<span class="fc" id="L120">        return viagem;</span>
+    }
+
+    // ===================== SPEC-06 =====================
+
+    /**
+     * Designa veículo + motorista a uma linha numa data → materializa a viagem
+     * rotineira (FR-VIA-10), com checagem de conflito (RN-VIA-08).
+     */
+    @Transactional
+    public Viagem designar(DesignacaoForm form, UUID criadoPorId) {
+<span class="fc" id="L131">        LinhaProgramada linha = linhaRepository.findById(form.linhaId())</span>
+<span class="pc" id="L132">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Linha programada&quot;, form.linhaId()));</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (!linha.isAtiva()) {</span>
+<span class="fc" id="L134">            throw new RegraNegocioException(&quot;Esta linha está desabilitada&quot;);</span>
+        }
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (!linha.operaEm(DiaSemana.de(form.dataViagem().getDayOfWeek()))) {</span>
+<span class="fc" id="L137">            throw new RegraNegocioException(&quot;A linha não opera neste dia da semana&quot;);</span>
+        }
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (viagemRepository.findByLinhaProgramada_IdAndDataViagem(linha.getId(), form.dataViagem()).isPresent()) {</span>
+<span class="fc" id="L140">            throw new RegraNegocioException(&quot;Esta linha já foi designada nesta data&quot;);</span>
+        }
+
+<span class="fc" id="L143">        Veiculo veiculo = veiculoRepository.findByIdAndRemovidoEmIsNull(form.veiculoId())</span>
+<span class="pc" id="L144">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Veículo&quot;, form.veiculoId()));</span>
+<span class="fc" id="L145">        Usuario motorista = usuarioRepository.findByIdAndRemovidoEmIsNull(form.motoristaId())</span>
+<span class="pc" id="L146">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Motorista&quot;, form.motoristaId()));</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">        if (!motorista.temPapel(Papel.MOTORISTA)) {</span>
+<span class="nc" id="L148">            throw new RegraNegocioException(&quot;O usuário selecionado não possui o papel de motorista&quot;);</span>
+        }
+<span class="fc" id="L150">        Usuario criadoPor = usuarioRepository.findById(criadoPorId)</span>
+<span class="pc" id="L151">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, criadoPorId));</span>
+
+<span class="fc" id="L153">        validarDisponibilidade(veiculo.getId(), motorista.getId(),</span>
+<span class="fc" id="L154">                form.dataViagem(), linha.getHorarioSaida(), linha.getHorarioChegada(), null);</span>
+
+<span class="fc" id="L156">        Viagem viagem = new Viagem();</span>
+<span class="fc" id="L157">        viagem.setLinhaProgramada(linha);</span>
+<span class="fc" id="L158">        viagem.setTipo(TipoViagem.ROTINEIRA);</span>
+<span class="fc" id="L159">        viagem.setVeiculo(veiculo);</span>
+<span class="fc" id="L160">        viagem.setMotorista(motorista);</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        viagem.setCidadeOrigem(linha.getCidadeOrigem() != null ? linha.getCidadeOrigem() : sede());</span>
+<span class="fc" id="L162">        viagem.setCidadeDestino(linha.getCidadeDestino());</span>
+<span class="fc" id="L163">        viagem.setDataViagem(form.dataViagem());</span>
+<span class="fc" id="L164">        viagem.setHorarioSaida(linha.getHorarioSaida());</span>
+<span class="fc" id="L165">        viagem.setHorarioChegada(linha.getHorarioChegada());</span>
+<span class="fc" id="L166">        viagem.setHorarioRetorno(linha.getHorarioRetorno());</span>
+<span class="fc" id="L167">        viagem.setStatus(StatusViagem.PLANEJADA);</span>
+<span class="fc" id="L168">        viagem.setCriadoPor(criadoPor);</span>
+<span class="fc" id="L169">        viagem = viagemRepository.save(viagem);</span>
+<span class="fc" id="L170">        auditoriaService.registrarOperacao(&quot;VIAGEM_DESIGNADA&quot;, &quot;Viagem&quot;, viagem.getId().toString(),</span>
+<span class="fc" id="L171">                linha.getCidadeDestino().getNome() + &quot; em &quot; + form.dataViagem() + &quot; — &quot; + motorista.getNomeCompleto());</span>
+<span class="fc" id="L172">        return viagem;</span>
+    }
+
+    /**
+     * Altera o status da viagem (FR-VIA-08 / DT-05). Permitido ao gerente ou ao
+     * próprio motorista da viagem; o passageiro não altera.
+     */
+    @Transactional
+    public void alterarStatus(UUID viagemId, StatusViagem novoStatus, UUID solicitanteId, boolean ehGerente) {
+<span class="fc" id="L181">        Viagem viagem = buscarPorId(viagemId);</span>
+<span class="pc bpc" id="L182" title="1 of 6 branches missed.">        if (!ehGerente &amp;&amp; (solicitanteId == null || !solicitanteId.equals(viagem.getMotorista().getId()))) {</span>
+<span class="fc" id="L183">            throw new RegraNegocioException(&quot;Você só pode alterar o status das suas próprias viagens&quot;);</span>
+        }
+<span class="fc" id="L185">        viagem.setStatus(novoStatus);</span>
+<span class="fc" id="L186">        viagemRepository.save(viagem);</span>
+<span class="fc" id="L187">        auditoriaService.registrarOperacao(&quot;VIAGEM_STATUS&quot;, &quot;Viagem&quot;, viagemId.toString(),</span>
+<span class="fc" id="L188">                &quot;→ &quot; + novoStatus.getRotulo());</span>
+<span class="fc" id="L189">    }</span>
+
+    /** Viagens designadas a um motorista (visão do motorista). */
+    public List&lt;Viagem&gt; listarDoMotorista(UUID motoristaId) {
+<span class="fc" id="L193">        return viagemRepository.listarDoMotorista(motoristaId);</span>
+    }
+
+    /** Monta o painel semanal (domingo→sábado) que contém {@code referencia}. */
+    public PainelSemana painelSemana(LocalDate referencia) {
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        LocalDate base = referencia != null ? referencia : LocalDate.now();</span>
+        // Domingo como primeiro dia: getValue() MON=1..SUN=7 → SUN%7=0.
+<span class="fc" id="L200">        LocalDate inicio = base.minusDays(base.getDayOfWeek().getValue() % 7);</span>
+<span class="fc" id="L201">        LocalDate fim = inicio.plusDays(6);</span>
+
+<span class="fc" id="L203">        List&lt;Viagem&gt; daSemana = viagemRepository.listarDaSemana(inicio, fim);</span>
+<span class="fc" id="L204">        List&lt;PainelSemana.DiaPainel&gt; dias = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        for (int i = 0; i &lt; 7; i++) {</span>
+<span class="fc" id="L206">            LocalDate data = inicio.plusDays(i);</span>
+<span class="fc" id="L207">            DiaSemana dia = DiaSemana.de(data.getDayOfWeek());</span>
+<span class="fc" id="L208">            List&lt;PainelSemana.ItemDia&gt; itens = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">            for (LinhaProgramada linha : linhaRepository.ativasNoDia(dia)) {</span>
+<span class="fc" id="L210">                Viagem designada = daSemana.stream()</span>
+<span class="pc bnc" id="L211" title="All 2 branches missed.">                        .filter(v -&gt; v.getLinhaProgramada() != null</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                                &amp;&amp; v.getLinhaProgramada().getId().equals(linha.getId())</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">                                &amp;&amp; v.getDataViagem().equals(data))</span>
+<span class="fc" id="L214">                        .findFirst().orElse(null);</span>
+<span class="fc" id="L215">                itens.add(new PainelSemana.ItemDia(linha, designada));</span>
+<span class="fc" id="L216">            }</span>
+<span class="fc" id="L217">            dias.add(new PainelSemana.DiaPainel(data, dia, itens));</span>
+        }
+<span class="fc" id="L219">        return new PainelSemana(inicio, fim, dias);</span>
+    }
+
+    /**
+     * Valida disponibilidade de veículo/motorista (RN-VIA-08): rejeita se já
+     * houver viagem não cancelada com janela sobreposta na mesma data.
+     */
+    private void validarDisponibilidade(UUID veiculoId, UUID motoristaId, LocalDate data,
+                                        LocalTime saida, LocalTime chegada, UUID ignorarId) {
+<span class="fc bfc" id="L228" title="All 2 branches covered.">        if (viagemRepository.contarConflitosMotorista(motoristaId, data, saida, chegada, ignorarId) &gt; 0) {</span>
+<span class="fc" id="L229">            throw new RegraNegocioException(&quot;Motorista indisponível neste horário (já alocado em outra viagem)&quot;);</span>
+        }
+<span class="fc bfc" id="L231" title="All 2 branches covered.">        if (viagemRepository.contarConflitosVeiculo(veiculoId, data, saida, chegada, ignorarId) &gt; 0) {</span>
+<span class="fc" id="L232">            throw new RegraNegocioException(&quot;Veículo indisponível neste horário (já alocado em outra viagem)&quot;);</span>
+        }
+<span class="fc" id="L234">    }</span>
+
+    /** Cidade-sede configurada (origem padrão das viagens), ou null. */
+    private Cidade sede() {
+<span class="fc" id="L238">        return configuracaoService.getCidadeSedeId()</span>
+<span class="fc" id="L239">                .flatMap(cidadeRepository::findById)</span>
+<span class="fc" id="L240">                .orElse(null);</span>
+    }
+
+    /** Exclui uma viagem (e seus assentos, por cascade no banco). */
+    @Transactional
+    public void excluir(UUID id) {
+<span class="fc" id="L246">        Viagem viagem = buscarPorId(id);</span>
+<span class="fc" id="L247">        viagemRepository.delete(viagem);</span>
+<span class="fc" id="L248">        auditoriaService.registrarOperacao(&quot;VIAGEM_EXCLUIDA&quot;, &quot;Viagem&quot;, id.toString(),</span>
+<span class="fc" id="L249">                &quot;Destino &quot; + viagem.getCidadeDestino().getNome() + &quot; em &quot; + viagem.getDataViagem());</span>
+<span class="fc" id="L250">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

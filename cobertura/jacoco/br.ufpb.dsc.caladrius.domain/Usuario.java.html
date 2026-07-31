@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Usuario.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">Usuario.java</span></div><h1>Usuario.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import jakarta.persistence.*;
+
+import java.time.Instant;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Usuário do sistema — é a raiz de identidade do CALADRIUS. Um mesmo usuário
+ * pode ter vários papéis (passageiro, motorista, gerente).
+ *
+ * &lt;p&gt;&lt;strong&gt;Identificação flexível:&lt;/strong&gt; de acordo com o redesenho v3, o
+ * usuário pode entrar com &lt;em&gt;e-mail OU telefone&lt;/em&gt;. O telefone é sempre
+ * obrigatório e único; o e-mail e o CPF são opcionais (mas únicos quando
+ * preenchidos). A unicidade vale apenas entre usuários ativos — ver os índices
+ * únicos parciais na migração {@code V2}.
+ *
+ * &lt;p&gt;&lt;strong&gt;Soft-delete:&lt;/strong&gt; usuários nunca são apagados fisicamente
+ * (regra de domínio). &quot;Excluir&quot; preenche {@link #removidoEm}; as consultas
+ * filtram {@code removido_em IS NULL}.
+ *
+ * &lt;p&gt;&lt;strong&gt;Papéis:&lt;/strong&gt; mapeados como {@code @ElementCollection} para a
+ * tabela {@code papeis_usuario}. Carregados em modo EAGER porque a autenticação
+ * e a montagem de tela precisam deles imediatamente.
+ */
+@Entity
+@Table(name = &quot;usuarios&quot;)
+public class Usuario {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @Column(name = &quot;nome_completo&quot;, nullable = false, length = 160)
+    private String nomeCompleto;
+
+    /** CPF (somente dígitos). Opcional, único entre usuários ativos. */
+    @Column(name = &quot;cpf&quot;, length = 11)
+    private String cpf;
+
+    /** E-mail. Opcional, único entre ativos — pode ser usado para login. */
+    @Column(name = &quot;email&quot;, length = 160)
+    private String email;
+
+    /**
+     * Telefone (somente dígitos). Único entre ativos. Em geral obrigatório (cadastro
+     * público e criação pelo gerente exigem na camada de serviço), mas aceita
+     * {@code NULL} para contas criadas por login social que ainda não o informaram
+     * (perfil incompleto — SPEC-08).
+     */
+    @Column(name = &quot;telefone&quot;, length = 20)
+    private String telefone;
+
+    /** Hash BCrypt da senha. Pode ser nulo (ex.: usuário criado sem senha). */
+    @Column(name = &quot;hash_senha&quot;, length = 100)
+    private String hashSenha;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;status&quot;, nullable = false, length = 30)
+    private StatusUsuario status;
+
+    @Column(name = &quot;criado_em&quot;, nullable = false, updatable = false)
+    private Instant criadoEm;
+
+    /** Timestamp de exclusão lógica (soft-delete). {@code null} = usuário ativo. */
+    @Column(name = &quot;removido_em&quot;)
+    private Instant removidoEm;
+
+    /**
+     * Marcador (ortogonal ao {@link #status}) de conta criada por login social que
+     * ainda não preencheu os dados obrigatórios (telefone). Enquanto {@code true},
+     * o usuário é redirecionado a {@code /conta/completar} — SPEC-08.
+     */
+<span class="fc" id="L79">    @Column(name = &quot;perfil_incompleto&quot;, nullable = false)</span>
+    private boolean perfilIncompleto = false;
+
+    /** Momento em que o telefone foi verificado por OTP (SPEC-12). {@code null} = não verificado. */
+    @Column(name = &quot;telefone_verificado_em&quot;)
+    private Instant telefoneVerificadoEm;
+
+    /** Momento em que o e-mail foi verificado por link (SPEC-12). {@code null} = não verificado. */
+    @Column(name = &quot;email_verificado_em&quot;)
+    private Instant emailVerificadoEm;
+
+    /**
+     * Papéis do usuário (RBAC). Mapeados para {@code papeis_usuario(usuario, papel)}.
+     * As demais colunas da tabela ({@code concedido_em}, {@code concedido_por})
+     * têm valores padrão no banco e não são gerenciadas por aqui.
+     */
+<span class="fc" id="L95">    @ElementCollection(targetClass = Papel.class, fetch = FetchType.EAGER)</span>
+    @CollectionTable(name = &quot;papeis_usuario&quot;, joinColumns = @JoinColumn(name = &quot;usuario&quot;))
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;papel&quot;, nullable = false, length = 30)
+<span class="fc" id="L99">    private Set&lt;Papel&gt; papeis = EnumSet.noneOf(Papel.class);</span>
+
+<span class="fc" id="L101">    public Usuario() {</span>
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * Preenche valores automáticos antes do INSERT: timestamp de criação e
+     * status padrão ({@code ATIVO}) quando não informado.
+     */
+    @PrePersist
+    protected void prePersist() {
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        if (this.criadoEm == null) {</span>
+<span class="fc" id="L111">            this.criadoEm = Instant.now();</span>
+        }
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">        if (this.status == null) {</span>
+<span class="nc" id="L114">            this.status = StatusUsuario.ATIVO;</span>
+        }
+<span class="fc" id="L116">    }</span>
+
+    // ===================== Regras de conveniência =====================
+
+    /** {@code true} se o usuário pode autenticar (ativo e não removido). */
+    public boolean isAtivo() {
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">        return status == StatusUsuario.ATIVO &amp;&amp; removidoEm == null;</span>
+    }
+
+    /** {@code true} se o usuário foi removido logicamente. */
+    public boolean isRemovido() {
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        return removidoEm != null;</span>
+    }
+
+    /** {@code true} se o usuário possui o papel informado. */
+    public boolean temPapel(Papel papel) {
+<span class="fc" id="L132">        return papeis.contains(papel);</span>
+    }
+
+    // ===================== Getters e Setters =====================
+
+    public UUID getId() {
+<span class="fc" id="L138">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L142">        this.id = id;</span>
+<span class="fc" id="L143">    }</span>
+
+    public String getNomeCompleto() {
+<span class="fc" id="L146">        return nomeCompleto;</span>
+    }
+
+    public void setNomeCompleto(String nomeCompleto) {
+<span class="fc" id="L150">        this.nomeCompleto = nomeCompleto;</span>
+<span class="fc" id="L151">    }</span>
+
+    public String getCpf() {
+<span class="fc" id="L154">        return cpf;</span>
+    }
+
+    public void setCpf(String cpf) {
+<span class="fc" id="L158">        this.cpf = cpf;</span>
+<span class="fc" id="L159">    }</span>
+
+    public String getEmail() {
+<span class="fc" id="L162">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="fc" id="L166">        this.email = email;</span>
+<span class="fc" id="L167">    }</span>
+
+    public String getTelefone() {
+<span class="fc" id="L170">        return telefone;</span>
+    }
+
+    public void setTelefone(String telefone) {
+<span class="fc" id="L174">        this.telefone = telefone;</span>
+<span class="fc" id="L175">    }</span>
+
+    public String getHashSenha() {
+<span class="fc" id="L178">        return hashSenha;</span>
+    }
+
+    public void setHashSenha(String hashSenha) {
+<span class="fc" id="L182">        this.hashSenha = hashSenha;</span>
+<span class="fc" id="L183">    }</span>
+
+    public StatusUsuario getStatus() {
+<span class="fc" id="L186">        return status;</span>
+    }
+
+    public void setStatus(StatusUsuario status) {
+<span class="fc" id="L190">        this.status = status;</span>
+<span class="fc" id="L191">    }</span>
+
+    public Instant getCriadoEm() {
+<span class="nc" id="L194">        return criadoEm;</span>
+    }
+
+    public void setCriadoEm(Instant criadoEm) {
+<span class="nc" id="L198">        this.criadoEm = criadoEm;</span>
+<span class="nc" id="L199">    }</span>
+
+    public Instant getRemovidoEm() {
+<span class="fc" id="L202">        return removidoEm;</span>
+    }
+
+    public void setRemovidoEm(Instant removidoEm) {
+<span class="fc" id="L206">        this.removidoEm = removidoEm;</span>
+<span class="fc" id="L207">    }</span>
+
+    public Set&lt;Papel&gt; getPapeis() {
+<span class="fc" id="L210">        return papeis;</span>
+    }
+
+    public void setPapeis(Set&lt;Papel&gt; papeis) {
+<span class="fc" id="L214">        this.papeis = papeis;</span>
+<span class="fc" id="L215">    }</span>
+
+    public boolean isPerfilIncompleto() {
+<span class="fc" id="L218">        return perfilIncompleto;</span>
+    }
+
+    public void setPerfilIncompleto(boolean perfilIncompleto) {
+<span class="fc" id="L222">        this.perfilIncompleto = perfilIncompleto;</span>
+<span class="fc" id="L223">    }</span>
+
+    public Instant getTelefoneVerificadoEm() {
+<span class="fc" id="L226">        return telefoneVerificadoEm;</span>
+    }
+
+    public void setTelefoneVerificadoEm(Instant telefoneVerificadoEm) {
+<span class="fc" id="L230">        this.telefoneVerificadoEm = telefoneVerificadoEm;</span>
+<span class="fc" id="L231">    }</span>
+
+    public Instant getEmailVerificadoEm() {
+<span class="fc" id="L234">        return emailVerificadoEm;</span>
+    }
+
+    public void setEmailVerificadoEm(Instant emailVerificadoEm) {
+<span class="fc" id="L238">        this.emailVerificadoEm = emailVerificadoEm;</span>
+<span class="fc" id="L239">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L243">        return &quot;Usuario{id=&quot; + id + &quot;, nome='&quot; + nomeCompleto + &quot;', telefone='&quot; + telefone + &quot;'}&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

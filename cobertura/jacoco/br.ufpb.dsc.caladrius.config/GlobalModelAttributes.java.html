@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalModelAttributes.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">GlobalModelAttributes.java</span></div><h1>GlobalModelAttributes.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import br.ufpb.dsc.caladrius.domain.Notificacao;
+import br.ufpb.dsc.caladrius.dto.ConfiguracaoUmami;
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
+import br.ufpb.dsc.caladrius.service.NotificacaoService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ModelAttribute;
+
+import java.util.List;
+
+/**
+ * Disponibiliza atributos globais a todos os templates Thymeleaf.
+ *
+ * &lt;p&gt;O Thymeleaf 3.1 removeu o acesso direto a {@code #request}/{@code #session}.
+ * Expomos apenas o necessário via {@code @ModelAttribute} num {@code @ControllerAdvice},
+ * aplicado antes de qualquer método de qualquer controller.
+ *
+ * &lt;p&gt;Publicamos a URI atual (destaque do menu), as notificações in-app do usuário
+ * logado (sino da barra superior) e a configuração do analytics de uso (SPEC-17),
+ * consumida pelo fragmento {@code fragments/analytics.html}.
+ */
+@ControllerAdvice
+public class GlobalModelAttributes {
+
+    private final NotificacaoService notificacaoService;
+    private final ObjectProvider&lt;ClientRegistrationRepository&gt; clientRegistrationRepository;
+    private final ConfiguracaoUmami umami;
+
+    public GlobalModelAttributes(NotificacaoService notificacaoService,
+                                 ObjectProvider&lt;ClientRegistrationRepository&gt; clientRegistrationRepository,
+                                 @Value(&quot;${UMAMI_URL:}&quot;) String umamiUrl,
+                                 @Value(&quot;${UMAMI_WEBSITE_ID:}&quot;) String umamiWebsiteId,
+<span class="fc" id="L39">                                 @Value(&quot;${UMAMI_DOMINIOS:}&quot;) String umamiDominios) {</span>
+<span class="fc" id="L40">        this.notificacaoService = notificacaoService;</span>
+<span class="fc" id="L41">        this.clientRegistrationRepository = clientRegistrationRepository;</span>
+<span class="fc" id="L42">        this.umami = ConfiguracaoUmami.de(umamiUrl, umamiWebsiteId, umamiDominios);</span>
+<span class="fc" id="L43">    }</span>
+
+    /**
+     * {@code true} quando o login social com Google está configurado (há
+     * credenciais e, portanto, um {@code ClientRegistrationRepository}). Usado na
+     * tela de login para exibir/ocultar o botão &quot;Continuar com Google&quot; — SPEC-08.
+     */
+    @ModelAttribute(&quot;googleHabilitado&quot;)
+    public boolean googleHabilitado() {
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        return clientRegistrationRepository.getIfAvailable() != null;</span>
+    }
+
+    /**
+     * Configuração do analytics de uso (Umami) — SPEC-17. Lida do ambiente uma única
+     * vez, na construção: sem {@code UMAMI_URL}/{@code UMAMI_WEBSITE_ID} vem desligada
+     * e o fragmento {@code fragments/analytics.html} não renderiza script algum.
+     */
+    @ModelAttribute(&quot;umami&quot;)
+    public ConfiguracaoUmami umami() {
+<span class="fc" id="L62">        return umami;</span>
+    }
+
+    /**
+     * URI da requisição atual (ex.: &quot;/veiculos&quot;, &quot;/viagens/nova&quot;).
+     */
+    @ModelAttribute(&quot;requestURI&quot;)
+    public String requestURI(HttpServletRequest request) {
+<span class="fc" id="L70">        return request.getRequestURI();</span>
+    }
+
+    /** Notificações não lidas do usuário logado (sino). Vazio se anônimo. */
+    @ModelAttribute(&quot;notificacoes&quot;)
+    public List&lt;Notificacao&gt; notificacoes(@AuthenticationPrincipal UsuarioAutenticado usuario) {
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (usuario == null) {</span>
+<span class="fc" id="L77">            return List.of();</span>
+        }
+<span class="fc" id="L79">        return notificacaoService.naoLidas(usuario.getId());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PingController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">PingController.java</span></div><h1>PingController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.health.BancoHealthIndicator;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.Map;
+
+/**
+ * Health check público exigido pela disciplina.
+ *
+ * &lt;p&gt;Contrato: {@code GET /ping} → {@code 200} com JSON
+ * {@code {&quot;status&quot;:&quot;ok&quot;,&quot;service&quot;:&quot;eq14&quot;,&quot;database&quot;:&quot;up&quot;,&quot;timestamp&quot;:&quot;...&quot;}}.
+ *
+ * &lt;p&gt;O campo {@code database} vem do {@link BancoHealthIndicator}, que executa um
+ * {@code SELECT} de verdade contra o PostgreSQL (SPEC-17) — não é um valor fixo.
+ *
+ * &lt;p&gt;&lt;strong&gt;O status HTTP é sempre 200, mesmo com o banco fora&lt;/strong&gt; (RN-HC-03).
+ * O {@code /ping} é o contrato de &lt;em&gt;liveness&lt;/em&gt; da disciplina e alimenta monitores
+ * de disponibilidade: devolver 503 faria a aplicação inteira ser marcada como fora do
+ * ar por causa de uma dependência. Quem reporta indisponibilidade com o código HTTP
+ * correto é o {@code /actuator/health} — o healthcheck do container.
+ *
+ * &lt;p&gt;É um {@code @RestController} (retorna JSON direto) e está liberado sem
+ * autenticação no {@code SecurityConfig}.
+ */
+@RestController
+public class PingController {
+
+    private final BancoHealthIndicator banco;
+
+<span class="fc" id="L33">    public PingController(BancoHealthIndicator banco) {</span>
+<span class="fc" id="L34">        this.banco = banco;</span>
+<span class="fc" id="L35">    }</span>
+
+    @GetMapping(&quot;/ping&quot;)
+    public Map&lt;String, Object&gt; ping() {
+<span class="fc" id="L39">        return Map.of(</span>
+                &quot;status&quot;, &quot;ok&quot;,
+                &quot;service&quot;, &quot;eq14&quot;,
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">                &quot;database&quot;, banco.acessivel() ? &quot;up&quot; : &quot;down&quot;,</span>
+<span class="fc" id="L43">                &quot;timestamp&quot;, Instant.now().toString());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

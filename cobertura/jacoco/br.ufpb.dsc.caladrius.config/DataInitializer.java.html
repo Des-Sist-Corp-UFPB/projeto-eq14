@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">DataInitializer.java</span></div><h1>DataInitializer.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.EnumSet;
+
+/**
+ * Semeia o usuário administrador (gerente) inicial na primeira execução.
+ *
+ * &lt;p&gt;&lt;strong&gt;Por que em Java e não no Flyway?&lt;/strong&gt; A senha precisa ser um
+ * hash BCrypt compatível com o {@code PasswordEncoder} do Spring. Gerar o hash
+ * aqui usa exatamente o mesmo encoder da autenticação — garantindo que o login
+ * funcione — e evita depender da extensão {@code pgcrypto} no banco compartilhado.
+ *
+ * &lt;p&gt;É &lt;strong&gt;idempotente&lt;/strong&gt;: se o administrador já existir, nada é feito.
+ *
+ * &lt;p&gt;Credenciais padrão (TROCAR em produção):
+ * &lt;ul&gt;
+ *   &lt;li&gt;telefone: {@code 83999999999} (ou e-mail {@code admin@caladrius.local})&lt;/li&gt;
+ *   &lt;li&gt;senha: {@code admin123}&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+public class DataInitializer implements CommandLineRunner {
+
+<span class="fc" id="L35">    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);</span>
+
+    private static final String ADMIN_TELEFONE = &quot;83999999999&quot;;
+    private static final String ADMIN_EMAIL = &quot;admin@caladrius.local&quot;;
+    private static final String ADMIN_SENHA = &quot;admin123&quot;;
+
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+
+<span class="fc" id="L44">    public DataInitializer(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {</span>
+<span class="fc" id="L45">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L46">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L47">    }</span>
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (usuarioRepository.existsByTelefoneAndRemovidoEmIsNull(ADMIN_TELEFONE)) {</span>
+<span class="fc" id="L53">            log.info(&quot;Administrador já existe — seed ignorado.&quot;);</span>
+<span class="fc" id="L54">            return;</span>
+        }
+
+<span class="fc" id="L57">        Usuario admin = new Usuario();</span>
+<span class="fc" id="L58">        admin.setNomeCompleto(&quot;Administrador&quot;);</span>
+<span class="fc" id="L59">        admin.setTelefone(ADMIN_TELEFONE);</span>
+<span class="fc" id="L60">        admin.setEmail(ADMIN_EMAIL);</span>
+<span class="fc" id="L61">        admin.setHashSenha(passwordEncoder.encode(ADMIN_SENHA));</span>
+<span class="fc" id="L62">        admin.setStatus(StatusUsuario.ATIVO);</span>
+        // Bootstrap: o administrador inicial acumula GERENTE (operação) e SYSADMIN
+        // (administração do sistema) — porta de entrada do /admin em ambiente novo.
+        // Em ambientes já semeados, conceda SYSADMIN manualmente.
+<span class="fc" id="L66">        admin.setPapeis(EnumSet.of(Papel.GERENTE, Papel.SYSADMIN));</span>
+
+<span class="fc" id="L68">        usuarioRepository.save(admin);</span>
+<span class="fc" id="L69">        log.info(&quot;Usuário administrador (gerente + sysadmin) criado — telefone {} / e-mail {}.&quot;,</span>
+                ADMIN_TELEFONE, ADMIN_EMAIL);
+<span class="fc" id="L71">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

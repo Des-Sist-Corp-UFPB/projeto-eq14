@@ -115,14 +115,21 @@ some.
     -v /var/run/docker.sock:/var/run/docker.sock --network host \
     maven:3.9.9-eclipse-temurin-21 mvn -B clean test jacoco:report
   ```
-- **Percentual total:** **87,3% de linhas** (87,5% de instruções, 69,7% de ramos) na última
-  medição — **346 testes**, camada de serviços a 95,1% e controllers a 80,8%. Os cenários estão
-  documentados em [`docs/testes/`](docs/testes/).
+- **Percentual total: `87,7%` de cobertura de linhas** (88,0% de instruções, 71,0% de ramos),
+  com **388 testes — 0 falhas, 0 erros**. Medição de **2026-07-31**, com o relatório commitado
+  em `cobertura/`.
 
-  > ℹ️ Esta medição é de **2026-07-29**. A entrega da [SPEC-17](docs/sdd/specs/SPEC-17-healthcheck-de-banco-e-analytics-de-uso.md)
-  > acrescentou código **e** testes depois disso (`BancoHealthIndicatorTest`, `ConfiguracaoUmamiTest`,
-  > `AnalyticsUmamiWebTest` e novos casos em `PaginasPublicasTest`); rode o comando acima para
-  > regerar o relatório e confirmar o número atual.
+| Pacote | Linhas | | Pacote | Linhas |
+|---|---:|---|---|---:|
+| `observabilidade` | 100,0% | | `whatsapp` | 87,2% |
+| `health` | 100,0% | | `config` | 84,0% |
+| `dto` | 100,0% | | `domain` | 81,7% |
+| `util` | 97,1% | | `controller` | 81,4% |
+| `domain.enums` | 96,0% | | `whatsapp.bot` | 81,1% |
+| `service` | 95,0% | | `security` | 75,0% |
+| `notificacao` | 89,7% | | `exception` | 66,7% |
+
+  Os cenários por camada estão documentados em [`docs/testes/`](docs/testes/).
 
 ## Healthcheck e Analytics de Uso
 

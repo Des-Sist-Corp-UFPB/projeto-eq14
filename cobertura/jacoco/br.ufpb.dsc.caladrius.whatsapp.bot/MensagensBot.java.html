@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MensagensBot.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.whatsapp.bot</a> &gt; <span class="el_source">MensagensBot.java</span></div><h1>MensagensBot.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.whatsapp.bot;
+
+import br.ufpb.dsc.caladrius.domain.Cidade;
+import br.ufpb.dsc.caladrius.domain.LinhaProgramada;
+import br.ufpb.dsc.caladrius.domain.SolicitacaoViagem;
+import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Textos do bot de atendimento WhatsApp (SPEC-10/SPEC-11), centralizados: ajustar
+ * o roteiro do atendimento não toca a máquina de estados nem a integração.
+ *
+ * &lt;p&gt;Respostas curtas e numeradas (&quot;responda com o número da opção&quot;), com a
+ * formatação de negrito do WhatsApp ({@code *texto*}).
+ */
+public final class MensagensBot {
+
+<span class="fc" id="L25">    private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy&quot;);</span>
+<span class="fc" id="L26">    private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern(&quot;HH:mm&quot;);</span>
+
+    private MensagensBot() {
+        // utilitário estático — não instanciar
+    }
+
+    // ------------------------------------------------------------ gerais
+
+    public static final String AVISO_EXPIRADA = &quot;A conversa anterior expirou por inatividade. Vamos recomeçar!&quot;;
+    public static final String OPCAO_INVALIDA = &quot;Não entendi. 🤔 Responda com o *número* de uma das opções.&quot;;
+    public static final String DESPEDIDA = &quot;Atendimento encerrado. Quando precisar, é só mandar uma mensagem. Até logo! 👋&quot;;
+    public static final String SEM_DESTINOS = &quot;No momento não há destinos cadastrados. Tente novamente mais tarde ou fale com a secretaria.&quot;;
+    public static final String SEM_SOLICITACOES = &quot;Você ainda não tem solicitações de transporte.&quot;;
+    public static final String SEM_SOLICITACOES_ATIVAS = &quot;Você não tem solicitações ativas para cancelar.&quot;;
+    public static final String SEM_LINHAS =
+            &quot;No momento não há linhas de transporte programadas. Você ainda pode pedir uma viagem sob demanda (opção *1*).&quot;;
+
+    public static String menu() {
+<span class="fc" id="L44">        return &quot;&quot;&quot;</span>
+                O que você precisa?
+                *1* - Solicitar viagem
+                *2* - Minhas viagens
+                *3* - Linhas disponíveis
+                *4* - Acesso à plataforma
+                *0* - Encerrar atendimento
+                Responda com o número da opção.&quot;&quot;&quot;;
+    }
+
+    public static String saudacao(String primeiroNome) {
+<span class="fc" id="L55">        return &quot;Olá, &quot; + primeiroNome + &quot;! Sou o assistente virtual do *CALADRIUS* 🚐 — transporte municipal de saúde.&quot;;</span>
+    }
+
+    // ------------------------------------------------------------ linhas disponíveis (SPEC-11)
+
+    /**
+     * Panorama informativo das linhas rotineiras ativas (rotas que a secretaria já
+     * opera). Só apresenta — o pedido em si continua sendo sob demanda (opção 1).
+     */
+    public static String linhasDisponiveis(List&lt;LinhaProgramada&gt; linhas) {
+<span class="fc" id="L65">        StringBuilder texto = new StringBuilder(&quot;🚐 *Linhas de transporte disponíveis*\n&quot;</span>
+                + &quot;Rotas rotineiras que a secretaria já opera:\n&quot;);
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        for (int i = 0; i &lt; linhas.size(); i++) {</span>
+<span class="fc" id="L68">            LinhaProgramada l = linhas.get(i);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">            String origem = l.getCidadeOrigem() != null ? l.getCidadeOrigem().getNome() : &quot;Sede&quot;;</span>
+<span class="fc" id="L70">            texto.append('\n').append('*').append(i + 1).append(&quot;.* &quot;).append(origem)</span>
+<span class="fc" id="L71">                    .append(&quot; → *&quot;).append(l.getCidadeDestino().getNome()).append(&quot;*\n&quot;)</span>
+<span class="fc" id="L72">                    .append(&quot;🗓️ &quot;).append(diasAbreviados(l.getDias()))</span>
+<span class="fc" id="L73">                    .append(&quot; · 🕐 &quot;).append(HORA.format(l.getHorarioSaida())).append('\n');</span>
+        }
+<span class="fc" id="L75">        texto.append(&quot;\nPara pedir uma viagem, responda *1* no menu.&quot;);</span>
+<span class="fc" id="L76">        return texto.toString();</span>
+    }
+
+    // ------------------------------------------------------------ onboarding (SPEC-11)
+
+    public static final String BOAS_VINDAS_CADASTRO = &quot;&quot;&quot;
+            Olá! Sou o assistente virtual do *CALADRIUS* 🚐 — transporte municipal de saúde.
+            Ainda não encontrei o seu cadastro. Vamos fazê-lo rapidinho para você solicitar viagens.
+
+            Qual é o seu *nome completo*?&quot;&quot;&quot;;
+
+    public static final String PEDIR_ENDERECO = &quot;&quot;&quot;
+            Prazer! 👋 Agora me diga o seu *endereço* (onde o motorista vai te buscar):
+            rua, número e bairro — e um ponto de referência, se ajudar.&quot;&quot;&quot;;
+
+    public static final String PEDIR_CPF = &quot;Para finalizar o cadastro, informe o seu *CPF* (só os números).&quot;;
+
+    public static final String CPF_INVALIDO = &quot;Esse CPF não parece válido. 🤔 Confira e envie novamente (só os números).&quot;;
+
+    public static String cadastroConcluido(String primeiroNome) {
+<span class="fc" id="L96">        return &quot;Cadastro concluído, &quot; + primeiroNome + &quot;! ✅\n\n&quot; + menu();</span>
+    }
+
+    // ------------------------------------------------------------ solicitar (sob demanda)
+
+    public static String escolherDestino(List&lt;Cidade&gt; cidades) {
+<span class="fc" id="L102">        StringBuilder texto = new StringBuilder(&quot;Para qual *cidade* você precisa ir?\n&quot;);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (int i = 0; i &lt; cidades.size(); i++) {</span>
+<span class="fc" id="L104">            texto.append('\n').append('*').append(i + 1).append(&quot;* - &quot;).append(cidades.get(i).getNome());</span>
+        }
+<span class="fc" id="L106">        texto.append(&quot;\n\nResponda com o número, ou *0* para voltar ao menu.&quot;);</span>
+<span class="fc" id="L107">        return texto.toString();</span>
+    }
+
+    public static final String PEDIR_DATA = &quot;&quot;&quot;
+            Para qual *data* você precisa do transporte?
+            Responda no formato dia/mês/ano (ex.: 25/07/2026), ou *0* para voltar ao menu.&quot;&quot;&quot;;
+
+    public static final String DATA_INVALIDA =
+            &quot;Não consegui entender a data. 📅 Use o formato dia/mês/ano (ex.: 25/07/2026), ou *0* para voltar ao menu.&quot;;
+
+    public static final String DATA_PASSADA =
+            &quot;⚠️ Escolha uma data igual ou posterior a hoje, ou responda *0* para voltar ao menu.&quot;;
+
+    public static final String PEDIR_HORARIO = &quot;&quot;&quot;
+            Que *horário* você precisa chegar/consultar? (ex.: 14:00)
+            Ou responda *0* para voltar ao menu.&quot;&quot;&quot;;
+
+    public static final String HORARIO_INVALIDO =
+            &quot;Não entendi o horário. 🕐 Use o formato horas:minutos (ex.: 14:00), ou *0* para voltar ao menu.&quot;;
+
+    public static final String PEDIR_CONDICOES = &quot;&quot;&quot;
+            Você tem alguma *condição de saúde* que a secretaria deva considerar
+            (ex.: cadeirante, precisa de acompanhante, dificuldade de locomoção)?
+            Descreva em poucas palavras, ou responda *não*.&quot;&quot;&quot;;
+
+    public static String confirmarDemanda(Cidade destino, LocalDate data, LocalTime horario, String condicoes) {
+<span class="fc" id="L133">        StringBuilder texto = new StringBuilder(&quot;Confira a sua solicitação:\n&quot;)</span>
+<span class="fc" id="L134">                .append(&quot;Destino: *&quot;).append(destino.getNome()).append(&quot;*\n&quot;)</span>
+<span class="fc" id="L135">                .append(&quot;Data: *&quot;).append(DATA.format(data)).append(&quot;*\n&quot;);</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        if (horario != null) {</span>
+<span class="fc" id="L137">            texto.append(&quot;Horário: *&quot;).append(HORA.format(horario)).append(&quot;*\n&quot;);</span>
+        }
+<span class="pc bpc" id="L139" title="3 of 4 branches missed.">        if (condicoes != null &amp;&amp; !condicoes.isBlank()) {</span>
+<span class="nc" id="L140">            texto.append(&quot;Condições: &quot;).append(condicoes).append('\n');</span>
+        }
+<span class="fc" id="L142">        texto.append(&quot;\n*1* - Confirmar\n*2* - Voltar ao menu&quot;);</span>
+<span class="fc" id="L143">        return texto.toString();</span>
+    }
+
+    public static final String DEMANDA_REGISTRADA = &quot;&quot;&quot;
+            Solicitação registrada! ✅
+            A secretaria vai avaliar o seu pedido e você recebe a resposta por aqui. 📩&quot;&quot;&quot;;
+
+    // ------------------------------------------------------------ minhas viagens / cancelar
+
+    public static String minhasViagens(List&lt;SolicitacaoViagem&gt; solicitacoes) {
+<span class="fc" id="L153">        return &quot;Suas solicitações mais recentes:\n\n&quot; + solicitacoes.stream()</span>
+<span class="fc" id="L154">                .map(s -&gt; &quot;• &quot; + DATA.format(s.getDataDesejada()) + &quot; — &quot; + nomeDestino(s)</span>
+<span class="fc" id="L155">                        + &quot; — *&quot; + s.getStatus().getRotulo() + &quot;*&quot;)</span>
+<span class="fc" id="L156">                .collect(Collectors.joining(&quot;\n&quot;));</span>
+    }
+
+    public static String escolherCancelamento(List&lt;SolicitacaoViagem&gt; ativas) {
+<span class="fc" id="L160">        StringBuilder texto = new StringBuilder(&quot;Qual solicitação você quer cancelar?\n&quot;);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        for (int i = 0; i &lt; ativas.size(); i++) {</span>
+<span class="fc" id="L162">            SolicitacaoViagem s = ativas.get(i);</span>
+<span class="fc" id="L163">            texto.append('\n').append('*').append(i + 1).append(&quot;* - &quot;)</span>
+<span class="fc" id="L164">                    .append(DATA.format(s.getDataDesejada())).append(&quot; — &quot;).append(nomeDestino(s))</span>
+<span class="fc" id="L165">                    .append(&quot; (&quot;).append(s.getStatus().getRotulo()).append(')');</span>
+        }
+<span class="fc" id="L167">        texto.append(&quot;\n\nResponda com o número, ou *0* para voltar ao menu.&quot;);</span>
+<span class="fc" id="L168">        return texto.toString();</span>
+    }
+
+    public static String cancelamentoConfirmado(SolicitacaoViagem solicitacao) {
+<span class="fc" id="L172">        return &quot;Solicitação de &quot; + DATA.format(solicitacao.getDataDesejada()) + &quot; para *&quot;</span>
+<span class="fc" id="L173">                + nomeDestino(solicitacao) + &quot;* cancelada. ✅&quot;;</span>
+    }
+
+    // ------------------------------------------------------------ acesso à plataforma
+
+    public static String acessoPlataforma(String linkCompleto) {
+<span class="fc" id="L179">        return &quot;&quot;&quot;</span>
+                Para acessar o sistema pelo navegador, defina a sua senha neste link:
+                &quot;&quot;&quot; + linkCompleto + &quot;&quot;&quot;
+
+                Depois, entre com o seu telefone e a senha que você criar.
+                O link vale por alguns dias.&quot;&quot;&quot;;
+    }
+
+    // ------------------------------------------------------------ erros
+
+    /** Erros de regra de negócio repassados como resposta amigável. */
+    public static String erroDeRegra(String mensagem) {
+<span class="fc" id="L191">        return &quot;⚠️ &quot; + mensagem + &quot;.\nVoltei ao menu para você tentar de novo.&quot;;</span>
+    }
+
+    // ------------------------------------------------------------ apoio
+
+    private static String nomeDestino(SolicitacaoViagem s) {
+<span class="fc" id="L197">        Cidade destino = s.getDestino();</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        return destino != null ? destino.getNome() : &quot;—&quot;;</span>
+    }
+
+    /** Dias abreviados (Seg, Ter, …) em ordem domingo→sábado, robusto à ordem do set. */
+    private static String diasAbreviados(Set&lt;DiaSemana&gt; dias) {
+<span class="fc" id="L203">        return Stream.of(DiaSemana.values())</span>
+<span class="fc" id="L204">                .filter(dias::contains)</span>
+<span class="fc" id="L205">                .map(d -&gt; d.getRotulo().substring(0, 3))</span>
+<span class="fc" id="L206">                .collect(Collectors.joining(&quot;, &quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

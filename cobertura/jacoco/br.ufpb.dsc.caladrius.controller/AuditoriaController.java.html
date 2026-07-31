@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditoriaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">AuditoriaController.java</span></div><h1>AuditoriaController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.domain.LogAuditoria;
+import br.ufpb.dsc.caladrius.service.AuditoriaService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+/**
+ * Visões da trilha de auditoria (#19):
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code /admin/auditoria} — trilha completa (SYSADMIN).&lt;/li&gt;
+ *   &lt;li&gt;{@code /historico} — histórico de operação de negócio (GERENTE).&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Controller
+public class AuditoriaController {
+
+    private static final int TAMANHO_PAGINA = 20;
+
+    private final AuditoriaService auditoriaService;
+
+<span class="fc" id="L26">    public AuditoriaController(AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L27">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L28">    }</span>
+
+    @GetMapping(&quot;/admin/auditoria&quot;)
+    public String trilhaCompleta(@RequestParam(name = &quot;pagina&quot;, defaultValue = &quot;0&quot;) int pagina, Model model) {
+<span class="fc" id="L32">        Page&lt;LogAuditoria&gt; logs = auditoriaService.listarTudo(PageRequest.of(pagina, TAMANHO_PAGINA));</span>
+<span class="fc" id="L33">        preencher(model, logs, pagina, &quot;Auditoria do sistema&quot;,</span>
+                &quot;Trilha completa: acessos, operações e configurações.&quot;, &quot;/admin/auditoria&quot;);
+<span class="fc" id="L35">        return &quot;admin/auditoria&quot;;</span>
+    }
+
+    /**
+     * Histórico das &lt;strong&gt;solicitações&lt;/strong&gt; — o que o gerente acompanha no dia a
+     * dia: pedido criado, cancelado pelo passageiro, aprovado ou recusado. O restante
+     * da trilha (cadastros, acessos, configuração) fica na central de logs
+     * ({@code /logs}), para esta tela não virar um &quot;tudo&quot; que ninguém lê.
+     */
+    @GetMapping(&quot;/historico&quot;)
+    public String historicoSolicitacoes(@RequestParam(name = &quot;pagina&quot;, defaultValue = &quot;0&quot;) int pagina,
+                                        Model model) {
+<span class="fc" id="L47">        Page&lt;LogAuditoria&gt; logs = auditoriaService.listarSolicitacoes(PageRequest.of(pagina, TAMANHO_PAGINA));</span>
+<span class="fc" id="L48">        preencher(model, logs, pagina, &quot;Histórico de solicitações&quot;,</span>
+                &quot;Pedidos de transporte: criação, cancelamento, aprovação e recusa. &quot;
+                        + &quot;A trilha completa do sistema fica em Logs.&quot;, &quot;/historico&quot;);
+<span class="fc" id="L51">        return &quot;admin/auditoria&quot;;</span>
+    }
+
+    private void preencher(Model model, Page&lt;LogAuditoria&gt; logs, int pagina,
+                           String titulo, String subtitulo, String baseUrl) {
+<span class="fc" id="L56">        model.addAttribute(&quot;logs&quot;, logs);</span>
+<span class="fc" id="L57">        model.addAttribute(&quot;paginaAtual&quot;, pagina);</span>
+<span class="fc" id="L58">        model.addAttribute(&quot;titulo&quot;, titulo);</span>
+<span class="fc" id="L59">        model.addAttribute(&quot;subtitulo&quot;, subtitulo);</span>
+<span class="fc" id="L60">        model.addAttribute(&quot;baseUrl&quot;, baseUrl);</span>
+<span class="fc" id="L61">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

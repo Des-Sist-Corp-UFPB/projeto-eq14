@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VeiculoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">VeiculoController.java</span></div><h1>VeiculoController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.domain.Veiculo;
+import br.ufpb.dsc.caladrius.domain.enums.StatusVeiculo;
+import br.ufpb.dsc.caladrius.domain.enums.TipoVeiculo;
+import br.ufpb.dsc.caladrius.dto.VeiculoForm;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.service.VeiculoService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+/**
+ * CRUD de veículos via HTMX + Thymeleaf.
+ *
+ * &lt;p&gt;Segue o mesmo padrão do boilerplate: a listagem responde a página completa
+ * em requisições normais e apenas o fragmento da tabela em requisições HTMX
+ * (header {@code HX-Request}). Criação/edição/exclusão devolvem fragmentos.
+ */
+@Controller
+@RequestMapping(&quot;/veiculos&quot;)
+public class VeiculoController {
+
+    private static final int TAMANHO_PAGINA = 10;
+    private static final String HEADER_HTMX = &quot;HX-Request&quot;;
+
+    private final VeiculoService veiculoService;
+
+<span class="fc" id="L38">    public VeiculoController(VeiculoService veiculoService) {</span>
+<span class="fc" id="L39">        this.veiculoService = veiculoService;</span>
+<span class="fc" id="L40">    }</span>
+
+    /** Disponibiliza as opções de enum para os selects do formulário. */
+    @ModelAttribute
+    public void opcoes(Model model) {
+<span class="fc" id="L45">        model.addAttribute(&quot;tiposVeiculo&quot;, TipoVeiculo.values());</span>
+<span class="fc" id="L46">        model.addAttribute(&quot;statusesVeiculo&quot;, StatusVeiculo.values());</span>
+<span class="fc" id="L47">    }</span>
+
+    @GetMapping
+    public String listar(@RequestParam(name = &quot;busca&quot;, required = false, defaultValue = &quot;&quot;) String busca,
+                         @RequestParam(name = &quot;pagina&quot;, defaultValue = &quot;0&quot;) int pagina,
+                         @RequestHeader(value = HEADER_HTMX, required = false) String htmx,
+                         Model model) {
+<span class="fc" id="L54">        carregarPagina(busca, pagina, model);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (htmx != null) {</span>
+<span class="fc" id="L56">            return &quot;veiculos/fragments/tabela :: tabela&quot;;</span>
+        }
+<span class="fc" id="L58">        return &quot;veiculos/lista&quot;;</span>
+    }
+
+    @GetMapping(&quot;/fragmento-tabela&quot;)
+    public String fragmentoTabela(@RequestParam(name = &quot;busca&quot;, required = false, defaultValue = &quot;&quot;) String busca,
+                                 @RequestParam(name = &quot;pagina&quot;, defaultValue = &quot;0&quot;) int pagina,
+                                 Model model) {
+<span class="fc" id="L65">        carregarPagina(busca, pagina, model);</span>
+<span class="fc" id="L66">        return &quot;veiculos/fragments/tabela :: tabela&quot;;</span>
+    }
+
+    @GetMapping(&quot;/novo&quot;)
+    public String novoForm(Model model) {
+<span class="fc" id="L71">        model.addAttribute(&quot;form&quot;, new VeiculoForm(null, null, null, null, null, null, false, null));</span>
+<span class="fc" id="L72">        model.addAttribute(&quot;veiculo&quot;, null);</span>
+<span class="fc" id="L73">        return &quot;veiculos/fragments/form :: modal&quot;;</span>
+    }
+
+    @GetMapping(&quot;/{id}/editar&quot;)
+    public String editarForm(@PathVariable UUID id, Model model) {
+<span class="fc" id="L78">        Veiculo veiculo = veiculoService.buscarPorId(id);</span>
+<span class="fc" id="L79">        model.addAttribute(&quot;form&quot;, paraForm(veiculo));</span>
+<span class="fc" id="L80">        model.addAttribute(&quot;veiculo&quot;, veiculo);</span>
+<span class="fc" id="L81">        return &quot;veiculos/fragments/form :: modal&quot;;</span>
+    }
+
+    @PostMapping
+    public String criar(@Valid @ModelAttribute(&quot;form&quot;) VeiculoForm form,
+                       BindingResult bindingResult,
+                       Model model) {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (bindingResult.hasErrors()) {</span>
+<span class="fc" id="L89">            model.addAttribute(&quot;veiculo&quot;, null);</span>
+<span class="fc" id="L90">            return &quot;veiculos/fragments/form :: modal&quot;;</span>
+        }
+        try {
+<span class="fc" id="L93">            Veiculo veiculo = veiculoService.criar(form);</span>
+<span class="fc" id="L94">            model.addAttribute(&quot;veiculo&quot;, veiculo);</span>
+<span class="fc" id="L95">            return &quot;veiculos/fragments/linha :: linha&quot;;</span>
+<span class="nc" id="L96">        } catch (RegraNegocioException e) {</span>
+<span class="nc" id="L97">            bindingResult.reject(&quot;veiculo.regra&quot;, e.getMessage());</span>
+<span class="nc" id="L98">            model.addAttribute(&quot;veiculo&quot;, null);</span>
+<span class="nc" id="L99">            return &quot;veiculos/fragments/form :: modal&quot;;</span>
+        }
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public String atualizar(@PathVariable UUID id,
+                          @Valid @ModelAttribute(&quot;form&quot;) VeiculoForm form,
+                          BindingResult bindingResult,
+                          Model model) {
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (bindingResult.hasErrors()) {</span>
+<span class="fc" id="L109">            model.addAttribute(&quot;veiculo&quot;, veiculoService.buscarPorId(id));</span>
+<span class="fc" id="L110">            return &quot;veiculos/fragments/form :: modal&quot;;</span>
+        }
+        try {
+<span class="nc" id="L113">            Veiculo veiculo = veiculoService.atualizar(id, form);</span>
+<span class="nc" id="L114">            model.addAttribute(&quot;veiculo&quot;, veiculo);</span>
+<span class="nc" id="L115">            return &quot;veiculos/fragments/linha :: linha&quot;;</span>
+<span class="nc" id="L116">        } catch (RegraNegocioException e) {</span>
+<span class="nc" id="L117">            bindingResult.reject(&quot;veiculo.regra&quot;, e.getMessage());</span>
+<span class="nc" id="L118">            model.addAttribute(&quot;veiculo&quot;, veiculoService.buscarPorId(id));</span>
+<span class="nc" id="L119">            return &quot;veiculos/fragments/form :: modal&quot;;</span>
+        }
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @ResponseBody
+    public ResponseEntity&lt;Void&gt; excluir(@PathVariable UUID id) {
+        try {
+<span class="fc" id="L127">            veiculoService.excluir(id);</span>
+<span class="fc" id="L128">            return ResponseEntity.ok().build();</span>
+<span class="fc" id="L129">        } catch (RecursoNaoEncontradoException e) {</span>
+<span class="fc" id="L130">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    // ===================== Helpers =====================
+
+    private void carregarPagina(String busca, int pagina, Model model) {
+<span class="fc" id="L137">        PageRequest pageRequest = PageRequest.of(pagina, TAMANHO_PAGINA, Sort.by(&quot;placa&quot;).ascending());</span>
+<span class="fc" id="L138">        Page&lt;Veiculo&gt; veiculos = veiculoService.buscar(busca, pageRequest);</span>
+<span class="fc" id="L139">        model.addAttribute(&quot;veiculos&quot;, veiculos);</span>
+<span class="fc" id="L140">        model.addAttribute(&quot;busca&quot;, busca);</span>
+<span class="fc" id="L141">        model.addAttribute(&quot;paginaAtual&quot;, pagina);</span>
+<span class="fc" id="L142">        model.addAttribute(&quot;titulo&quot;, &quot;Veículos&quot;);</span>
+<span class="fc" id="L143">    }</span>
+
+    private VeiculoForm paraForm(Veiculo v) {
+<span class="fc" id="L146">        return new VeiculoForm(v.getPlaca(), v.getMarca(), v.getModelo(), v.getAno(),</span>
+<span class="fc" id="L147">                v.getTipo(), v.getCapacidade(), v.isPossuiAcessibilidade(), v.getStatus());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConversaBot.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">ConversaBot.java</span></div><h1>ConversaBot.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.EtapaConversa;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.UUID;
+
+/**
+ * Estado da conversa do bot de atendimento WhatsApp com um número (SPEC-10).
+ *
+ * &lt;p&gt;Mapeada para {@code conversas_bot} (migração V12) — uma conversa por
+ * telefone (normalizado, sem DDI). Persistir a máquina de estados permite que
+ * o atendimento sobreviva a redeploys. O contexto do fluxo de solicitação em
+ * andamento (linha escolhida, data desejada) fica em colunas tipadas e é limpo
+ * ao concluir ou expirar (RN-WPP-07).
+ */
+@Entity
+@Table(name = &quot;conversas_bot&quot;)
+public class ConversaBot {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    /** Telefone normalizado (apenas dígitos, sem DDI 55) — casa com {@code usuarios.telefone}. */
+    @Column(name = &quot;telefone&quot;, nullable = false, length = 20)
+    private String telefone;
+
+    /** Usuário identificado pelo telefone (RN-WPP-05); nulo se o número for desconhecido. */
+    @ManyToOne
+    @JoinColumn(name = &quot;usuario&quot;)
+    private Usuario usuario;
+
+<span class="fc" id="L49">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;etapa&quot;, nullable = false, length = 20)
+    private EtapaConversa etapa = EtapaConversa.INICIO;
+
+    /** Linha escolhida no fluxo de solicitação (contexto temporário). */
+    @ManyToOne
+    @JoinColumn(name = &quot;linha_programada&quot;)
+    private LinhaProgramada linha;
+
+    /** Data desejada no fluxo de solicitação (contexto temporário). */
+    @Column(name = &quot;data_desejada&quot;)
+    private LocalDate dataDesejada;
+
+    /** Destino escolhido no fluxo sob demanda (contexto temporário — SPEC-11). */
+    @ManyToOne
+    @JoinColumn(name = &quot;cidade_destino&quot;)
+    private Cidade cidadeDestino;
+
+    /** Horário desejado no fluxo sob demanda (contexto temporário — SPEC-11). */
+    @Column(name = &quot;horario_desejado&quot;)
+    private LocalTime horarioDesejado;
+
+    /** Condições informadas no fluxo sob demanda (contexto temporário — SPEC-11). */
+    @Column(name = &quot;condicoes&quot;, length = 280)
+    private String condicoes;
+
+    /** Rascunho do cadastro (onboarding) enquanto o bot coleta os dados — SPEC-11. */
+    @Column(name = &quot;cad_nome&quot;, length = 160)
+    private String cadNome;
+
+    @Column(name = &quot;cad_endereco&quot;, length = 280)
+    private String cadEndereco;
+
+    @Column(name = &quot;cad_cpf&quot;, length = 14)
+    private String cadCpf;
+
+    /** Última interação — base da expiração por inatividade (RN-WPP-07/08). */
+    @Column(name = &quot;atualizado_em&quot;, nullable = false)
+    private Instant atualizadoEm;
+
+<span class="fc" id="L89">    public ConversaBot() {</span>
+<span class="fc" id="L90">    }</span>
+
+    @PrePersist
+    @PreUpdate
+    protected void tocarAtualizadoEm() {
+<span class="fc" id="L95">        this.atualizadoEm = Instant.now();</span>
+<span class="fc" id="L96">    }</span>
+
+    /** Limpa o contexto dos fluxos (solicitação por linha, sob demanda e cadastro). */
+    public void limparContexto() {
+<span class="fc" id="L100">        this.linha = null;</span>
+<span class="fc" id="L101">        this.dataDesejada = null;</span>
+<span class="fc" id="L102">        this.cidadeDestino = null;</span>
+<span class="fc" id="L103">        this.horarioDesejado = null;</span>
+<span class="fc" id="L104">        this.condicoes = null;</span>
+<span class="fc" id="L105">        this.cadNome = null;</span>
+<span class="fc" id="L106">        this.cadEndereco = null;</span>
+<span class="fc" id="L107">        this.cadCpf = null;</span>
+<span class="fc" id="L108">    }</span>
+
+    public UUID getId() {
+<span class="nc" id="L111">        return id;</span>
+    }
+
+    public String getTelefone() {
+<span class="fc" id="L115">        return telefone;</span>
+    }
+
+    public void setTelefone(String telefone) {
+<span class="fc" id="L119">        this.telefone = telefone;</span>
+<span class="fc" id="L120">    }</span>
+
+    public Usuario getUsuario() {
+<span class="nc" id="L123">        return usuario;</span>
+    }
+
+    public void setUsuario(Usuario usuario) {
+<span class="fc" id="L127">        this.usuario = usuario;</span>
+<span class="fc" id="L128">    }</span>
+
+    public EtapaConversa getEtapa() {
+<span class="fc" id="L131">        return etapa;</span>
+    }
+
+    public void setEtapa(EtapaConversa etapa) {
+<span class="fc" id="L135">        this.etapa = etapa;</span>
+<span class="fc" id="L136">    }</span>
+
+    public LinhaProgramada getLinha() {
+<span class="nc" id="L139">        return linha;</span>
+    }
+
+    public void setLinha(LinhaProgramada linha) {
+<span class="nc" id="L143">        this.linha = linha;</span>
+<span class="nc" id="L144">    }</span>
+
+    public LocalDate getDataDesejada() {
+<span class="fc" id="L147">        return dataDesejada;</span>
+    }
+
+    public void setDataDesejada(LocalDate dataDesejada) {
+<span class="fc" id="L151">        this.dataDesejada = dataDesejada;</span>
+<span class="fc" id="L152">    }</span>
+
+    public Cidade getCidadeDestino() {
+<span class="fc" id="L155">        return cidadeDestino;</span>
+    }
+
+    public void setCidadeDestino(Cidade cidadeDestino) {
+<span class="fc" id="L159">        this.cidadeDestino = cidadeDestino;</span>
+<span class="fc" id="L160">    }</span>
+
+    public LocalTime getHorarioDesejado() {
+<span class="fc" id="L163">        return horarioDesejado;</span>
+    }
+
+    public void setHorarioDesejado(LocalTime horarioDesejado) {
+<span class="fc" id="L167">        this.horarioDesejado = horarioDesejado;</span>
+<span class="fc" id="L168">    }</span>
+
+    public String getCondicoes() {
+<span class="fc" id="L171">        return condicoes;</span>
+    }
+
+    public void setCondicoes(String condicoes) {
+<span class="fc" id="L175">        this.condicoes = condicoes;</span>
+<span class="fc" id="L176">    }</span>
+
+    public String getCadNome() {
+<span class="fc" id="L179">        return cadNome;</span>
+    }
+
+    public void setCadNome(String cadNome) {
+<span class="fc" id="L183">        this.cadNome = cadNome;</span>
+<span class="fc" id="L184">    }</span>
+
+    public String getCadEndereco() {
+<span class="fc" id="L187">        return cadEndereco;</span>
+    }
+
+    public void setCadEndereco(String cadEndereco) {
+<span class="fc" id="L191">        this.cadEndereco = cadEndereco;</span>
+<span class="fc" id="L192">    }</span>
+
+    public String getCadCpf() {
+<span class="nc" id="L195">        return cadCpf;</span>
+    }
+
+    public void setCadCpf(String cadCpf) {
+<span class="nc" id="L199">        this.cadCpf = cadCpf;</span>
+<span class="nc" id="L200">    }</span>
+
+    public Instant getAtualizadoEm() {
+<span class="fc" id="L203">        return atualizadoEm;</span>
+    }
+
+    public void setAtualizadoEm(Instant atualizadoEm) {
+<span class="fc" id="L207">        this.atualizadoEm = atualizadoEm;</span>
+<span class="fc" id="L208">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

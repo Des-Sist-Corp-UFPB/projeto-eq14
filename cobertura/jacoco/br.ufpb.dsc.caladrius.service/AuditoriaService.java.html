@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditoriaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">AuditoriaService.java</span></div><h1>AuditoriaService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.LogAuditoria;
+import br.ufpb.dsc.caladrius.domain.enums.AreaSistema;
+import br.ufpb.dsc.caladrius.domain.enums.CategoriaAuditoria;
+import br.ufpb.dsc.caladrius.repository.LogAuditoriaRepository;
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Registra e consulta a trilha de auditoria (DT/feature #19).
+ *
+ * &lt;p&gt;Eventos de &lt;strong&gt;operação&lt;/strong&gt; leem o usuário autenticado e o IP do
+ * contexto da requisição; eventos de &lt;strong&gt;segurança&lt;/strong&gt; (login/logout)
+ * recebem os dados explicitamente dos listeners do Spring Security.
+ */
+@Service
+@Transactional(readOnly = true)
+public class AuditoriaService {
+
+    private final LogAuditoriaRepository repository;
+
+<span class="fc" id="L34">    public AuditoriaService(LogAuditoriaRepository repository) {</span>
+<span class="fc" id="L35">        this.repository = repository;</span>
+<span class="fc" id="L36">    }</span>
+
+    // ----------------------------------------------------------- registro
+
+    /** Registro de segurança (login/logout/falha), com dados explícitos. */
+    @Transactional
+    public void registrarSeguranca(String acao, String resultado,
+                                   UUID usuarioId, String usuarioNome, String ip) {
+<span class="fc" id="L44">        LogAuditoria log = new LogAuditoria();</span>
+<span class="fc" id="L45">        log.setCategoria(CategoriaAuditoria.SEGURANCA);</span>
+<span class="fc" id="L46">        log.setAcao(acao);</span>
+<span class="fc" id="L47">        log.setResultado(resultado);</span>
+<span class="fc" id="L48">        log.setUsuarioId(usuarioId);</span>
+<span class="fc" id="L49">        log.setUsuarioNome(usuarioNome);</span>
+<span class="fc" id="L50">        log.setIp(ip);</span>
+<span class="fc" id="L51">        repository.save(log);</span>
+<span class="fc" id="L52">    }</span>
+
+    /**
+     * Registro de operação de negócio (criar/editar/excluir). Lê o usuário
+     * autenticado e o IP do contexto atual.
+     */
+    @Transactional
+    public void registrarOperacao(String acao, String entidade, String entidadeId, String detalhe) {
+<span class="fc" id="L60">        LogAuditoria log = new LogAuditoria();</span>
+<span class="fc" id="L61">        log.setCategoria(CategoriaAuditoria.OPERACAO);</span>
+<span class="fc" id="L62">        log.setAcao(acao);</span>
+<span class="fc" id="L63">        log.setResultado(&quot;SUCESSO&quot;);</span>
+<span class="fc" id="L64">        log.setEntidade(entidade);</span>
+<span class="fc" id="L65">        log.setEntidadeId(entidadeId);</span>
+<span class="fc" id="L66">        log.setDetalhe(detalhe);</span>
+<span class="fc" id="L67">        preencherAutorEContexto(log);</span>
+<span class="fc" id="L68">        repository.save(log);</span>
+<span class="fc" id="L69">    }</span>
+
+    /** Registro de evento do sistema (ex.: alteração de configuração). */
+    @Transactional
+    public void registrarSistema(String acao, String detalhe) {
+<span class="fc" id="L74">        LogAuditoria log = new LogAuditoria();</span>
+<span class="fc" id="L75">        log.setCategoria(CategoriaAuditoria.SISTEMA);</span>
+<span class="fc" id="L76">        log.setAcao(acao);</span>
+<span class="fc" id="L77">        log.setResultado(&quot;SUCESSO&quot;);</span>
+<span class="fc" id="L78">        log.setDetalhe(detalhe);</span>
+<span class="fc" id="L79">        preencherAutorEContexto(log);</span>
+<span class="fc" id="L80">        repository.save(log);</span>
+<span class="fc" id="L81">    }</span>
+
+    // ----------------------------------------------------------- consultas
+
+    /** Trilha completa (visão do SYSADMIN). */
+    public Page&lt;LogAuditoria&gt; listarTudo(Pageable pageable) {
+<span class="fc" id="L87">        return repository.findAllByOrderByInstanteDesc(pageable);</span>
+    }
+
+    /** Histórico de operação de negócio (visão do GERENTE). */
+    public Page&lt;LogAuditoria&gt; listarOperacao(Pageable pageable) {
+<span class="fc" id="L92">        return repository.findByCategoriaInOrderByInstanteDesc(</span>
+<span class="fc" id="L93">                List.of(CategoriaAuditoria.OPERACAO), pageable);</span>
+    }
+
+    /**
+     * Histórico das &lt;strong&gt;solicitações&lt;/strong&gt; (tela {@code /historico} do gerente):
+     * o ciclo de vida do pedido do passageiro — criado, cancelado, aprovado, recusado.
+     * O resto da trilha vive na central de logs ({@code /logs}).
+     */
+    public Page&lt;LogAuditoria&gt; listarSolicitacoes(Pageable pageable) {
+<span class="fc" id="L102">        return repository.findByAcaoInOrderByInstanteDesc(</span>
+<span class="fc" id="L103">                AreaSistema.SOLICITACOES.getAcoes(), pageable);</span>
+    }
+
+    /**
+     * Central de logs: a trilha inteira, opcionalmente restrita a uma
+     * {@link AreaSistema} ou a um termo de busca (os dois filtros não se combinam —
+     * o termo procura em todas as áreas, que é o que se espera de uma busca).
+     */
+    public Page&lt;LogAuditoria&gt; listar(AreaSistema area, String termo, Pageable pageable) {
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (StringUtils.hasText(termo)) {</span>
+<span class="fc" id="L113">            return repository.buscar(termo.trim().toLowerCase(), pageable);</span>
+        }
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (area == null) {</span>
+<span class="fc" id="L116">            return repository.findAllByOrderByInstanteDesc(pageable);</span>
+        }
+        // A área &quot;Sistema&quot; é o complemento: o que ainda não foi classificado.
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        return area == AreaSistema.SISTEMA</span>
+<span class="nc" id="L120">                ? repository.findByAcaoNotInOrderByInstanteDesc(</span>
+<span class="nc" id="L121">                        AreaSistema.todasAsAcoesConhecidas(), pageable)</span>
+<span class="fc" id="L122">                : repository.findByAcaoInOrderByInstanteDesc(area.getAcoes(), pageable);</span>
+    }
+
+    // ----------------------------------------------------------- helpers
+
+    private void preencherAutorEContexto(LogAuditoria log) {
+<span class="fc" id="L128">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="pc bpc" id="L129" title="1 of 4 branches missed.">        if (auth != null &amp;&amp; auth.getPrincipal() instanceof UsuarioAutenticado u) {</span>
+<span class="fc" id="L130">            log.setUsuarioId(u.getId());</span>
+<span class="fc" id="L131">            log.setUsuarioNome(u.getNomeCompleto());</span>
+        }
+<span class="fc" id="L133">        log.setIp(ipDaRequisicao());</span>
+<span class="fc" id="L134">    }</span>
+
+    /** IP da requisição atual, se houver contexto web. */
+    public static String ipDaRequisicao() {
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {</span>
+<span class="fc" id="L139">            return attrs.getRequest().getRemoteAddr();</span>
+        }
+<span class="fc" id="L141">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

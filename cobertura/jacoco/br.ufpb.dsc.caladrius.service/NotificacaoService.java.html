@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">NotificacaoService.java</span></div><h1>NotificacaoService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Notificacao;
+import br.ufpb.dsc.caladrius.notificacao.CanalNotificacao;
+import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
+import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
+import br.ufpb.dsc.caladrius.repository.NotificacaoRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Orquestra o envio de notificações pelos canais desacoplados (in-app, e-mail,
+ * WhatsApp) e expõe as notificações in-app do sino.
+ */
+@Service
+@Transactional(readOnly = true)
+public class NotificacaoService {
+
+<span class="fc" id="L24">    private final Map&lt;CanalTipo, CanalNotificacao&gt; canais = new EnumMap&lt;&gt;(CanalTipo.class);</span>
+    private final NotificacaoRepository notificacaoRepository;
+
+    public NotificacaoService(List&lt;CanalNotificacao&gt; canaisDisponiveis,
+<span class="fc" id="L28">                              NotificacaoRepository notificacaoRepository) {</span>
+<span class="fc" id="L29">        canaisDisponiveis.forEach(c -&gt; canais.put(c.tipo(), c));</span>
+<span class="fc" id="L30">        this.notificacaoRepository = notificacaoRepository;</span>
+<span class="fc" id="L31">    }</span>
+
+    /** Envia pelos canais indicados (os que não se aplicarem ao destino são ignorados). */
+    public void enviar(NotificacaoDestino destino, String titulo, String mensagem, CanalTipo... tipos) {
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        for (CanalTipo tipo : tipos) {</span>
+<span class="fc" id="L36">            CanalNotificacao canal = canais.get(tipo);</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            if (canal != null) {</span>
+<span class="fc" id="L38">                canal.enviar(destino, titulo, mensagem);</span>
+            }
+        }
+<span class="fc" id="L41">    }</span>
+
+    /** Atalho para uma notificação apenas in-app (sino). */
+    public void notificarInApp(UUID usuarioId, String titulo, String mensagem) {
+<span class="fc" id="L45">        enviar(new NotificacaoDestino(usuarioId, null, null), titulo, mensagem, CanalTipo.IN_APP);</span>
+<span class="fc" id="L46">    }</span>
+
+    // ----------------------------------------------------------- sino
+
+    public List&lt;Notificacao&gt; naoLidas(UUID usuarioId) {
+<span class="fc" id="L51">        return notificacaoRepository.findByUsuarioIdAndLidaFalseOrderByCriadoEmDesc(usuarioId);</span>
+    }
+
+    public long contarNaoLidas(UUID usuarioId) {
+<span class="fc" id="L55">        return notificacaoRepository.countByUsuarioIdAndLidaFalse(usuarioId);</span>
+    }
+
+    @Transactional
+    public void marcarTodasLidas(UUID usuarioId) {
+<span class="fc" id="L60">        List&lt;Notificacao&gt; naoLidas = naoLidas(usuarioId);</span>
+<span class="fc" id="L61">        naoLidas.forEach(n -&gt; n.setLida(true));</span>
+<span class="fc" id="L62">        notificacaoRepository.saveAll(naoLidas);</span>
+<span class="fc" id="L63">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

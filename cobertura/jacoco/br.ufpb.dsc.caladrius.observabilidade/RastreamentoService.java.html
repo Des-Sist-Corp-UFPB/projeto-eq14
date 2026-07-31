@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RastreamentoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.observabilidade</a> &gt; <span class="el_source">RastreamentoService.java</span></div><h1>RastreamentoService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.observabilidade;
+
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.function.Supplier;
+
+/**
+ * Instrumentação &lt;strong&gt;manual&lt;/strong&gt; de traces (SPEC-14 / ADR-18). Fina camada
+ * sobre a API do OpenTelemetry: abre um &lt;em&gt;span&lt;/em&gt; de negócio ao redor de uma
+ * ação, anexa atributos de domínio e — se a ação falhar — grava a exceção e marca o
+ * span como {@link StatusCode#ERROR}, sem engolir o erro (a exceção segue propagando).
+ *
+ * &lt;p&gt;Complementa a instrumentação &lt;em&gt;automática&lt;/em&gt; do agente Java (HTTP, JDBC, JVM,
+ * logs): aqui nomeamos operações do nosso domínio (ex.: {@code solicitar-sob-demanda})
+ * e as enriquecemos com atributos que só o negócio conhece (destino, tipo).
+ *
+ * &lt;p&gt;&lt;strong&gt;Desligado por padrão, sem quebrar (RN-OBS-01/06):&lt;/strong&gt; em produção o
+ * {@link OpenTelemetry} injetado vem do agente (via {@code GlobalOpenTelemetry}); sem o
+ * agente é um &lt;em&gt;no-op&lt;/em&gt; — o span é descartado, a ação roda igual e nenhuma exceção
+ * de telemetria chega ao chamador. Por isso pode ser fiado em serviços sem risco de
+ * derrubar a aplicação quando a observabilidade não está configurada.
+ */
+@Service
+public class RastreamentoService {
+
+    /** Nome do &lt;em&gt;instrumentation scope&lt;/em&gt; — aparece nos spans no Grafana/Tempo. */
+    private static final String ESCOPO = &quot;br.ufpb.dsc.caladrius&quot;;
+
+    private final Tracer tracer;
+
+<span class="fc" id="L37">    public RastreamentoService(OpenTelemetry openTelemetry) {</span>
+<span class="fc" id="L38">        this.tracer = openTelemetry.getTracer(ESCOPO);</span>
+<span class="fc" id="L39">    }</span>
+
+    /**
+     * Executa {@code acao} dentro de um span chamado {@code nome}, com os
+     * {@code atributos} de negócio anexados. No caminho feliz devolve o resultado da
+     * ação e o span termina com status implícito de sucesso. Se a ação lançar uma
+     * {@link RuntimeException}, o span registra a exceção, recebe {@link StatusCode#ERROR}
+     * e a exceção é &lt;strong&gt;repropagada&lt;/strong&gt; — a telemetria observa a falha sem
+     * alterar o comportamento de negócio.
+     *
+     * @param nome      nome do span (operação de negócio; use kebab-case, ex.: {@code solicitar-sob-demanda})
+     * @param atributos atributos de domínio (chave→valor); pode ser vazio, não deve conter segredos/PII (RN-OBS-08)
+     * @param acao      a ação a executar e medir
+     * @param &lt;T&gt;       tipo do resultado
+     * @return o valor devolvido por {@code acao}
+     */
+    public &lt;T&gt; T rastrear(String nome, Map&lt;String, String&gt; atributos, Supplier&lt;T&gt; acao) {
+<span class="fc" id="L56">        Span span = tracer.spanBuilder(nome).startSpan();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if (atributos != null) {</span>
+<span class="fc" id="L58">            atributos.forEach(span::setAttribute);</span>
+        }
+<span class="fc" id="L60">        try (Scope escopo = span.makeCurrent()) {</span>
+<span class="fc" id="L61">            return acao.get();</span>
+<span class="fc" id="L62">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L63">            span.recordException(e);</span>
+<span class="fc" id="L64">            span.setStatus(StatusCode.ERROR,</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">                    e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());</span>
+<span class="fc" id="L66">            throw e;</span>
+        } finally {
+<span class="fc" id="L68">            span.end();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Cidade.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">Cidade.java</span></div><h1>Cidade.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.TipoCidade;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.util.UUID;
+
+/**
+ * Cidade do sistema — pode ser a {@code ORIGEM} (município de partida dos
+ * pacientes) ou a {@code METROPOLITANA} (destino das consultas de saúde).
+ *
+ * &lt;p&gt;Mapeada para a tabela {@code cidades} (ver migração {@code V2}). A chave
+ * primária é um {@link UUID} gerado pelo Hibernate ({@code GenerationType.UUID}).
+ */
+@Entity
+@Table(name = &quot;cidades&quot;)
+public class Cidade {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @NotBlank(message = &quot;O nome da cidade é obrigatório&quot;)
+    @Size(max = 120, message = &quot;O nome deve ter no máximo 120 caracteres&quot;)
+    @Column(name = &quot;nome&quot;, nullable = false, length = 120)
+    private String nome;
+
+    @NotBlank(message = &quot;A UF é obrigatória&quot;)
+    @Size(min = 2, max = 2, message = &quot;A UF deve ter 2 letras (ex.: PB)&quot;)
+    @Column(name = &quot;uf&quot;, nullable = false, length = 2)
+    private String uf;
+
+    @NotNull(message = &quot;O tipo da cidade é obrigatório&quot;)
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;tipo&quot;, nullable = false, length = 30)
+    private TipoCidade tipo;
+
+<span class="fc" id="L42">    public Cidade() {</span>
+<span class="fc" id="L43">    }</span>
+
+<span class="fc" id="L45">    public Cidade(String nome, String uf, TipoCidade tipo) {</span>
+<span class="fc" id="L46">        this.nome = nome;</span>
+<span class="fc" id="L47">        this.uf = uf;</span>
+<span class="fc" id="L48">        this.tipo = tipo;</span>
+<span class="fc" id="L49">    }</span>
+
+    public UUID getId() {
+<span class="fc" id="L52">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L56">        this.id = id;</span>
+<span class="fc" id="L57">    }</span>
+
+    public String getNome() {
+<span class="fc" id="L60">        return nome;</span>
+    }
+
+    public void setNome(String nome) {
+<span class="fc" id="L64">        this.nome = nome;</span>
+<span class="fc" id="L65">    }</span>
+
+    public String getUf() {
+<span class="fc" id="L68">        return uf;</span>
+    }
+
+    public void setUf(String uf) {
+<span class="fc" id="L72">        this.uf = uf;</span>
+<span class="fc" id="L73">    }</span>
+
+    public TipoCidade getTipo() {
+<span class="fc" id="L76">        return tipo;</span>
+    }
+
+    public void setTipo(TipoCidade tipo) {
+<span class="fc" id="L80">        this.tipo = tipo;</span>
+<span class="fc" id="L81">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L85">        return &quot;Cidade{id=&quot; + id + &quot;, nome='&quot; + nome + &quot;/&quot; + uf + &quot;'}&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

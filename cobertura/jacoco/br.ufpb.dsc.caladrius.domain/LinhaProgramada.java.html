@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LinhaProgramada.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">LinhaProgramada.java</span></div><h1>LinhaProgramada.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+import java.time.LocalTime;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Linha programada (template recorrente) das viagens rotineiras (SPEC-06).
+ *
+ * &lt;p&gt;Define origem→destino, horários e os &lt;strong&gt;dias da semana&lt;/strong&gt;
+ * (tabela filha {@code linha_dias}, via {@link ElementCollection} — ADR-12) em
+ * que opera. As ocorrências ({@link Viagem}) são materializadas sob demanda.
+ */
+@Entity
+@Table(name = &quot;linhas_programadas&quot;)
+public class LinhaProgramada {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @ManyToOne
+    @JoinColumn(name = &quot;cidade_origem&quot;)
+    private Cidade cidadeOrigem;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = &quot;cidade_destino&quot;, nullable = false)
+    private Cidade cidadeDestino;
+
+    @Column(name = &quot;horario_saida&quot;, nullable = false)
+    private LocalTime horarioSaida;
+
+    @Column(name = &quot;horario_chegada&quot;, nullable = false)
+    private LocalTime horarioChegada;
+
+    @Column(name = &quot;horario_retorno&quot;)
+    private LocalTime horarioRetorno;
+
+<span class="fc" id="L56">    @Column(name = &quot;ativa&quot;, nullable = false)</span>
+    private boolean ativa = true;
+
+<span class="fc" id="L59">    @ElementCollection(fetch = FetchType.EAGER)</span>
+    @CollectionTable(name = &quot;linha_dias&quot;, joinColumns = @JoinColumn(name = &quot;linha&quot;))
+    @Column(name = &quot;dia&quot;)
+    @Enumerated(EnumType.STRING)
+<span class="fc" id="L63">    private Set&lt;DiaSemana&gt; dias = EnumSet.noneOf(DiaSemana.class);</span>
+
+<span class="fc" id="L65">    public LinhaProgramada() {</span>
+<span class="fc" id="L66">    }</span>
+
+    public boolean operaEm(DiaSemana dia) {
+<span class="fc" id="L69">        return dias.contains(dia);</span>
+    }
+
+    public UUID getId() {
+<span class="fc" id="L73">        return id;</span>
+    }
+
+    public Cidade getCidadeOrigem() {
+<span class="fc" id="L77">        return cidadeOrigem;</span>
+    }
+
+    public void setCidadeOrigem(Cidade cidadeOrigem) {
+<span class="fc" id="L81">        this.cidadeOrigem = cidadeOrigem;</span>
+<span class="fc" id="L82">    }</span>
+
+    public Cidade getCidadeDestino() {
+<span class="fc" id="L85">        return cidadeDestino;</span>
+    }
+
+    public void setCidadeDestino(Cidade cidadeDestino) {
+<span class="fc" id="L89">        this.cidadeDestino = cidadeDestino;</span>
+<span class="fc" id="L90">    }</span>
+
+    public LocalTime getHorarioSaida() {
+<span class="fc" id="L93">        return horarioSaida;</span>
+    }
+
+    public void setHorarioSaida(LocalTime horarioSaida) {
+<span class="fc" id="L97">        this.horarioSaida = horarioSaida;</span>
+<span class="fc" id="L98">    }</span>
+
+    public LocalTime getHorarioChegada() {
+<span class="fc" id="L101">        return horarioChegada;</span>
+    }
+
+    public void setHorarioChegada(LocalTime horarioChegada) {
+<span class="fc" id="L105">        this.horarioChegada = horarioChegada;</span>
+<span class="fc" id="L106">    }</span>
+
+    public LocalTime getHorarioRetorno() {
+<span class="fc" id="L109">        return horarioRetorno;</span>
+    }
+
+    public void setHorarioRetorno(LocalTime horarioRetorno) {
+<span class="fc" id="L113">        this.horarioRetorno = horarioRetorno;</span>
+<span class="fc" id="L114">    }</span>
+
+    public boolean isAtiva() {
+<span class="fc" id="L117">        return ativa;</span>
+    }
+
+    public void setAtiva(boolean ativa) {
+<span class="fc" id="L121">        this.ativa = ativa;</span>
+<span class="fc" id="L122">    }</span>
+
+    public Set&lt;DiaSemana&gt; getDias() {
+<span class="fc" id="L125">        return dias;</span>
+    }
+
+    public void setDias(Set&lt;DiaSemana&gt; dias) {
+<span class="fc" id="L129">        this.dias = dias;</span>
+<span class="fc" id="L130">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PainelSemana.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.dto</a> &gt; <span class="el_source">PainelSemana.java</span></div><h1>PainelSemana.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.dto;
+
+import br.ufpb.dsc.caladrius.domain.LinhaProgramada;
+import br.ufpb.dsc.caladrius.domain.Viagem;
+import br.ufpb.dsc.caladrius.domain.enums.DiaSemana;
+
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Modelo de visão do painel semanal (SPEC-06, FR-VIA-09): para cada dia da
+ * semana, as linhas que operam e a viagem já designada (se houver).
+ */
+<span class="fc" id="L14">public record PainelSemana(LocalDate inicio, LocalDate fim, List&lt;DiaPainel&gt; dias) {</span>
+
+    /** Um dia da grade (Dom→Sáb) com seus itens. */
+<span class="fc" id="L17">    public record DiaPainel(LocalDate data, DiaSemana dia, List&lt;ItemDia&gt; itens) {</span>
+    }
+
+    /** Uma linha do dia; {@code viagem} nula = ainda não designada. */
+<span class="fc" id="L21">    public record ItemDia(LinhaProgramada linha, Viagem viagem) {</span>
+        public boolean designada() {
+<span class="pc bpc" id="L23" title="1 of 2 branches missed.">            return viagem != null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

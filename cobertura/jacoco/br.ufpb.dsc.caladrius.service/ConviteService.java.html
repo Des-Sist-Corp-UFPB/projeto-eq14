@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConviteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">ConviteService.java</span></div><h1>ConviteService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.TokenAtivacao;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.FinalidadeToken;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
+import br.ufpb.dsc.caladrius.notificacao.NotificacaoDestino;
+import br.ufpb.dsc.caladrius.repository.TokenAtivacaoRepository;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.util.Documentos;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
+import java.util.HexFormat;
+import java.util.UUID;
+
+/**
+ * Onboarding por convite (#20). Cria o usuário como {@code PENDENTE} (sem senha
+ * utilizável) e gera um &lt;strong&gt;token de ativação&lt;/strong&gt; de uso único; o
+ * convidado define a senha pelo token e a conta vira {@code ATIVO}.
+ *
+ * &lt;p&gt;Mesma engine para SYSADMIN→GERENTE e GERENTE→MOTORISTA. A entrega usa o
+ * {@link NotificacaoService} (e-mail/WhatsApp), mantendo os meios desacoplados.
+ */
+@Service
+@Transactional(readOnly = true)
+public class ConviteService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final TokenAtivacaoRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final NotificacaoService notificacaoService;
+    private final AuditoriaService auditoriaService;
+    private final FeatureFlagService featureFlags;
+
+    public ConviteService(UsuarioRepository usuarioRepository,
+                          TokenAtivacaoRepository tokenRepository,
+                          PasswordEncoder passwordEncoder,
+                          NotificacaoService notificacaoService,
+                          AuditoriaService auditoriaService,
+<span class="fc" id="L53">                          FeatureFlagService featureFlags) {</span>
+<span class="fc" id="L54">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L55">        this.tokenRepository = tokenRepository;</span>
+<span class="fc" id="L56">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L57">        this.notificacaoService = notificacaoService;</span>
+<span class="fc" id="L58">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L59">        this.featureFlags = featureFlags;</span>
+<span class="fc" id="L60">    }</span>
+
+    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06) — os defaults
+    // do código (7 dias / 6 caracteres) preservam o comportamento anterior (RN-FLG-02).
+
+    private int validadeDias() {
+<span class="fc" id="L66">        return featureFlags.parametro(ParametroSistema.CONVITE_VALIDADE_DIAS);</span>
+    }
+
+    private int senhaMinima() {
+<span class="fc" id="L70">        return featureFlags.parametro(ParametroSistema.SENHA_MIN);</span>
+    }
+
+    /**
+     * Convida alguém para um papel: cria o usuário PENDENTE e dispara o token.
+     *
+     * @return o link de ativação (relativo) — útil para exibir a quem convidou
+     */
+    @Transactional
+    public String convidar(String nome, String telefone, String email, Papel papel, UUID criadoPorId) {
+<span class="fc" id="L80">        String tel = Documentos.apenasDigitos(telefone);</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        if (!StringUtils.hasText(tel)) {</span>
+<span class="nc" id="L82">            throw new RegraNegocioException(&quot;O telefone é obrigatório&quot;);</span>
+        }
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (usuarioRepository.existsByTelefoneAndRemovidoEmIsNull(tel)) {</span>
+<span class="fc" id="L85">            throw new RegraNegocioException(&quot;Telefone já cadastrado: &quot; + tel);</span>
+        }
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        String em = StringUtils.hasText(email) ? email.trim().toLowerCase() : null;</span>
+<span class="pc bpc" id="L88" title="1 of 4 branches missed.">        if (em != null &amp;&amp; usuarioRepository.existsByEmailIgnoreCaseAndRemovidoEmIsNull(em)) {</span>
+<span class="nc" id="L89">            throw new RegraNegocioException(&quot;E-mail já cadastrado: &quot; + em);</span>
+        }
+
+<span class="fc" id="L92">        Usuario usuario = new Usuario();</span>
+<span class="fc" id="L93">        usuario.setNomeCompleto(nome.trim());</span>
+<span class="fc" id="L94">        usuario.setTelefone(tel);</span>
+<span class="fc" id="L95">        usuario.setEmail(em);</span>
+        // Senha inutilizável até a ativação (hash de valor aleatório).
+<span class="fc" id="L97">        usuario.setHashSenha(passwordEncoder.encode(UUID.randomUUID().toString()));</span>
+<span class="fc" id="L98">        usuario.setStatus(StatusUsuario.PENDENTE);</span>
+<span class="fc" id="L99">        usuario.setPapeis(EnumSet.of(papel));</span>
+<span class="fc" id="L100">        usuario = usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L102">        String raw = gerarTokenCru();</span>
+<span class="fc" id="L103">        TokenAtivacao token = new TokenAtivacao();</span>
+<span class="fc" id="L104">        token.setTokenHash(hash(raw));</span>
+<span class="fc" id="L105">        token.setUsuarioId(usuario.getId());</span>
+<span class="fc" id="L106">        token.setCriadoPorId(criadoPorId);</span>
+<span class="fc" id="L107">        token.setExpiraEm(Instant.now().plus(validadeDias(), ChronoUnit.DAYS));</span>
+<span class="fc" id="L108">        tokenRepository.save(token);</span>
+
+<span class="fc" id="L110">        String link = &quot;/ativar?token=&quot; + raw;</span>
+<span class="fc" id="L111">        notificacaoService.enviar(</span>
+<span class="fc" id="L112">                new NotificacaoDestino(usuario.getId(), em, tel),</span>
+                &quot;Convite de acesso — CALADRIUS&quot;,
+<span class="fc" id="L114">                &quot;Você foi convidado(a) como &quot; + papel.getRotulo()</span>
+                        + &quot;. Defina sua senha em: &quot; + link,
+                CanalTipo.EMAIL, CanalTipo.WHATSAPP);
+
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (criadoPorId != null) {</span>
+<span class="fc" id="L119">            notificacaoService.notificarInApp(criadoPorId, &quot;Convite enviado&quot;,</span>
+<span class="fc" id="L120">                    &quot;Convite de &quot; + papel.getRotulo() + &quot; para &quot; + nome.trim() + &quot;.&quot;);</span>
+        }
+<span class="fc" id="L122">        auditoriaService.registrarOperacao(&quot;CONVITE_GERADO&quot;, &quot;Usuario&quot;,</span>
+<span class="fc" id="L123">                usuario.getId().toString(), papel.name() + &quot; — &quot; + nome.trim());</span>
+<span class="fc" id="L124">        return link;</span>
+    }
+
+    /**
+     * &quot;Acesso à plataforma&quot; (SPEC-11): gera um token de ativação para um usuário
+     * &lt;strong&gt;já existente&lt;/strong&gt; (ex.: passageiro auto-cadastrado pelo WhatsApp,
+     * sem senha) definir a sua senha e passar a logar na web. Reaproveita a mesma
+     * engine de token do convite (ADR-11); não cria mecanismo de segurança novo.
+     *
+     * @return o link relativo de definição de senha (o chamador o entrega)
+     */
+    @Transactional
+    public String gerarAcessoPlataforma(UUID usuarioId) {
+<span class="nc" id="L137">        Usuario usuario = usuarioRepository.findByIdAndRemovidoEmIsNull(usuarioId)</span>
+<span class="nc" id="L138">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, usuarioId));</span>
+
+<span class="nc" id="L140">        String raw = gerarTokenCru();</span>
+<span class="nc" id="L141">        TokenAtivacao token = new TokenAtivacao();</span>
+<span class="nc" id="L142">        token.setTokenHash(hash(raw));</span>
+<span class="nc" id="L143">        token.setUsuarioId(usuario.getId());</span>
+<span class="nc" id="L144">        token.setCriadoPorId(usuario.getId());</span>
+<span class="nc" id="L145">        token.setExpiraEm(Instant.now().plus(validadeDias(), ChronoUnit.DAYS));</span>
+<span class="nc" id="L146">        tokenRepository.save(token);</span>
+
+<span class="nc" id="L148">        auditoriaService.registrarOperacao(&quot;ACESSO_PLATAFORMA_TOKEN&quot;, &quot;Usuario&quot;,</span>
+<span class="nc" id="L149">                usuario.getId().toString(), &quot;Token de acesso à plataforma (WhatsApp)&quot;);</span>
+<span class="nc" id="L150">        return &quot;/ativar?token=&quot; + raw;</span>
+    }
+
+    /** Redime o token: valida, define a senha e ativa a conta. */
+    @Transactional
+    public void ativar(String rawToken, String novaSenha) {
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">        if (!StringUtils.hasText(rawToken)) {</span>
+<span class="nc" id="L157">            throw new RegraNegocioException(&quot;Convite inválido.&quot;);</span>
+        }
+<span class="fc" id="L159">        TokenAtivacao token = tokenRepository.findByTokenHash(hash(rawToken))</span>
+<span class="fc" id="L160">                .orElseThrow(() -&gt; new RegraNegocioException(&quot;Convite inválido.&quot;));</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (!token.valido()) {</span>
+<span class="fc" id="L162">            throw new RegraNegocioException(&quot;Convite expirado ou já utilizado.&quot;);</span>
+        }
+        // Um token de verificação de e-mail não pode definir senha (SPEC-12).
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (token.getFinalidade() != FinalidadeToken.ATIVACAO) {</span>
+<span class="fc" id="L166">            throw new RegraNegocioException(&quot;Convite inválido.&quot;);</span>
+        }
+<span class="fc" id="L168">        int senhaMinima = senhaMinima();</span>
+<span class="pc bpc" id="L169" title="1 of 4 branches missed.">        if (novaSenha == null || novaSenha.length() &lt; senhaMinima) {</span>
+<span class="fc" id="L170">            throw new RegraNegocioException(&quot;A senha deve ter ao menos &quot; + senhaMinima + &quot; caracteres.&quot;);</span>
+        }
+
+<span class="fc" id="L173">        Usuario usuario = usuarioRepository.findById(token.getUsuarioId())</span>
+<span class="pc" id="L174">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, token.getUsuarioId()));</span>
+<span class="fc" id="L175">        usuario.setHashSenha(passwordEncoder.encode(novaSenha));</span>
+<span class="fc" id="L176">        usuario.setStatus(StatusUsuario.ATIVO);</span>
+<span class="fc" id="L177">        usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L179">        token.setUsadoEm(Instant.now());</span>
+<span class="fc" id="L180">        tokenRepository.save(token);</span>
+
+<span class="fc" id="L182">        notificacaoService.notificarInApp(usuario.getId(), &quot;Conta ativada&quot;,</span>
+                &quot;Sua conta foi ativada com sucesso. Bem-vindo(a) ao CALADRIUS!&quot;);
+<span class="fc" id="L184">        auditoriaService.registrarSeguranca(&quot;CONTA_ATIVADA&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L185">                usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());</span>
+<span class="fc" id="L186">    }</span>
+
+    // ------------------------------------------------- verificação de e-mail (SPEC-12)
+
+    /**
+     * Envia um &lt;strong&gt;link mágico&lt;/strong&gt; por e-mail para confirmar o endereço
+     * (reusa o {@code TokenAtivacao}, com {@code finalidade = VERIFICAR_EMAIL}).
+     * No-op se o usuário não tem e-mail. Não bloqueia a conta — e-mail é opcional.
+     */
+    @Transactional
+    public void enviarVerificacaoEmail(Usuario usuario) {
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (!StringUtils.hasText(usuario.getEmail())) {</span>
+<span class="fc" id="L198">            return;</span>
+        }
+<span class="fc" id="L200">        String raw = gerarTokenCru();</span>
+<span class="fc" id="L201">        TokenAtivacao token = new TokenAtivacao();</span>
+<span class="fc" id="L202">        token.setTokenHash(hash(raw));</span>
+<span class="fc" id="L203">        token.setUsuarioId(usuario.getId());</span>
+<span class="fc" id="L204">        token.setCriadoPorId(usuario.getId());</span>
+<span class="fc" id="L205">        token.setFinalidade(FinalidadeToken.VERIFICAR_EMAIL);</span>
+<span class="fc" id="L206">        token.setExpiraEm(Instant.now().plus(validadeDias(), ChronoUnit.DAYS));</span>
+<span class="fc" id="L207">        tokenRepository.save(token);</span>
+
+<span class="fc" id="L209">        String link = &quot;/verificar-email?token=&quot; + raw;</span>
+<span class="fc" id="L210">        notificacaoService.enviar(</span>
+<span class="fc" id="L211">                new NotificacaoDestino(usuario.getId(), usuario.getEmail(), null),</span>
+                &quot;Confirme seu e-mail — CALADRIUS&quot;,
+                &quot;Para confirmar o seu e-mail no CALADRIUS, acesse: &quot; + link,
+                CanalTipo.EMAIL);
+<span class="fc" id="L215">    }</span>
+
+    /** Redime o link de verificação de e-mail: marca {@code email_verificado_em} e consome o token. */
+    @Transactional
+    public void verificarEmail(String rawToken) {
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">        if (!StringUtils.hasText(rawToken)) {</span>
+<span class="nc" id="L221">            throw new RegraNegocioException(&quot;Link inválido.&quot;);</span>
+        }
+<span class="fc" id="L223">        TokenAtivacao token = tokenRepository.findByTokenHash(hash(rawToken))</span>
+<span class="fc" id="L224">                .orElseThrow(() -&gt; new RegraNegocioException(&quot;Link inválido ou expirado.&quot;));</span>
+<span class="pc bpc" id="L225" title="1 of 4 branches missed.">        if (!token.valido() || token.getFinalidade() != FinalidadeToken.VERIFICAR_EMAIL) {</span>
+<span class="fc" id="L226">            throw new RegraNegocioException(&quot;Link inválido ou expirado.&quot;);</span>
+        }
+<span class="fc" id="L228">        Usuario usuario = usuarioRepository.findById(token.getUsuarioId())</span>
+<span class="pc" id="L229">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Usuário&quot;, token.getUsuarioId()));</span>
+<span class="fc" id="L230">        usuario.setEmailVerificadoEm(Instant.now());</span>
+<span class="fc" id="L231">        usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L233">        token.setUsadoEm(Instant.now());</span>
+<span class="fc" id="L234">        tokenRepository.save(token);</span>
+
+<span class="fc" id="L236">        auditoriaService.registrarSeguranca(&quot;EMAIL_VERIFICADO&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L237">                usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());</span>
+<span class="fc" id="L238">    }</span>
+
+    // ----------------------------------------------------------- helpers
+
+    private String gerarTokenCru() {
+<span class="fc" id="L243">        return UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;)</span>
+<span class="fc" id="L244">                + UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;);</span>
+    }
+
+    /** SHA-256 (hex) do token cru — só o hash é persistido. */
+    private String hash(String valor) {
+        try {
+<span class="fc" id="L250">            MessageDigest md = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L251">            byte[] digest = md.digest(valor.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L252">            return HexFormat.of().formatHex(digest);</span>
+<span class="nc" id="L253">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L254">            throw new IllegalStateException(&quot;SHA-256 indisponível&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

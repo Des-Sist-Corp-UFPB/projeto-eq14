@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BotAtendimentoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.whatsapp.bot</a> &gt; <span class="el_source">BotAtendimentoService.java</span></div><h1>BotAtendimentoService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.whatsapp.bot;
+
+import br.ufpb.dsc.caladrius.domain.Cidade;
+import br.ufpb.dsc.caladrius.domain.ConversaBot;
+import br.ufpb.dsc.caladrius.domain.LinhaProgramada;
+import br.ufpb.dsc.caladrius.domain.SolicitacaoViagem;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.EtapaConversa;
+import br.ufpb.dsc.caladrius.domain.enums.StatusSolicitacao;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.repository.ConversaBotRepository;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import br.ufpb.dsc.caladrius.service.ConviteService;
+import br.ufpb.dsc.caladrius.service.OnboardingService;
+import br.ufpb.dsc.caladrius.service.SolicitacaoViagemService;
+import br.ufpb.dsc.caladrius.service.WhatsappService;
+import br.ufpb.dsc.caladrius.util.Documentos;
+import br.ufpb.dsc.caladrius.whatsapp.MensagemRecebida;
+import br.ufpb.dsc.caladrius.whatsapp.ProcessadorMensagemRecebida;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.MonthDay;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Bot de atendimento do WhatsApp (SPEC-10/SPEC-11) — máquina de estados persistida
+ * em {@code conversas_bot}. Permite ao passageiro &lt;strong&gt;cadastrar-se, solicitar
+ * transporte sob demanda, consultar e cancelar&lt;/strong&gt; viagens e obter
+ * &lt;strong&gt;acesso à plataforma&lt;/strong&gt;, tudo pela conversa.
+ *
+ * &lt;p&gt;&lt;strong&gt;Desacoplamento (requisito do projeto):&lt;/strong&gt; o bot consome
+ * {@link MensagemRecebida} normalizada (via {@link ProcessadorMensagemRecebida})
+ * e responde pela fachada {@link WhatsappService} — &lt;em&gt;nada aqui conhece a
+ * Evolution API&lt;/em&gt;. Toda a lógica de negócio vem de serviços de domínio
+ * ({@link OnboardingService}, {@link SolicitacaoViagemService},
+ * {@link ConviteService}); trocar o provedor de WhatsApp é escrever outro
+ * adaptador da porta {@code ProvedorWhatsapp}, sem tocar neste arquivo.
+ */
+@Service
+public class BotAtendimentoService implements ProcessadorMensagemRecebida {
+
+    /** Inatividade que expira a conversa — a próxima mensagem recomeça (RN-WPP-07). */
+<span class="fc" id="L54">    static final Duration EXPIRACAO = Duration.ofMinutes(30);</span>
+
+<span class="fc" id="L56">    private static final DateTimeFormatter DATA_COMPLETA = DateTimeFormatter.ofPattern(&quot;d/M/uuuu&quot;);</span>
+<span class="fc" id="L57">    private static final DateTimeFormatter DATA_SEM_ANO = DateTimeFormatter.ofPattern(&quot;d/M&quot;);</span>
+
+    private final ConversaBotRepository conversaRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final SolicitacaoViagemService solicitacaoService;
+    private final OnboardingService onboardingService;
+    private final ConviteService conviteService;
+    private final WhatsappService whatsappService;
+    private final String appUrlPublica;
+
+    public BotAtendimentoService(ConversaBotRepository conversaRepository,
+                                 UsuarioRepository usuarioRepository,
+                                 SolicitacaoViagemService solicitacaoService,
+                                 OnboardingService onboardingService,
+                                 ConviteService conviteService,
+                                 WhatsappService whatsappService,
+<span class="fc" id="L73">                                 @Value(&quot;${APP_URL_PUBLICA:}&quot;) String appUrlPublica) {</span>
+<span class="fc" id="L74">        this.conversaRepository = conversaRepository;</span>
+<span class="fc" id="L75">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L76">        this.solicitacaoService = solicitacaoService;</span>
+<span class="fc" id="L77">        this.onboardingService = onboardingService;</span>
+<span class="fc" id="L78">        this.conviteService = conviteService;</span>
+<span class="fc" id="L79">        this.whatsappService = whatsappService;</span>
+<span class="fc" id="L80">        this.appUrlPublica = appUrlPublica;</span>
+<span class="fc" id="L81">    }</span>
+
+    @Override
+    @Transactional
+    public void processar(MensagemRecebida mensagem) {
+<span class="fc" id="L86">        String telefone = mensagem.telefone();</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        String texto = mensagem.texto() == null ? &quot;&quot; : mensagem.texto().trim();</span>
+<span class="fc" id="L88">        Usuario usuario = identificar(telefone).orElse(null);</span>
+
+<span class="fc" id="L90">        ConversaBot conversa = conversaRepository.findByTelefone(telefone).orElseGet(() -&gt; {</span>
+<span class="fc" id="L91">            ConversaBot nova = new ConversaBot();</span>
+<span class="fc" id="L92">            nova.setTelefone(telefone);</span>
+<span class="fc" id="L93">            return nova;</span>
+        });
+
+        // Conversa expirada por inatividade: recomeça, com aviso (RN-WPP-07).
+<span class="fc bfc" id="L97" title="All 4 branches covered.">        if (emAtendimento(conversa) &amp;&amp; expirou(conversa)) {</span>
+<span class="fc" id="L98">            responder(telefone, MensagensBot.AVISO_EXPIRADA);</span>
+<span class="fc" id="L99">            conversa.limparContexto();</span>
+<span class="fc" id="L100">            conversa.setEtapa(EtapaConversa.INICIO);</span>
+        }
+
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (usuario == null) {</span>
+            // Número desconhecido → cadastro guiado (SPEC-11, RN-ONB-01).
+<span class="fc" id="L105">            atenderOnboarding(conversa, telefone, texto);</span>
+        } else {
+<span class="fc" id="L107">            conversa.setUsuario(usuario);</span>
+<span class="fc" id="L108">            atender(conversa, usuario, texto);</span>
+        }
+<span class="fc" id="L110">        conversaRepository.save(conversa);</span>
+<span class="fc" id="L111">    }</span>
+
+    // ============================================================ onboarding
+
+    private void atenderOnboarding(ConversaBot conversa, String telefone, String texto) {
+<span class="fc bfc" id="L116" title="All 4 branches covered.">        switch (conversa.getEtapa()) {</span>
+            case ONBOARDING_NOME -&gt; {
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">                if (!StringUtils.hasText(texto)) {</span>
+<span class="nc" id="L119">                    responder(telefone, &quot;Por favor, informe o seu *nome completo*.&quot;);</span>
+<span class="nc" id="L120">                    return;</span>
+                }
+<span class="fc" id="L122">                conversa.setCadNome(texto);</span>
+<span class="fc" id="L123">                responder(telefone, MensagensBot.PEDIR_ENDERECO);</span>
+<span class="fc" id="L124">                conversa.setEtapa(EtapaConversa.ONBOARDING_ENDERECO);</span>
+<span class="fc" id="L125">            }</span>
+            case ONBOARDING_ENDERECO -&gt; {
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">                if (!StringUtils.hasText(texto)) {</span>
+<span class="nc" id="L128">                    responder(telefone, MensagensBot.PEDIR_ENDERECO);</span>
+<span class="nc" id="L129">                    return;</span>
+                }
+<span class="fc" id="L131">                conversa.setCadEndereco(texto);</span>
+<span class="fc" id="L132">                responder(telefone, MensagensBot.PEDIR_CPF);</span>
+<span class="fc" id="L133">                conversa.setEtapa(EtapaConversa.ONBOARDING_CPF);</span>
+<span class="fc" id="L134">            }</span>
+<span class="fc" id="L135">            case ONBOARDING_CPF -&gt; finalizarCadastro(conversa, telefone, texto);</span>
+            // INICIO/ENCERRADA/qualquer outra: dá as boas-vindas e pede o nome.
+            default -&gt; {
+<span class="fc" id="L138">                responder(telefone, MensagensBot.BOAS_VINDAS_CADASTRO);</span>
+<span class="fc" id="L139">                conversa.setEtapa(EtapaConversa.ONBOARDING_NOME);</span>
+            }
+        }
+<span class="fc" id="L142">    }</span>
+
+    private void finalizarCadastro(ConversaBot conversa, String telefone, String cpf) {
+        try {
+<span class="fc" id="L146">            Usuario novo = onboardingService.cadastrarPassageiro(</span>
+<span class="fc" id="L147">                    telefone, conversa.getCadNome(), conversa.getCadEndereco(), cpf);</span>
+<span class="fc" id="L148">            conversa.setUsuario(novo);</span>
+<span class="fc" id="L149">            conversa.limparContexto();</span>
+<span class="fc" id="L150">            conversa.setEtapa(EtapaConversa.MENU);</span>
+<span class="fc" id="L151">            responder(telefone, MensagensBot.cadastroConcluido(primeiroNome(novo)));</span>
+<span class="fc" id="L152">        } catch (RegraNegocioException e) {</span>
+            // CPF inválido / já cadastrado etc. — repete a etapa do CPF.
+<span class="fc" id="L154">            responder(telefone, &quot;⚠️ &quot; + e.getMessage() + &quot;.&quot;);</span>
+<span class="fc" id="L155">            responder(telefone, MensagensBot.PEDIR_CPF);</span>
+<span class="fc" id="L156">        }</span>
+<span class="fc" id="L157">    }</span>
+
+    // ============================================================ atendimento (cadastrado)
+
+    private void atender(ConversaBot conversa, Usuario usuario, String texto) {
+<span class="fc bfc" id="L162" title="All 8 branches covered.">        switch (conversa.getEtapa()) {</span>
+<span class="fc" id="L163">            case MENU -&gt; menu(conversa, usuario, texto);</span>
+<span class="fc" id="L164">            case ESCOLHER_DESTINO -&gt; escolherDestino(conversa, texto);</span>
+<span class="fc" id="L165">            case ESCOLHER_DATA -&gt; escolherData(conversa, texto);</span>
+<span class="fc" id="L166">            case ESCOLHER_HORARIO -&gt; escolherHorario(conversa, texto);</span>
+<span class="fc" id="L167">            case CONDICOES -&gt; condicoes(conversa, texto);</span>
+<span class="fc" id="L168">            case CONFIRMAR_DEMANDA -&gt; confirmarDemanda(conversa, usuario, texto);</span>
+<span class="fc" id="L169">            case CANCELAR -&gt; cancelar(conversa, usuario, texto);</span>
+            // INICIO/ENCERRADA/HUMANO/etapas dormentes: saúda e abre o menu.
+            default -&gt; {
+<span class="fc" id="L172">                responder(conversa.getTelefone(),</span>
+<span class="fc" id="L173">                        MensagensBot.saudacao(primeiroNome(usuario)) + &quot;\n\n&quot; + MensagensBot.menu());</span>
+<span class="fc" id="L174">                conversa.setEtapa(EtapaConversa.MENU);</span>
+            }
+        }
+<span class="fc" id="L177">    }</span>
+
+    private void menu(ConversaBot conversa, Usuario usuario, String texto) {
+<span class="pc bpc" id="L180" title="1 of 6 branches missed.">        switch (texto) {</span>
+            case &quot;1&quot; -&gt; {
+<span class="fc" id="L182">                List&lt;Cidade&gt; cidades = solicitacaoService.cidadesDestino();</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">                if (cidades.isEmpty()) {</span>
+<span class="nc" id="L184">                    responder(conversa.getTelefone(), MensagensBot.SEM_DESTINOS);</span>
+<span class="nc" id="L185">                    responder(conversa.getTelefone(), MensagensBot.menu());</span>
+<span class="nc" id="L186">                    return;</span>
+                }
+<span class="fc" id="L188">                responder(conversa.getTelefone(), MensagensBot.escolherDestino(cidades));</span>
+<span class="fc" id="L189">                conversa.setEtapa(EtapaConversa.ESCOLHER_DESTINO);</span>
+<span class="fc" id="L190">            }</span>
+            case &quot;2&quot; -&gt; {
+<span class="fc" id="L192">                List&lt;SolicitacaoViagem&gt; solicitacoes = solicitacaoService.listarDoPassageiro(usuario.getId());</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">                if (solicitacoes.isEmpty()) {</span>
+<span class="nc" id="L194">                    responder(conversa.getTelefone(), MensagensBot.SEM_SOLICITACOES);</span>
+<span class="nc" id="L195">                    responder(conversa.getTelefone(), MensagensBot.menu());</span>
+<span class="nc" id="L196">                    return;</span>
+                }
+<span class="fc" id="L198">                responder(conversa.getTelefone(), MensagensBot.minhasViagens(solicitacoes));</span>
+<span class="fc" id="L199">                List&lt;SolicitacaoViagem&gt; ativas = ativas(solicitacoes);</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">                if (ativas.isEmpty()) {</span>
+<span class="nc" id="L201">                    responder(conversa.getTelefone(), MensagensBot.menu());</span>
+                } else {
+<span class="fc" id="L203">                    responder(conversa.getTelefone(), MensagensBot.escolherCancelamento(ativas));</span>
+<span class="fc" id="L204">                    conversa.setEtapa(EtapaConversa.CANCELAR);</span>
+                }
+<span class="fc" id="L206">            }</span>
+            case &quot;3&quot; -&gt; {
+<span class="fc" id="L208">                List&lt;LinhaProgramada&gt; linhas = solicitacaoService.linhasDisponiveis();</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">                responder(conversa.getTelefone(), linhas.isEmpty()</span>
+<span class="fc" id="L210">                        ? MensagensBot.SEM_LINHAS : MensagensBot.linhasDisponiveis(linhas));</span>
+<span class="fc" id="L211">                responder(conversa.getTelefone(), MensagensBot.menu());</span>
+<span class="fc" id="L212">            }</span>
+            case &quot;4&quot; -&gt; {
+<span class="fc" id="L214">                String link = conviteService.gerarAcessoPlataforma(usuario.getId());</span>
+<span class="fc" id="L215">                responder(conversa.getTelefone(), MensagensBot.acessoPlataforma(linkCompleto(link)));</span>
+<span class="fc" id="L216">                responder(conversa.getTelefone(), MensagensBot.menu());</span>
+<span class="fc" id="L217">            }</span>
+            case &quot;0&quot; -&gt; {
+<span class="nc" id="L219">                responder(conversa.getTelefone(), MensagensBot.DESPEDIDA);</span>
+<span class="nc" id="L220">                conversa.limparContexto();</span>
+<span class="nc" id="L221">                conversa.setEtapa(EtapaConversa.ENCERRADA);</span>
+<span class="nc" id="L222">            }</span>
+<span class="fc" id="L223">            default -&gt; responder(conversa.getTelefone(),</span>
+<span class="fc" id="L224">                    MensagensBot.OPCAO_INVALIDA + &quot;\n\n&quot; + MensagensBot.menu());</span>
+        }
+<span class="fc" id="L226">    }</span>
+
+    // ------------------------------------------------------------ solicitar sob demanda
+
+    private void escolherDestino(ConversaBot conversa, String texto) {
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">        if (&quot;0&quot;.equals(texto)) {</span>
+<span class="nc" id="L232">            voltarAoMenu(conversa);</span>
+<span class="nc" id="L233">            return;</span>
+        }
+<span class="fc" id="L235">        List&lt;Cidade&gt; cidades = solicitacaoService.cidadesDestino();</span>
+<span class="fc" id="L236">        Integer escolha = numero(texto);</span>
+<span class="pc bpc" id="L237" title="3 of 6 branches missed.">        if (escolha == null || escolha &lt; 1 || escolha &gt; cidades.size()) {</span>
+<span class="nc" id="L238">            responder(conversa.getTelefone(),</span>
+<span class="nc" id="L239">                    MensagensBot.OPCAO_INVALIDA + &quot;\n\n&quot; + MensagensBot.escolherDestino(cidades));</span>
+<span class="nc" id="L240">            return;</span>
+        }
+<span class="fc" id="L242">        conversa.setCidadeDestino(cidades.get(escolha - 1));</span>
+<span class="fc" id="L243">        responder(conversa.getTelefone(), MensagensBot.PEDIR_DATA);</span>
+<span class="fc" id="L244">        conversa.setEtapa(EtapaConversa.ESCOLHER_DATA);</span>
+<span class="fc" id="L245">    }</span>
+
+    private void escolherData(ConversaBot conversa, String texto) {
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">        if (&quot;0&quot;.equals(texto)) {</span>
+<span class="nc" id="L249">            voltarAoMenu(conversa);</span>
+<span class="nc" id="L250">            return;</span>
+        }
+<span class="fc" id="L252">        LocalDate data = parseData(texto);</span>
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">        if (data == null) {</span>
+<span class="nc" id="L254">            responder(conversa.getTelefone(), MensagensBot.DATA_INVALIDA);</span>
+<span class="nc" id="L255">            return;</span>
+        }
+<span class="fc bfc" id="L257" title="All 2 branches covered.">        if (data.isBefore(LocalDate.now())) {</span>
+<span class="fc" id="L258">            responder(conversa.getTelefone(), MensagensBot.DATA_PASSADA);</span>
+<span class="fc" id="L259">            return;</span>
+        }
+<span class="fc" id="L261">        conversa.setDataDesejada(data);</span>
+<span class="fc" id="L262">        responder(conversa.getTelefone(), MensagensBot.PEDIR_HORARIO);</span>
+<span class="fc" id="L263">        conversa.setEtapa(EtapaConversa.ESCOLHER_HORARIO);</span>
+<span class="fc" id="L264">    }</span>
+
+    private void escolherHorario(ConversaBot conversa, String texto) {
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">        if (&quot;0&quot;.equals(texto)) {</span>
+<span class="nc" id="L268">            voltarAoMenu(conversa);</span>
+<span class="nc" id="L269">            return;</span>
+        }
+<span class="fc" id="L271">        LocalTime horario = parseHorario(texto);</span>
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">        if (horario == null) {</span>
+<span class="nc" id="L273">            responder(conversa.getTelefone(), MensagensBot.HORARIO_INVALIDO);</span>
+<span class="nc" id="L274">            return;</span>
+        }
+<span class="fc" id="L276">        conversa.setHorarioDesejado(horario);</span>
+<span class="fc" id="L277">        responder(conversa.getTelefone(), MensagensBot.PEDIR_CONDICOES);</span>
+<span class="fc" id="L278">        conversa.setEtapa(EtapaConversa.CONDICOES);</span>
+<span class="fc" id="L279">    }</span>
+
+    private void condicoes(ConversaBot conversa, String texto) {
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (&quot;0&quot;.equals(texto)) {</span>
+<span class="nc" id="L283">            voltarAoMenu(conversa);</span>
+<span class="nc" id="L284">            return;</span>
+        }
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">        conversa.setCondicoes(semCondicoes(texto) ? null : texto);</span>
+<span class="fc" id="L287">        responder(conversa.getTelefone(), MensagensBot.confirmarDemanda(</span>
+<span class="fc" id="L288">                conversa.getCidadeDestino(), conversa.getDataDesejada(),</span>
+<span class="fc" id="L289">                conversa.getHorarioDesejado(), conversa.getCondicoes()));</span>
+<span class="fc" id="L290">        conversa.setEtapa(EtapaConversa.CONFIRMAR_DEMANDA);</span>
+<span class="fc" id="L291">    }</span>
+
+    private void confirmarDemanda(ConversaBot conversa, Usuario usuario, String texto) {
+<span class="pc bpc" id="L294" title="2 of 4 branches missed.">        if (&quot;2&quot;.equals(texto) || &quot;0&quot;.equals(texto)) {</span>
+<span class="nc" id="L295">            voltarAoMenu(conversa);</span>
+<span class="nc" id="L296">            return;</span>
+        }
+<span class="pc bpc" id="L298" title="1 of 2 branches missed.">        if (!&quot;1&quot;.equals(texto)) {</span>
+<span class="nc" id="L299">            responder(conversa.getTelefone(), MensagensBot.OPCAO_INVALIDA + &quot;\n\n&quot;</span>
+<span class="nc" id="L300">                    + MensagensBot.confirmarDemanda(conversa.getCidadeDestino(), conversa.getDataDesejada(),</span>
+<span class="nc" id="L301">                    conversa.getHorarioDesejado(), conversa.getCondicoes()));</span>
+<span class="nc" id="L302">            return;</span>
+        }
+        try {
+<span class="fc" id="L305">            solicitacaoService.solicitarSobDemanda(usuario.getId(), conversa.getCidadeDestino().getId(),</span>
+<span class="fc" id="L306">                    conversa.getDataDesejada(), conversa.getHorarioDesejado(), conversa.getCondicoes());</span>
+<span class="fc" id="L307">            responder(conversa.getTelefone(), MensagensBot.DEMANDA_REGISTRADA);</span>
+<span class="fc" id="L308">        } catch (RegraNegocioException | RecursoNaoEncontradoException e) {</span>
+<span class="fc" id="L309">            responder(conversa.getTelefone(), MensagensBot.erroDeRegra(e.getMessage()));</span>
+<span class="fc" id="L310">        }</span>
+<span class="fc" id="L311">        voltarAoMenu(conversa);</span>
+<span class="fc" id="L312">    }</span>
+
+    // ------------------------------------------------------------ cancelar
+
+    private void cancelar(ConversaBot conversa, Usuario usuario, String texto) {
+<span class="pc bpc" id="L317" title="1 of 2 branches missed.">        if (&quot;0&quot;.equals(texto)) {</span>
+<span class="nc" id="L318">            voltarAoMenu(conversa);</span>
+<span class="nc" id="L319">            return;</span>
+        }
+<span class="fc" id="L321">        List&lt;SolicitacaoViagem&gt; ativas = ativas(solicitacaoService.listarDoPassageiro(usuario.getId()));</span>
+<span class="fc" id="L322">        Integer escolha = numero(texto);</span>
+<span class="pc bpc" id="L323" title="3 of 6 branches missed.">        if (escolha == null || escolha &lt; 1 || escolha &gt; ativas.size()) {</span>
+<span class="nc" id="L324">            responder(conversa.getTelefone(),</span>
+<span class="nc" id="L325">                    MensagensBot.OPCAO_INVALIDA + &quot;\n\n&quot; + MensagensBot.escolherCancelamento(ativas));</span>
+<span class="nc" id="L326">            return;</span>
+        }
+<span class="fc" id="L328">        SolicitacaoViagem solicitacao = ativas.get(escolha - 1);</span>
+        try {
+            // Isolamento (RN-WPP-06/RN-SOL-07): só as do próprio passageiro.
+<span class="fc" id="L331">            solicitacaoService.cancelar(solicitacao.getId(), usuario.getId());</span>
+<span class="fc" id="L332">            responder(conversa.getTelefone(), MensagensBot.cancelamentoConfirmado(solicitacao));</span>
+<span class="nc" id="L333">        } catch (RegraNegocioException | RecursoNaoEncontradoException e) {</span>
+<span class="nc" id="L334">            responder(conversa.getTelefone(), MensagensBot.erroDeRegra(e.getMessage()));</span>
+<span class="fc" id="L335">        }</span>
+<span class="fc" id="L336">        voltarAoMenu(conversa);</span>
+<span class="fc" id="L337">    }</span>
+
+    // ============================================================ apoio
+
+    /**
+     * Resolve o usuário ativo pelo telefone normalizado. JIDs antigos podem vir
+     * sem o 9º dígito — as variantes cobrem o caso (SPEC-10 §4.5).
+     */
+    private Optional&lt;Usuario&gt; identificar(String telefone) {
+<span class="fc bfc" id="L346" title="All 2 branches covered.">        for (String variante : Documentos.variantesTelefoneBr(telefone)) {</span>
+<span class="fc" id="L347">            Optional&lt;Usuario&gt; usuario = usuarioRepository.findByTelefoneAndRemovidoEmIsNull(variante)</span>
+<span class="fc" id="L348">                    .filter(Usuario::isAtivo);</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">            if (usuario.isPresent()) {</span>
+<span class="fc" id="L350">                return usuario;</span>
+            }
+<span class="fc" id="L352">        }</span>
+<span class="fc" id="L353">        return Optional.empty();</span>
+    }
+
+    /** Solicitações que ainda podem ser canceladas (pendentes ou alocadas). */
+    private List&lt;SolicitacaoViagem&gt; ativas(List&lt;SolicitacaoViagem&gt; solicitacoes) {
+<span class="fc" id="L358">        return solicitacoes.stream()</span>
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">                .filter(s -&gt; s.getStatus() == StatusSolicitacao.PENDENTE</span>
+<span class="pc bnc" id="L360" title="All 2 branches missed.">                        || s.getStatus() == StatusSolicitacao.ALOCADA)</span>
+<span class="fc" id="L361">                .toList();</span>
+    }
+
+    private void voltarAoMenu(ConversaBot conversa) {
+<span class="fc" id="L365">        conversa.limparContexto();</span>
+<span class="fc" id="L366">        responder(conversa.getTelefone(), MensagensBot.menu());</span>
+<span class="fc" id="L367">        conversa.setEtapa(EtapaConversa.MENU);</span>
+<span class="fc" id="L368">    }</span>
+
+    private void responder(String telefone, String texto) {
+<span class="fc" id="L371">        whatsappService.enviarTexto(telefone, texto);</span>
+<span class="fc" id="L372">    }</span>
+
+    private boolean emAtendimento(ConversaBot conversa) {
+<span class="fc bfc" id="L375" title="All 2 branches covered.">        return conversa.getEtapa() != EtapaConversa.INICIO</span>
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">                &amp;&amp; conversa.getEtapa() != EtapaConversa.ENCERRADA;</span>
+    }
+
+    private boolean expirou(ConversaBot conversa) {
+<span class="fc" id="L380">        Instant referencia = conversa.getAtualizadoEm();</span>
+<span class="pc bpc" id="L381" title="1 of 4 branches missed.">        return referencia == null || referencia.plus(EXPIRACAO).isBefore(Instant.now());</span>
+    }
+
+    private String primeiroNome(Usuario usuario) {
+<span class="fc" id="L385">        String nome = usuario.getNomeCompleto();</span>
+<span class="fc" id="L386">        int espaco = nome.indexOf(' ');</span>
+<span class="pc bpc" id="L387" title="1 of 2 branches missed.">        return espaco &gt; 0 ? nome.substring(0, espaco) : nome;</span>
+    }
+
+    /** Prefixa o link de ativação com a URL pública (quando configurada). */
+    private String linkCompleto(String linkRelativo) {
+<span class="pc bpc" id="L392" title="1 of 2 branches missed.">        return StringUtils.hasText(appUrlPublica) ? appUrlPublica + linkRelativo : linkRelativo;</span>
+    }
+
+    private boolean semCondicoes(String texto) {
+<span class="fc" id="L396">        String t = texto.trim().toLowerCase();</span>
+<span class="pc bpc" id="L397" title="9 of 10 branches missed.">        return t.equals(&quot;não&quot;) || t.equals(&quot;nao&quot;) || t.equals(&quot;-&quot;) || t.equals(&quot;nenhuma&quot;) || t.equals(&quot;nenhum&quot;);</span>
+    }
+
+    private Integer numero(String texto) {
+        try {
+<span class="fc" id="L402">            return Integer.parseInt(texto.trim());</span>
+<span class="nc" id="L403">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L404">            return null;</span>
+        }
+    }
+
+    /** Aceita {@code d/M/aaaa} e {@code d/M} (assume o ano corrente). */
+    private LocalDate parseData(String texto) {
+        try {
+<span class="fc" id="L411">            return LocalDate.parse(texto, DATA_COMPLETA);</span>
+<span class="nc" id="L412">        } catch (DateTimeParseException e) {</span>
+            try {
+<span class="nc" id="L414">                return MonthDay.parse(texto, DATA_SEM_ANO).atYear(LocalDate.now().getYear());</span>
+<span class="nc" id="L415">            } catch (DateTimeParseException ignorada) {</span>
+<span class="nc" id="L416">                return null;</span>
+            }
+        }
+    }
+
+    /** Aceita {@code HH:mm}, {@code HHhmm}, {@code HHh} e {@code HH}. */
+    private LocalTime parseHorario(String texto) {
+<span class="fc" id="L423">        String t = texto.trim().toLowerCase().replace('h', ':').replace(&quot; &quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L424" title="1 of 2 branches missed.">        if (t.endsWith(&quot;:&quot;)) {</span>
+<span class="nc" id="L425">            t = t + &quot;00&quot;;</span>
+        }
+        try {
+<span class="pc bpc" id="L428" title="1 of 2 branches missed.">            if (t.contains(&quot;:&quot;)) {</span>
+<span class="fc" id="L429">                String[] partes = t.split(&quot;:&quot;);</span>
+<span class="fc" id="L430">                int hora = Integer.parseInt(partes[0]);</span>
+<span class="pc bpc" id="L431" title="2 of 4 branches missed.">                int min = partes.length &gt; 1 &amp;&amp; !partes[1].isEmpty() ? Integer.parseInt(partes[1]) : 0;</span>
+<span class="fc" id="L432">                return LocalTime.of(hora, min);</span>
+            }
+<span class="nc" id="L434">            return LocalTime.of(Integer.parseInt(t), 0);</span>
+<span class="nc" id="L435">        } catch (NumberFormatException | java.time.DateTimeException e) {</span>
+<span class="nc" id="L436">            return null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

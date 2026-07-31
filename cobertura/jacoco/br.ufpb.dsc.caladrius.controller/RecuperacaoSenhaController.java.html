@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RecuperacaoSenhaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">RecuperacaoSenhaController.java</span></div><h1>RecuperacaoSenhaController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.domain.enums.MetodoVerificacao;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.service.RecuperacaoSenhaService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+/**
+ * Telas públicas de recuperação de senha (SPEC-12): &quot;esqueci a senha&quot; (escolha do
+ * método) e a redefinição com o código. Respostas &lt;strong&gt;genéricas&lt;/strong&gt;
+ * (anti-enumeração — RN-REC-02).
+ */
+@Controller
+public class RecuperacaoSenhaController {
+
+    private final RecuperacaoSenhaService recuperacaoSenhaService;
+
+<span class="fc" id="L24">    public RecuperacaoSenhaController(RecuperacaoSenhaService recuperacaoSenhaService) {</span>
+<span class="fc" id="L25">        this.recuperacaoSenhaService = recuperacaoSenhaService;</span>
+<span class="fc" id="L26">    }</span>
+
+    /** Tela onde a pessoa escolhe o método (E-mail/Telefone) e informa o valor. */
+    @GetMapping(&quot;/esqueci-senha&quot;)
+    public String form(Model model) {
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        if (!model.containsAttribute(&quot;metodo&quot;)) {</span>
+<span class="fc" id="L32">            model.addAttribute(&quot;metodo&quot;, MetodoVerificacao.TELEFONE);</span>
+        }
+<span class="fc" id="L34">        return &quot;auth/esqueci-senha&quot;;</span>
+    }
+
+    /** Dispara o código de reset e leva para a tela de redefinição (resposta genérica). */
+    @PostMapping(&quot;/esqueci-senha&quot;)
+    public String solicitar(@RequestParam(&quot;metodo&quot;) MetodoVerificacao metodo,
+                            @RequestParam(&quot;valor&quot;) String valor,
+                            HttpServletRequest request, RedirectAttributes redirect) {
+<span class="fc" id="L42">        recuperacaoSenhaService.solicitarReset(metodo, valor, request.getRemoteAddr());</span>
+<span class="fc" id="L43">        redirect.addFlashAttribute(&quot;metodo&quot;, metodo);</span>
+<span class="fc" id="L44">        redirect.addFlashAttribute(&quot;valor&quot;, valor);</span>
+<span class="fc" id="L45">        redirect.addFlashAttribute(&quot;info&quot;, &quot;Se houver uma conta com esses dados, enviamos um código.&quot;);</span>
+<span class="fc" id="L46">        return &quot;redirect:/redefinir-senha&quot;;</span>
+    }
+
+    /** Tela com código + nova senha (o método/valor vêm da etapa anterior ou são reinformados). */
+    @GetMapping(&quot;/redefinir-senha&quot;)
+    public String redefinirForm(Model model) {
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        if (!model.containsAttribute(&quot;metodo&quot;)) {</span>
+<span class="fc" id="L53">            model.addAttribute(&quot;metodo&quot;, MetodoVerificacao.TELEFONE);</span>
+        }
+<span class="fc" id="L55">        return &quot;auth/redefinir-senha&quot;;</span>
+    }
+
+    /** Aplica a nova senha após validar o código. */
+    @PostMapping(&quot;/redefinir-senha&quot;)
+    public String redefinir(@RequestParam(&quot;metodo&quot;) MetodoVerificacao metodo,
+                            @RequestParam(&quot;valor&quot;) String valor,
+                            @RequestParam(&quot;codigo&quot;) String codigo,
+                            @RequestParam(&quot;novaSenha&quot;) String novaSenha,
+                            @RequestParam(&quot;confirmarSenha&quot;) String confirmarSenha,
+                            RedirectAttributes redirect) {
+        try {
+<span class="nc bnc" id="L67" title="All 4 branches missed.">            if (novaSenha == null || !novaSenha.equals(confirmarSenha)) {</span>
+<span class="nc" id="L68">                throw new RegraNegocioException(&quot;As senhas não conferem.&quot;);</span>
+            }
+<span class="nc" id="L70">            recuperacaoSenhaService.redefinir(metodo, valor, codigo, novaSenha);</span>
+<span class="nc" id="L71">            return &quot;redirect:/login?senhaRedefinida&quot;;</span>
+<span class="nc" id="L72">        } catch (RegraNegocioException e) {</span>
+<span class="nc" id="L73">            redirect.addFlashAttribute(&quot;erro&quot;, e.getMessage());</span>
+<span class="nc" id="L74">            redirect.addFlashAttribute(&quot;metodo&quot;, metodo);</span>
+<span class="nc" id="L75">            redirect.addFlashAttribute(&quot;valor&quot;, valor);</span>
+<span class="nc" id="L76">            return &quot;redirect:/redefinir-senha&quot;;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

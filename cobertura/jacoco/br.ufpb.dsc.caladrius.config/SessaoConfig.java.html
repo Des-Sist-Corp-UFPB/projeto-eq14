@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessaoConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">SessaoConfig.java</span></div><h1>SessaoConfig.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import br.ufpb.dsc.caladrius.service.ConfiguracaoService;
+import jakarta.servlet.http.HttpSessionEvent;
+import jakarta.servlet.http.HttpSessionListener;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Aplica o tempo de sessão &lt;strong&gt;dinâmico&lt;/strong&gt; (DT-10).
+ *
+ * &lt;p&gt;O {@code application.yml} congela o timeout no boot (o Tomcat o lê uma única
+ * vez). Para que o SYSADMIN altere o valor em runtime sem redeploy, este listener
+ * define o {@code maxInactiveInterval} de cada sessão recém-criada a partir do
+ * valor guardado no banco ({@link ConfiguracaoService#getTimeoutSessaoMinutos()}).
+ */
+@Configuration
+<span class="fc" id="L19">public class SessaoConfig {</span>
+
+    @Bean
+    public ServletListenerRegistrationBean&lt;HttpSessionListener&gt; timeoutSessaoListener(
+            ConfiguracaoService configuracaoService) {
+<span class="fc" id="L24">        return new ServletListenerRegistrationBean&lt;&gt;(new HttpSessionListener() {</span>
+            @Override
+            public void sessionCreated(HttpSessionEvent se) {
+<span class="nc" id="L27">                int minutos = configuracaoService.getTimeoutSessaoMinutos();</span>
+<span class="nc" id="L28">                se.getSession().setMaxInactiveInterval(minutos * 60);</span>
+<span class="nc" id="L29">            }</span>
+        });
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

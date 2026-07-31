@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ViagemController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.controller</a> &gt; <span class="el_source">ViagemController.java</span></div><h1>ViagemController.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.controller;
+
+import br.ufpb.dsc.caladrius.domain.Viagem;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusViagem;
+import br.ufpb.dsc.caladrius.dto.DesignacaoForm;
+import br.ufpb.dsc.caladrius.dto.ViagemForm;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
+import br.ufpb.dsc.caladrius.service.CidadeService;
+import br.ufpb.dsc.caladrius.service.UsuarioService;
+import br.ufpb.dsc.caladrius.service.VeiculoService;
+import br.ufpb.dsc.caladrius.service.ViagemService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+/**
+ * Criação e listagem de viagens via HTMX + Thymeleaf.
+ *
+ * &lt;p&gt;O gerente autenticado é registrado como {@code criadoPor} da viagem. Os
+ * selects do formulário são alimentados com veículos ativos, motoristas
+ * (usuários com o papel {@code MOTORISTA}) e cidades.
+ */
+@Controller
+@RequestMapping(&quot;/viagens&quot;)
+public class ViagemController {
+
+    private static final int TAMANHO_PAGINA = 10;
+    private static final String HEADER_HTMX = &quot;HX-Request&quot;;
+
+    private final ViagemService viagemService;
+    private final VeiculoService veiculoService;
+    private final UsuarioService usuarioService;
+    private final CidadeService cidadeService;
+
+    public ViagemController(ViagemService viagemService,
+                           VeiculoService veiculoService,
+                           UsuarioService usuarioService,
+<span class="fc" id="L52">                           CidadeService cidadeService) {</span>
+<span class="fc" id="L53">        this.viagemService = viagemService;</span>
+<span class="fc" id="L54">        this.veiculoService = veiculoService;</span>
+<span class="fc" id="L55">        this.usuarioService = usuarioService;</span>
+<span class="fc" id="L56">        this.cidadeService = cidadeService;</span>
+<span class="fc" id="L57">    }</span>
+
+    @GetMapping
+    public String listar(@RequestParam(name = &quot;pagina&quot;, defaultValue = &quot;0&quot;) int pagina,
+                         @RequestHeader(value = HEADER_HTMX, required = false) String htmx,
+                         Model model) {
+<span class="fc" id="L63">        carregarPagina(pagina, model);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (htmx != null) {</span>
+<span class="fc" id="L65">            return &quot;viagens/fragments/tabela :: tabela&quot;;</span>
+        }
+<span class="fc" id="L67">        return &quot;viagens/lista&quot;;</span>
+    }
+
+    @GetMapping(&quot;/nova&quot;)
+    public String novoForm(Model model) {
+<span class="fc" id="L72">        model.addAttribute(&quot;form&quot;, new ViagemForm(null, null, null, null, null, null));</span>
+<span class="fc" id="L73">        carregarOpcoes(model);</span>
+<span class="fc" id="L74">        return &quot;viagens/fragments/form :: modal&quot;;</span>
+    }
+
+    @PostMapping
+    public String criar(@Valid @ModelAttribute(&quot;form&quot;) ViagemForm form,
+                       BindingResult bindingResult,
+                       @AuthenticationPrincipal UsuarioAutenticado usuarioLogado,
+                       Model model) {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (bindingResult.hasErrors()) {</span>
+<span class="fc" id="L83">            carregarOpcoes(model);</span>
+<span class="fc" id="L84">            return &quot;viagens/fragments/form :: modal&quot;;</span>
+        }
+        try {
+<span class="fc" id="L87">            Viagem viagem = viagemService.criar(form, usuarioLogado.getId());</span>
+<span class="fc" id="L88">            model.addAttribute(&quot;viagem&quot;, viagem);</span>
+<span class="fc" id="L89">            return &quot;viagens/fragments/linha :: linha&quot;;</span>
+<span class="fc" id="L90">        } catch (RegraNegocioException | RecursoNaoEncontradoException e) {</span>
+<span class="fc" id="L91">            bindingResult.reject(&quot;viagem.regra&quot;, e.getMessage());</span>
+<span class="fc" id="L92">            carregarOpcoes(model);</span>
+<span class="fc" id="L93">            return &quot;viagens/fragments/form :: modal&quot;;</span>
+        }
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @ResponseBody
+    public ResponseEntity&lt;Void&gt; excluir(@PathVariable UUID id) {
+        try {
+<span class="fc" id="L101">            viagemService.excluir(id);</span>
+<span class="fc" id="L102">            return ResponseEntity.ok().build();</span>
+<span class="fc" id="L103">        } catch (RecursoNaoEncontradoException e) {</span>
+<span class="fc" id="L104">            return ResponseEntity.notFound().build();</span>
+        }
+    }
+
+    // ===================== SPEC-06: painel semanal =====================
+
+    @GetMapping(&quot;/semana&quot;)
+    public String painelSemana(@RequestParam(name = &quot;ref&quot;, required = false)
+                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ref,
+                               Model model) {
+<span class="fc" id="L114">        model.addAttribute(&quot;painel&quot;, viagemService.painelSemana(ref));</span>
+<span class="fc" id="L115">        model.addAttribute(&quot;designacao&quot;, new DesignacaoForm(null, null, null, null));</span>
+<span class="fc" id="L116">        carregarOpcoes(model);</span>
+<span class="fc" id="L117">        model.addAttribute(&quot;titulo&quot;, &quot;Painel da semana&quot;);</span>
+<span class="fc" id="L118">        return &quot;viagens/semana&quot;;</span>
+    }
+
+    @PostMapping(&quot;/designar&quot;)
+    public String designar(@Valid @ModelAttribute(&quot;designacao&quot;) DesignacaoForm form,
+                           BindingResult bindingResult,
+                           @AuthenticationPrincipal UsuarioAutenticado usuarioLogado,
+                           RedirectAttributes redirect) {
+        try {
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">            if (bindingResult.hasErrors()) {</span>
+<span class="fc" id="L128">                throw new RegraNegocioException(&quot;Selecione veículo e motorista para designar.&quot;);</span>
+            }
+<span class="nc" id="L130">            viagemService.designar(form, usuarioLogado.getId());</span>
+<span class="nc" id="L131">            redirect.addFlashAttribute(&quot;sucesso&quot;, &quot;Viagem designada.&quot;);</span>
+<span class="fc" id="L132">        } catch (RegraNegocioException | RecursoNaoEncontradoException e) {</span>
+<span class="fc" id="L133">            redirect.addFlashAttribute(&quot;erro&quot;, e.getMessage());</span>
+<span class="nc" id="L134">        }</span>
+<span class="fc" id="L135">        return &quot;redirect:/viagens/semana?ref=&quot; + form.dataViagem();</span>
+    }
+
+    @PostMapping(&quot;/{id}/status&quot;)
+    public String alterarStatus(@PathVariable UUID id,
+                                @RequestParam(&quot;status&quot;) StatusViagem status,
+                                @AuthenticationPrincipal UsuarioAutenticado usuarioLogado,
+                                RedirectAttributes redirect) {
+        try {
+<span class="fc" id="L144">            viagemService.alterarStatus(id, status, usuarioLogado.getId(), true);</span>
+<span class="fc" id="L145">            redirect.addFlashAttribute(&quot;sucesso&quot;, &quot;Status atualizado.&quot;);</span>
+<span class="nc" id="L146">        } catch (RegraNegocioException e) {</span>
+<span class="nc" id="L147">            redirect.addFlashAttribute(&quot;erro&quot;, e.getMessage());</span>
+<span class="fc" id="L148">        }</span>
+<span class="fc" id="L149">        return &quot;redirect:/viagens&quot;;</span>
+    }
+
+    // ===================== Helpers =====================
+
+    private void carregarPagina(int pagina, Model model) {
+<span class="fc" id="L155">        Page&lt;Viagem&gt; viagens = viagemService.listar(PageRequest.of(pagina, TAMANHO_PAGINA));</span>
+<span class="fc" id="L156">        model.addAttribute(&quot;viagens&quot;, viagens);</span>
+<span class="fc" id="L157">        model.addAttribute(&quot;paginaAtual&quot;, pagina);</span>
+<span class="fc" id="L158">        model.addAttribute(&quot;titulo&quot;, &quot;Viagens&quot;);</span>
+<span class="fc" id="L159">    }</span>
+
+    /** Alimenta os selects do formulário (veículos, motoristas, cidades). */
+    private void carregarOpcoes(Model model) {
+<span class="fc" id="L163">        model.addAttribute(&quot;veiculosDisponiveis&quot;, veiculoService.listarDisponiveis());</span>
+<span class="fc" id="L164">        model.addAttribute(&quot;motoristas&quot;, usuarioService.listarPorPapel(Papel.MOTORISTA));</span>
+<span class="fc" id="L165">        model.addAttribute(&quot;cidades&quot;, cidadeService.listarTodas());</span>
+<span class="fc" id="L166">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

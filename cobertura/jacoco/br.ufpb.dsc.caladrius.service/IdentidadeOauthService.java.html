@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdentidadeOauthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">IdentidadeOauthService.java</span></div><h1>IdentidadeOauthService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.IdentidadeOauth;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.ProvedorOauth;
+import br.ufpb.dsc.caladrius.domain.enums.StatusUsuario;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.repository.IdentidadeOauthRepository;
+import br.ufpb.dsc.caladrius.repository.UsuarioRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.EnumSet;
+
+/**
+ * Resolve o login social (OAuth2/OIDC) em um {@link Usuario} do sistema — SPEC-08.
+ *
+ * &lt;p&gt;É o &lt;strong&gt;núcleo da regra de negócio&lt;/strong&gt; da SPEC-08: dada a identidade
+ * devolvida pelo provedor (Google), aplica a resolução em três passos
+ * (identidade → e-mail verificado → auto-provisão). Mantida separada do
+ * {@code CaladriusOidcUserService} (camada web/segurança) para ser testável sem
+ * subir o contexto OAuth.
+ */
+@Service
+@Transactional(readOnly = true)
+public class IdentidadeOauthService {
+
+    private final IdentidadeOauthRepository identidadeRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
+
+    public IdentidadeOauthService(IdentidadeOauthRepository identidadeRepository,
+                                  UsuarioRepository usuarioRepository,
+<span class="fc" id="L36">                                  AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L37">        this.identidadeRepository = identidadeRepository;</span>
+<span class="fc" id="L38">        this.usuarioRepository = usuarioRepository;</span>
+<span class="fc" id="L39">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L40">    }</span>
+
+    /**
+     * Resolve um login social no {@link Usuario} correspondente, vinculando ou
+     * criando a conta conforme a §2.1 da SPEC-08.
+     *
+     * @param provedor         provedor externo (ex.: {@link ProvedorOauth#GOOGLE})
+     * @param subject          {@code sub} imutável do provedor
+     * @param email            e-mail informado pelo provedor (pode ser nulo)
+     * @param emailVerificado  {@code true} se o provedor confirmou o e-mail
+     * @param nomeCompleto     nome do usuário no provedor (pode ser nulo)
+     * @return o usuário autenticável (ATIVO)
+     * @throws RegraNegocioException se a conta vinculada não puder autenticar
+     */
+    @Transactional
+    public Usuario resolverLogin(ProvedorOauth provedor, String subject, String email,
+                                 boolean emailVerificado, String nomeCompleto) {
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (!StringUtils.hasText(subject)) {</span>
+<span class="fc" id="L58">            throw new RegraNegocioException(&quot;Provedor não retornou um identificador (sub) válido.&quot;);</span>
+        }
+<span class="fc" id="L60">        String emailNorm = normalizarEmail(email);</span>
+
+        // (1) Por identidade já vinculada — caminho mais comum após o 1º login.
+<span class="fc" id="L63">        var existenteVinculo = identidadeRepository.findByProvedorAndSubjectId(provedor, subject);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (existenteVinculo.isPresent()) {</span>
+<span class="fc" id="L65">            Usuario usuario = existenteVinculo.get().getUsuario();</span>
+<span class="fc" id="L66">            garantirAutenticavel(usuario);</span>
+<span class="fc" id="L67">            return usuario;</span>
+        }
+
+        // (2) Por e-mail VERIFICADO — adota a conta existente (sem duplicar).
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">        if (emailVerificado &amp;&amp; emailNorm != null) {</span>
+<span class="fc" id="L72">            var porEmail = usuarioRepository.findByEmailIgnoreCaseAndRemovidoEmIsNull(emailNorm);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (porEmail.isPresent()) {</span>
+<span class="fc" id="L74">                Usuario usuario = porEmail.get();</span>
+<span class="fc" id="L75">                garantirAutenticavel(usuario);</span>
+<span class="fc" id="L76">                vincular(usuario, provedor, subject, emailNorm);</span>
+<span class="fc" id="L77">                auditoriaService.registrarSeguranca(&quot;LOGIN_GOOGLE_VINCULO&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L78">                        usuario.getId(), usuario.getNomeCompleto(), null);</span>
+<span class="fc" id="L79">                return usuario;</span>
+            }
+        }
+
+        // (3) Auto-provisão de PASSAGEIRO (perfil incompleto: falta telefone).
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        Usuario novo = autoProvisionar(nomeCompleto, emailVerificado ? emailNorm : null);</span>
+<span class="fc" id="L85">        vincular(novo, provedor, subject, emailNorm);</span>
+<span class="fc" id="L86">        auditoriaService.registrarSeguranca(&quot;LOGIN_GOOGLE_AUTOPROVISAO&quot;, &quot;SUCESSO&quot;,</span>
+<span class="fc" id="L87">                novo.getId(), novo.getNomeCompleto(), null);</span>
+<span class="fc" id="L88">        return novo;</span>
+    }
+
+    // ===================== Helpers =====================
+
+    /** Garante que a conta vinculada pode autenticar (ativa e não removida). */
+    private void garantirAutenticavel(Usuario usuario) {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (!usuario.isAtivo()) {</span>
+<span class="fc" id="L96">            throw new RegraNegocioException(</span>
+                    &quot;Sua conta não está ativa. Procure o gestor do sistema.&quot;);
+        }
+<span class="fc" id="L99">    }</span>
+
+    /** Cria o vínculo {@code identidades_oauth} para a conta. */
+    private void vincular(Usuario usuario, ProvedorOauth provedor, String subject, String emailProvedor) {
+<span class="fc" id="L103">        identidadeRepository.save(new IdentidadeOauth(usuario, provedor, subject, emailProvedor));</span>
+<span class="fc" id="L104">    }</span>
+
+    /**
+     * Cria um PASSAGEIRO com perfil incompleto. O e-mail só é gravado quando
+     * verificado (RN-AUT-11); o telefone fica nulo até {@code /conta/completar}.
+     */
+    private Usuario autoProvisionar(String nomeCompleto, String emailVerificado) {
+<span class="fc" id="L111">        Usuario usuario = new Usuario();</span>
+<span class="fc" id="L112">        usuario.setNomeCompleto(nomeOuPadrao(nomeCompleto, emailVerificado));</span>
+<span class="fc" id="L113">        usuario.setEmail(emailVerificado); // pode ser nulo</span>
+<span class="fc" id="L114">        usuario.setStatus(StatusUsuario.ATIVO);</span>
+<span class="fc" id="L115">        usuario.setPerfilIncompleto(true);</span>
+<span class="fc" id="L116">        usuario.setPapeis(EnumSet.of(Papel.PASSAGEIRO));</span>
+<span class="fc" id="L117">        return usuarioRepository.save(usuario);</span>
+    }
+
+    private String nomeOuPadrao(String nome, String email) {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (StringUtils.hasText(nome)) {</span>
+<span class="fc" id="L122">            return nome.trim();</span>
+        }
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (StringUtils.hasText(email)) {</span>
+<span class="fc" id="L125">            return email.substring(0, email.indexOf('@'));</span>
+        }
+<span class="nc" id="L127">        return &quot;Usuário Google&quot;;</span>
+    }
+
+    private String normalizarEmail(String email) {
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        if (!StringUtils.hasText(email)) {</span>
+<span class="nc" id="L132">            return null;</span>
+        }
+<span class="fc" id="L134">        return email.trim().toLowerCase();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ManutencaoFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">ManutencaoFilter.java</span></div><h1>ManutencaoFilter.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import br.ufpb.dsc.caladrius.service.ChaveFeature;
+import br.ufpb.dsc.caladrius.service.FeatureFlagService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+/**
+ * Modo de manutenção (SPEC-13, RN-FLG-03): com a flag
+ * {@link ChaveFeature#MODO_MANUTENCAO} ligada, toda requisição de usuário comum
+ * recebe a &lt;strong&gt;página de manutenção&lt;/strong&gt; com HTTP &lt;strong&gt;503&lt;/strong&gt;, e
+ * só o &lt;strong&gt;SYSADMIN&lt;/strong&gt; continua navegando — é ele quem desliga a flag e
+ * põe o sistema de volta no ar.
+ *
+ * &lt;p&gt;Ficam de fora do bloqueio: {@code /login}, {@code /logout}, a própria página de
+ * manutenção, os estáticos e — por contrato da disciplina (Art. XIII) — {@code /ping}
+ * e {@code /actuator/health}, que devem continuar respondendo 200 para o monitoramento
+ * externo não interpretar a manutenção como queda.
+ *
+ * &lt;p&gt;Como o {@link PerfilIncompletoFilter}, não é um {@code @Component}: é instanciado
+ * dentro da cadeia de segurança ({@code SecurityConfig}), depois da autorização, pois
+ * depende do {@code SecurityContext} já populado.
+ */
+public class ManutencaoFilter extends OncePerRequestFilter {
+
+    /** Página pública renderizada no lugar do conteúdo bloqueado. */
+    static final String PAGINA_MANUTENCAO = &quot;/manutencao&quot;;
+
+    private final FeatureFlagService featureFlags;
+
+<span class="fc" id="L41">    public ManutencaoFilter(FeatureFlagService featureFlags) {</span>
+<span class="fc" id="L42">        this.featureFlags = featureFlags;</span>
+<span class="fc" id="L43">    }</span>
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (!deveBloquear(request)) {</span>
+<span class="fc" id="L49">            filterChain.doFilter(request, response);</span>
+<span class="fc" id="L50">            return;</span>
+        }
+
+<span class="fc" id="L53">        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());</span>
+        // Requisição HTMX: um 503 com a página inteira seria injetado dentro de um
+        // fragmento — o header manda o htmx navegar para a página de manutenção.
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (StringUtils.hasText(request.getHeader(&quot;HX-Request&quot;))) {</span>
+<span class="fc" id="L57">            response.setHeader(&quot;HX-Redirect&quot;, request.getContextPath() + PAGINA_MANUTENCAO);</span>
+<span class="fc" id="L58">            return;</span>
+        }
+<span class="fc" id="L60">        request.getRequestDispatcher(PAGINA_MANUTENCAO).forward(request, response);</span>
+<span class="fc" id="L61">    }</span>
+
+    private boolean deveBloquear(HttpServletRequest request) {
+        // A leitura da flag é cacheada (RN-FLG-01) — não custa uma consulta por requisição.
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (!featureFlags.ativo(ChaveFeature.MODO_MANUTENCAO)) {</span>
+<span class="fc" id="L66">            return false;</span>
+        }
+<span class="fc bfc" id="L68" title="All 4 branches covered.">        return !caminhoLiberado(request) &amp;&amp; !ehSysadmin();</span>
+    }
+
+    /** O SYSADMIN opera normalmente durante a manutenção (é quem religa o sistema). */
+    private boolean ehSysadmin() {
+<span class="fc" id="L73">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="pc bpc" id="L74" title="2 of 4 branches missed.">        if (auth == null || !auth.isAuthenticated()) {</span>
+<span class="nc" id="L75">            return false;</span>
+        }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        for (GrantedAuthority autoridade : auth.getAuthorities()) {</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (&quot;ROLE_SYSADMIN&quot;.equals(autoridade.getAuthority())) {</span>
+<span class="fc" id="L79">                return true;</span>
+            }
+<span class="fc" id="L81">        }</span>
+<span class="fc" id="L82">        return false;</span>
+    }
+
+    /** Caminhos que continuam respondendo mesmo em manutenção (RN-FLG-03). */
+    private boolean caminhoLiberado(HttpServletRequest request) {
+<span class="fc" id="L87">        String uri = request.getRequestURI().substring(request.getContextPath().length());</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        return uri.equals(PAGINA_MANUTENCAO)</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/login&quot;)</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/logout&quot;)</span>
+                // Contrato público da disciplina (Art. XIII) — não pode cair na manutenção.
+<span class="fc bfc" id="L92" title="All 2 branches covered.">                || uri.startsWith(&quot;/ping&quot;)</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                || uri.startsWith(&quot;/actuator&quot;)</span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/css/&quot;)</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/js/&quot;)</span>
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/webjars/&quot;)</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">                || uri.equals(&quot;/favicon.ico&quot;)</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">                || uri.equals(&quot;/error&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

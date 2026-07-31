@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AreaSistema.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain.enums</a> &gt; <span class="el_source">AreaSistema.java</span></div><h1>AreaSistema.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain.enums;
+
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Área do sistema tocada por um evento de auditoria — a &lt;strong&gt;etiqueta&lt;/strong&gt;
+ * (nome + cor) exibida na central de logs.
+ *
+ * &lt;p&gt;Enquanto {@link CategoriaAuditoria} responde &quot;que &lt;em&gt;tipo&lt;/em&gt; de evento é&quot;
+ * (acesso, operação, sistema), a área responde &quot;&lt;em&gt;onde&lt;/em&gt; no sistema mexeram&quot;:
+ * viagens, veículos, WhatsApp… São eixos diferentes e complementares, e é a área que
+ * a pessoa procura quando pergunta &quot;o que andaram fazendo nas viagens ontem?&quot;.
+ *
+ * &lt;p&gt;&lt;strong&gt;Não é uma coluna do banco&lt;/strong&gt;: a área é &lt;em&gt;derivada&lt;/em&gt; da ação e
+ * da entidade já registradas. Isso vale retroativamente para toda a trilha existente
+ * (nenhuma migration, nenhum backfill) e mantém o {@code log_auditoria} como o registro
+ * imutável do fato — a classificação é apresentação, e pode evoluir sem reescrever o
+ * passado. Se um dia a área virar filtro pesado em base grande, aí sim compensa uma
+ * coluna indexada.
+ */
+<span class="fc" id="L22">public enum AreaSistema {</span>
+
+    /** Login, logout, verificação de contato e recuperação de senha. */
+<span class="fc" id="L25">    ACESSO(&quot;Acesso&quot;, &quot;acesso&quot;,</span>
+<span class="fc" id="L26">            Set.of(&quot;LOGIN_SUCESSO&quot;, &quot;LOGIN_FALHA&quot;, &quot;LOGOUT&quot;,</span>
+                    &quot;LOGIN_GOOGLE_VINCULO&quot;, &quot;LOGIN_GOOGLE_AUTOPROVISAO&quot;,
+                    &quot;CODIGO_ENVIADO&quot;, &quot;TELEFONE_VERIFICADO&quot;, &quot;EMAIL_VERIFICADO&quot;,
+                    &quot;SENHA_REDEFINIDA&quot;, &quot;CONTA_ATIVADA&quot;),
+<span class="fc" id="L30">            Set.of()),</span>
+
+    /** Cadastro e ciclo de vida das contas (inclui convites). */
+<span class="fc" id="L33">    USUARIOS(&quot;Usuários&quot;, &quot;usuarios&quot;,</span>
+<span class="fc" id="L34">            Set.of(&quot;USUARIO_CRIADO&quot;, &quot;USUARIO_ATUALIZADO&quot;, &quot;USUARIO_EXCLUIDO&quot;,</span>
+                    &quot;CONTA_SUSPENSA&quot;, &quot;CONVITE_GERADO&quot;, &quot;PERFIL_COMPLETADO&quot;,
+                    &quot;PASSAGEIRO_AUTOCADASTRO&quot;, &quot;ACESSO_PLATAFORMA_TOKEN&quot;),
+<span class="fc" id="L37">            Set.of(&quot;Usuario&quot;)),</span>
+
+    /** Viagens e linhas programadas. */
+<span class="fc" id="L40">    VIAGENS(&quot;Viagens&quot;, &quot;viagens&quot;,</span>
+<span class="fc" id="L41">            Set.of(&quot;VIAGEM_CRIADA&quot;, &quot;VIAGEM_DESIGNADA&quot;, &quot;VIAGEM_EXCLUIDA&quot;, &quot;VIAGEM_STATUS&quot;,</span>
+                    &quot;LINHA_CRIADA&quot;, &quot;LINHA_ATUALIZADA&quot;, &quot;LINHA_EXCLUIDA&quot;,
+                    &quot;LINHA_HABILITADA&quot;, &quot;LINHA_DESABILITADA&quot;),
+<span class="fc" id="L44">            Set.of(&quot;Viagem&quot;, &quot;LinhaProgramada&quot;)),</span>
+
+    /** Pedidos de transporte do passageiro e a avaliação do gestor. */
+<span class="fc" id="L47">    SOLICITACOES(&quot;Solicitações&quot;, &quot;solicitacoes&quot;,</span>
+<span class="fc" id="L48">            Set.of(&quot;SOLICITACAO_CRIADA&quot;, &quot;SOLICITACAO_CANCELADA&quot;,</span>
+                    &quot;SOLICITACAO_APROVADA&quot;, &quot;SOLICITACAO_RECUSADA&quot;),
+<span class="fc" id="L50">            Set.of(&quot;SolicitacaoViagem&quot;)),</span>
+
+    /** Frota. */
+<span class="fc" id="L53">    VEICULOS(&quot;Veículos&quot;, &quot;veiculos&quot;,</span>
+<span class="fc" id="L54">            Set.of(&quot;VEICULO_CRIADO&quot;, &quot;VEICULO_ATUALIZADO&quot;, &quot;VEICULO_EXCLUIDO&quot;),</span>
+<span class="fc" id="L55">            Set.of(&quot;Veiculo&quot;)),</span>
+
+    /** Cidades de viagem e municípios de referência. */
+<span class="fc" id="L58">    CIDADES(&quot;Cidades&quot;, &quot;cidades&quot;,</span>
+<span class="fc" id="L59">            Set.of(&quot;CIDADE_CRIADA&quot;, &quot;CIDADE_ATUALIZADA&quot;, &quot;CIDADE_EXCLUIDA&quot;, &quot;ADESAO_PAGAMENTO&quot;),</span>
+<span class="fc" id="L60">            Set.of(&quot;Cidade&quot;, &quot;Municipio&quot;)),</span>
+
+    /** Conexão da conta, configurações de envio e testes do canal. */
+<span class="fc" id="L63">    WHATSAPP(&quot;WhatsApp&quot;, &quot;whatsapp&quot;,</span>
+<span class="fc" id="L64">            Set.of(&quot;WHATSAPP_CONECTADO&quot;, &quot;WHATSAPP_DESCONECTADO&quot;,</span>
+                    &quot;WHATSAPP_CONFIG_ALTERADA&quot;, &quot;WHATSAPP_TESTE_ENVIADO&quot;),
+<span class="fc" id="L66">            Set.of()),</span>
+
+    /** Configuração dinâmica e feature toggle (SPEC-13). */
+<span class="fc" id="L69">    CONFIGURACAO(&quot;Configuração&quot;, &quot;configuracao&quot;,</span>
+<span class="fc" id="L70">            Set.of(&quot;CONFIG_ALTERADA&quot;, &quot;FEATURE_ALTERADA&quot;, &quot;PARAMETRO_ALTERADO&quot;),</span>
+<span class="fc" id="L71">            Set.of()),</span>
+
+    /** Tudo o que ainda não se encaixa nas áreas acima. */
+<span class="fc" id="L74">    SISTEMA(&quot;Sistema&quot;, &quot;sistema&quot;, Set.of(), Set.of());</span>
+
+    private final String rotulo;
+    /** Sufixo da classe CSS da etiqueta (ver {@code .cal-tag--*} no caladrius.css). */
+    private final String cor;
+    private final Set&lt;String&gt; acoes;
+    private final Set&lt;String&gt; entidades;
+
+<span class="fc" id="L82">    AreaSistema(String rotulo, String cor, Set&lt;String&gt; acoes, Set&lt;String&gt; entidades) {</span>
+<span class="fc" id="L83">        this.rotulo = rotulo;</span>
+<span class="fc" id="L84">        this.cor = cor;</span>
+<span class="fc" id="L85">        this.acoes = acoes;</span>
+<span class="fc" id="L86">        this.entidades = entidades;</span>
+<span class="fc" id="L87">    }</span>
+
+    public String getRotulo() {
+<span class="fc" id="L90">        return rotulo;</span>
+    }
+
+    public String getCor() {
+<span class="fc" id="L94">        return cor;</span>
+    }
+
+    /** Ações que pertencem à área — também é o filtro usado na consulta. */
+    public Set&lt;String&gt; getAcoes() {
+<span class="fc" id="L99">        return acoes;</span>
+    }
+
+    /**
+     * Classifica um evento. A &lt;strong&gt;ação&lt;/strong&gt; tem prioridade sobre a entidade
+     * (é mais específica: {@code CONTA_ATIVADA} grava a entidade {@code Usuario}, mas
+     * é um evento de acesso); depois a entidade; e, por fim, a categoria de segurança.
+     */
+    public static AreaSistema de(String acao, String entidade, CategoriaAuditoria categoria) {
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        for (AreaSistema area : values()) {</span>
+<span class="fc bfc" id="L109" title="All 4 branches covered.">            if (acao != null &amp;&amp; area.acoes.contains(acao)) {</span>
+<span class="fc" id="L110">                return area;</span>
+            }
+        }
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (AreaSistema area : values()) {</span>
+<span class="fc bfc" id="L114" title="All 4 branches covered.">            if (entidade != null &amp;&amp; area.entidades.contains(entidade)) {</span>
+<span class="fc" id="L115">                return area;</span>
+            }
+        }
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        return categoria == CategoriaAuditoria.SEGURANCA ? ACESSO : SISTEMA;</span>
+    }
+
+    /** Todas as ações classificadas — o complemento identifica a área SISTEMA. */
+    public static List&lt;String&gt; todasAsAcoesConhecidas() {
+<span class="fc" id="L123">        return List.of(values()).stream().flatMap(a -&gt; a.acoes.stream()).toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

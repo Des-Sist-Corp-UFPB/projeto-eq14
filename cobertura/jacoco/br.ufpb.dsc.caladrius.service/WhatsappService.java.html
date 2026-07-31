@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WhatsappService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">WhatsappService.java</span></div><h1>WhatsappService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.MensagemWhatsapp;
+import br.ufpb.dsc.caladrius.domain.enums.DirecaoMensagem;
+import br.ufpb.dsc.caladrius.dto.ConfiguracaoEnvioWhatsapp;
+import br.ufpb.dsc.caladrius.repository.MensagemWhatsappRepository;
+import br.ufpb.dsc.caladrius.whatsapp.ConexaoWhatsapp;
+import br.ufpb.dsc.caladrius.whatsapp.ContaWhatsapp;
+import br.ufpb.dsc.caladrius.whatsapp.MensagemRecebida;
+import br.ufpb.dsc.caladrius.whatsapp.ProvedorWhatsapp;
+import br.ufpb.dsc.caladrius.whatsapp.StatusConexaoWhatsapp;
+import br.ufpb.dsc.caladrius.whatsapp.WhatsappException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Fachada do canal WhatsApp (SPEC-10): concentra o acesso à porta
+ * {@link ProvedorWhatsapp}, o log de mensagens ({@code mensagens_whatsapp} —
+ * RN-WPP-10) e o estado de conexão que alimenta o painel do gerente.
+ *
+ * &lt;p&gt;O provedor é &lt;strong&gt;opcional&lt;/strong&gt; ({@link ObjectProvider}): sem as
+ * variáveis de ambiente da Evolution, {@link #configurada()} é {@code false},
+ * o envio vira no-op e o painel informa &quot;não configurada&quot; (RN-WPP-02).
+ *
+ * &lt;p&gt;O estado da conexão reportado pelo webhook ({@code CONNECTION_UPDATE} /
+ * {@code QRCODE_UPDATED}) fica em &lt;strong&gt;cache&lt;/strong&gt; em memória — o
+ * polling HTMX do painel lê daqui, sem repetir consultas à Evolution a cada
+ * 3 segundos.
+ */
+@Service
+public class WhatsappService {
+
+<span class="fc" id="L43">    private static final Logger log = LoggerFactory.getLogger(WhatsappService.class);</span>
+
+    /** Quantas mensagens o painel exibe. */
+    private static final int LIMITE_PAINEL = 30;
+
+    // Chaves das configurações de envio (persistidas via ConfiguracaoService).
+    static final String CFG_NOME = &quot;whatsapp.nome_exibicao&quot;;
+    static final String CFG_MENSAGEM = &quot;whatsapp.msg_confirmacao&quot;;
+
+    private static final String MENSAGEM_PADRAO =
+            &quot;Olá! Sua viagem foi confirmada para {data} às {hora}, destino {destino}.&quot;;
+
+    private final ObjectProvider&lt;ProvedorWhatsapp&gt; provedor;
+    private final MensagemWhatsappRepository mensagemRepository;
+    private final ConfiguracaoService configuracaoService;
+
+    /** Último estado reportado pelo webhook; nulo até o primeiro evento. */
+    private volatile ConexaoWhatsapp estadoReportado;
+
+    public WhatsappService(ObjectProvider&lt;ProvedorWhatsapp&gt; provedor,
+                           MensagemWhatsappRepository mensagemRepository,
+<span class="fc" id="L64">                           ConfiguracaoService configuracaoService) {</span>
+<span class="fc" id="L65">        this.provedor = provedor;</span>
+<span class="fc" id="L66">        this.mensagemRepository = mensagemRepository;</span>
+<span class="fc" id="L67">        this.configuracaoService = configuracaoService;</span>
+<span class="fc" id="L68">    }</span>
+
+    /** {@code true} quando a integração (Evolution) está configurada no ambiente. */
+    public boolean configurada() {
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        return provedor.getIfAvailable() != null;</span>
+    }
+
+    /**
+     * Ao subir a app: se a conta já estiver conectada, re-registra o webhook para
+     * a {@code APP_URL_PUBLICA} atual. Isso conserta o caso comum em dev — a URL
+     * do túnel mudou entre reinícios — sem exigir novo pareamento; em produção é
+     * um no-op inofensivo (re-registra a mesma URL estável). Best-effort: falha
+     * na Evolution não impede a app de subir (RN-WPP-01).
+     *
+     * &lt;p&gt;O {@code catch} é de {@link RuntimeException} de propósito, não de
+     * {@link WhatsappException}: este método roda no {@code ApplicationReadyEvent}, e
+     * uma exceção aqui &lt;strong&gt;derruba a aplicação inteira&lt;/strong&gt;. Foi o que aconteceu
+     * em 2026-07-29 com uma {@code EVOLUTION_URL} sem esquema — a causa foi corrigida
+     * (normalização + a porta embrulhando tudo em {@code WhatsappException}), mas a rede
+     * de proteção fica: nenhum defeito da integração pode impedir o app de subir.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void reRegistrarWebhookSeConectado() {
+<span class="fc" id="L91">        ProvedorWhatsapp whatsapp = provedor.getIfAvailable();</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (whatsapp == null) {</span>
+<span class="fc" id="L93">            return;</span>
+        }
+        try {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            if (whatsapp.statusConexao() == StatusConexaoWhatsapp.CONECTADO) {</span>
+<span class="fc" id="L97">                whatsapp.registrarWebhook();</span>
+<span class="fc" id="L98">                log.info(&quot;WhatsApp conectado — webhook re-registrado para a URL pública atual.&quot;);</span>
+            }
+<span class="fc" id="L100">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L101">            log.warn(&quot;Não foi possível re-registrar o webhook do WhatsApp na inicialização &quot;</span>
+<span class="fc" id="L102">                    + &quot;(a aplicação segue normalmente): {}&quot;, e.toString());</span>
+<span class="fc" id="L103">        }</span>
+<span class="fc" id="L104">    }</span>
+
+    // ------------------------------------------------------------ envio
+
+    /**
+     * Envia um texto e registra no log. Falha do provedor &lt;strong&gt;não propaga&lt;/strong&gt;
+     * (RN-WPP-01): registra em log e devolve {@code false} — o canal in-app é a
+     * garantia de entrega.
+     *
+     * @return {@code true} se o envio foi aceito pelo provedor
+     */
+    @Transactional
+    public boolean enviarTexto(String telefone, String texto) {
+<span class="fc" id="L117">        ProvedorWhatsapp whatsapp = provedor.getIfAvailable();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (whatsapp == null) {</span>
+<span class="fc" id="L119">            log.info(&quot;[WHATSAPP/stub — integração não configurada] para {}: {}&quot;, telefone, texto);</span>
+<span class="fc" id="L120">            return false;</span>
+        }
+        try {
+<span class="fc" id="L123">            whatsapp.enviarTexto(telefone, texto);</span>
+<span class="fc" id="L124">        } catch (WhatsappException e) {</span>
+<span class="fc" id="L125">            log.warn(&quot;Falha ao enviar WhatsApp para {} — o fluxo segue (RN-WPP-01): {}&quot;,</span>
+<span class="fc" id="L126">                    telefone, e.getMessage());</span>
+<span class="fc" id="L127">            return false;</span>
+<span class="fc" id="L128">        }</span>
+<span class="fc" id="L129">        mensagemRepository.save(new MensagemWhatsapp(DirecaoMensagem.ENVIADA, telefone, texto, null));</span>
+<span class="fc" id="L130">        return true;</span>
+    }
+
+    // ------------------------------------------------------------ recebimento (webhook)
+
+    /**
+     * Registra uma mensagem recebida no log, garantindo a idempotência do
+     * webhook (RN-WPP-03): evento repetido (mesmo id no provedor) devolve
+     * {@code false} e não deve ser reprocessado.
+     *
+     * @return {@code true} se a mensagem é nova (deve ir ao bot)
+     */
+    @Transactional
+    public boolean registrarRecebida(MensagemRecebida mensagem) {
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (mensagem.idProvedor() != null &amp;&amp; mensagemRepository</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">                .existsByIdProvedorAndDirecao(mensagem.idProvedor(), DirecaoMensagem.RECEBIDA)) {</span>
+<span class="fc" id="L146">            return false;</span>
+        }
+<span class="fc" id="L148">        mensagemRepository.save(new MensagemWhatsapp(</span>
+<span class="fc" id="L149">                DirecaoMensagem.RECEBIDA, mensagem.telefone(), mensagem.texto(), mensagem.idProvedor()));</span>
+<span class="fc" id="L150">        return true;</span>
+    }
+
+    /** Atualiza o cache de estado com o que o webhook reportou (§4.3 da SPEC-10). */
+    public void registrarEstadoConexao(StatusConexaoWhatsapp status, String qrCodeBase64) {
+<span class="fc" id="L155">        this.estadoReportado = new ConexaoWhatsapp(status, qrCodeBase64);</span>
+<span class="fc" id="L156">    }</span>
+
+    // ------------------------------------------------------------ painel
+
+    /**
+     * Estado da conexão para o painel: usa o cache alimentado pelo webhook e,
+     * na falta dele (app recém-subida), consulta o provedor. Falha na consulta
+     * aparece como DESCONECTADO — o painel nunca quebra por causa da Evolution.
+     */
+    public ConexaoWhatsapp estadoConexao() {
+<span class="fc" id="L166">        ProvedorWhatsapp whatsapp = provedor.getIfAvailable();</span>
+        // Sem integração configurada, a conexão nunca está ativa — ignora qualquer
+        // estado reportado antes (RN-WPP-02).
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        if (whatsapp == null) {</span>
+<span class="fc" id="L170">            return ConexaoWhatsapp.desconectado();</span>
+        }
+        // Fonte da verdade é o estado REAL na Evolution (consultado ao vivo): assim
+        // o painel se autocorrige — quando a conta parear, ele passa a CONECTADO
+        // mesmo que o webhook (CONNECTION_UPDATE) não tenha chegado. O cache do
+        // webhook serve só para reaproveitar a imagem do QR enquanto pareia.
+        try {
+<span class="pc bpc" id="L177" title="1 of 3 branches missed.">            return switch (whatsapp.statusConexao()) {</span>
+<span class="fc" id="L178">                case CONECTADO -&gt; ConexaoWhatsapp.conectado();</span>
+<span class="fc" id="L179">                case AGUARDANDO_QR -&gt; ConexaoWhatsapp.aguardandoQr(qrCacheado());</span>
+<span class="nc" id="L180">                case DESCONECTADO -&gt; ConexaoWhatsapp.desconectado();</span>
+            };
+<span class="fc" id="L182">        } catch (WhatsappException e) {</span>
+<span class="fc" id="L183">            log.warn(&quot;Falha ao consultar o estado da conexão WhatsApp: {}&quot;, e.getMessage());</span>
+            // Não conseguiu falar com a Evolution: cai no último estado reportado.
+<span class="fc bfc" id="L185" title="All 2 branches covered.">            return estadoReportado != null ? estadoReportado : ConexaoWhatsapp.desconectado();</span>
+        }
+    }
+
+    /** QR mais recente em cache (do {@code conectar()} ou do evento QRCODE_UPDATED). */
+    private String qrCacheado() {
+<span class="fc" id="L191">        ConexaoWhatsapp reportado = estadoReportado;</span>
+<span class="pc bpc" id="L192" title="2 of 4 branches missed.">        return reportado != null &amp;&amp; reportado.status() == StatusConexaoWhatsapp.AGUARDANDO_QR</span>
+<span class="pc" id="L193">                ? reportado.qrCodeBase64() : null;</span>
+    }
+
+    /** Inicia a conexão (cria instância/webhook e obtém o QR) e atualiza o cache. */
+    public ConexaoWhatsapp conectar() {
+<span class="fc" id="L198">        ProvedorWhatsapp whatsapp = provedor.getObject();</span>
+<span class="fc" id="L199">        ConexaoWhatsapp conexao = whatsapp.iniciarConexao();</span>
+<span class="fc" id="L200">        this.estadoReportado = conexao;</span>
+<span class="fc" id="L201">        return conexao;</span>
+    }
+
+    /** Encerra a sessão e atualiza o cache. */
+    public void desconectar() {
+<span class="fc" id="L206">        provedor.getObject().desconectar();</span>
+<span class="fc" id="L207">        this.estadoReportado = ConexaoWhatsapp.desconectado();</span>
+<span class="fc" id="L208">    }</span>
+
+    /** Conta conectada (número/perfil); vazio sem provedor, sem pareamento ou em falha. */
+    public Optional&lt;ContaWhatsapp&gt; contaConectada() {
+<span class="fc" id="L212">        ProvedorWhatsapp whatsapp = provedor.getIfAvailable();</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (whatsapp == null) {</span>
+<span class="fc" id="L214">            return Optional.empty();</span>
+        }
+        try {
+<span class="fc" id="L217">            return whatsapp.contaConectada();</span>
+<span class="fc" id="L218">        } catch (WhatsappException e) {</span>
+<span class="fc" id="L219">            log.warn(&quot;Falha ao consultar a conta WhatsApp conectada: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L220">            return Optional.empty();</span>
+        }
+    }
+
+    /** Últimas mensagens (enviadas e recebidas) para o painel (RN-WPP-10). */
+    @Transactional(readOnly = true)
+    public List&lt;MensagemWhatsapp&gt; ultimasMensagens() {
+<span class="fc" id="L227">        return mensagemRepository.findByOrderByCriadoEmDesc(PageRequest.of(0, LIMITE_PAINEL));</span>
+    }
+
+    // ------------------------------------------------------------ configurações de envio
+
+    /** Configurações de envio atuais (com os valores padrão quando não definidas). */
+    public ConfiguracaoEnvioWhatsapp configuracaoEnvio() {
+<span class="fc" id="L234">        return new ConfiguracaoEnvioWhatsapp(</span>
+<span class="fc" id="L235">                configuracaoService.get(CFG_NOME).orElse(&quot;&quot;),</span>
+<span class="fc" id="L236">                configuracaoService.get(CFG_MENSAGEM).filter(StringUtils::hasText).orElse(MENSAGEM_PADRAO));</span>
+    }
+
+    /** Persiste as configurações de envio (upsert de cada chave). */
+    @Transactional
+    public void salvarConfiguracaoEnvio(ConfiguracaoEnvioWhatsapp cfg) {
+<span class="fc bfc" id="L242" title="All 2 branches covered.">        configuracaoService.salvar(CFG_NOME, cfg.nomeExibicao() == null ? &quot;&quot; : cfg.nomeExibicao().trim());</span>
+<span class="fc" id="L243">        configuracaoService.salvar(CFG_MENSAGEM,</span>
+<span class="fc bfc" id="L244" title="All 2 branches covered.">                StringUtils.hasText(cfg.mensagemConfirmacao()) ? cfg.mensagemConfirmacao().trim() : MENSAGEM_PADRAO);</span>
+<span class="fc" id="L245">    }</span>
+
+    /**
+     * Renderiza a &lt;strong&gt;mensagem de confirmação&lt;/strong&gt; configurada,
+     * substituindo {@code {data}}, {@code {hora}} e {@code {destino}} e assinando
+     * com o nome de exibição (se houver). Usada na notificação de aprovação de
+     * viagem (SPEC-11).
+     */
+    public String mensagemConfirmacao(String destino, String data, String hora) {
+<span class="fc" id="L254">        ConfiguracaoEnvioWhatsapp cfg = configuracaoEnvio();</span>
+<span class="fc" id="L255">        String texto = cfg.mensagemConfirmacao()</span>
+<span class="fc bfc" id="L256" title="All 2 branches covered.">                .replace(&quot;{data}&quot;, data == null ? &quot;&quot; : data)</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">                .replace(&quot;{hora}&quot;, hora == null ? &quot;&quot; : hora)</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">                .replace(&quot;{destino}&quot;, destino == null ? &quot;&quot; : destino);</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        if (StringUtils.hasText(cfg.nomeExibicao())) {</span>
+<span class="fc" id="L260">            texto = texto + &quot;\n\n— &quot; + cfg.nomeExibicao().trim();</span>
+        }
+<span class="fc" id="L262">        return texto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

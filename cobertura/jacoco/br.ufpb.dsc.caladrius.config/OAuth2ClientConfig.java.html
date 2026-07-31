@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OAuth2ClientConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.config</a> &gt; <span class="el_source">OAuth2ClientConfig.java</span></div><h1>OAuth2ClientConfig.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+
+/**
+ * Configuração do login social com Google (OAuth2/OIDC) — SPEC-08.
+ *
+ * &lt;p&gt;O {@link ClientRegistrationRepository} é criado &lt;strong&gt;apenas quando há
+ * credenciais&lt;/strong&gt; ({@code GOOGLE_CLIENT_ID} &lt;em&gt;não-vazio&lt;/em&gt; no ambiente). Sem elas,
+ * nenhum registro existe, o Boot não tenta validar a configuração OAuth e a
+ * aplicação sobe normalmente apenas com o login por senha — o {@code SecurityConfig}
+ * e a tela de login detectam a ausência via {@code ObjectProvider}/{@code googleHabilitado}.
+ *
+ * &lt;p&gt;A condição usa {@code @ConditionalOnExpression} (e não {@code @ConditionalOnProperty})
+ * de propósito: em produção o Compose pode injetar a variável &lt;strong&gt;vazia&lt;/strong&gt;
+ * ({@code GOOGLE_CLIENT_ID=}); a expressão trata vazio como ausente, evitando que o
+ * bean seja criado com client-id em branco (o que quebraria o boot).
+ *
+ * &lt;p&gt;Usa {@link CommonOAuth2Provider#GOOGLE}, que já traz os endpoints, o issuer e
+ * os escopos padrão ({@code openid}, {@code profile}, {@code email}); só injetamos
+ * o client-id/secret. A URI de redirecionamento padrão é
+ * {@code {baseUrl}/login/oauth2/code/google}.
+ */
+@Configuration
+@ConditionalOnExpression(&quot;'${GOOGLE_CLIENT_ID:}' != ''&quot;)
+<span class="nc" id="L33">public class OAuth2ClientConfig {</span>
+
+    @Bean
+    public ClientRegistrationRepository clientRegistrationRepository(
+            @Value(&quot;${GOOGLE_CLIENT_ID}&quot;) String clientId,
+            @Value(&quot;${GOOGLE_CLIENT_SECRET}&quot;) String clientSecret) {
+<span class="nc" id="L39">        ClientRegistration google = CommonOAuth2Provider.GOOGLE</span>
+<span class="nc" id="L40">                .getBuilder(&quot;google&quot;)</span>
+<span class="nc" id="L41">                .clientId(clientId)</span>
+<span class="nc" id="L42">                .clientSecret(clientSecret)</span>
+<span class="nc" id="L43">                .build();</span>
+<span class="nc" id="L44">        return new InMemoryClientRegistrationRepository(google);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
