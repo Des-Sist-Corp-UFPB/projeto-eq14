@@ -24,7 +24,9 @@ target/
 *.iml
 *.iws
 *.ipr
-out/
+# Barra inicial pelo mesmo motivo do /logs/ mais abaixo: saída de build do IDE
+# fica na raiz; sem a âncora o padrão engoliria qualquer pasta "out" do código.
+/out/
 
 # Eclipse / Spring Tool Suite
 .apt_generated
@@ -45,7 +47,7 @@ out/
 # NetBeans
 nbproject/private/
 nbbuild/
-dist/
+/dist/
 nbdist/
 .nb-gradle/
 
@@ -61,7 +63,13 @@ Thumbs.db
 # Logs
 # ---------------------------------------------------------------------------
 *.log
-logs/
+# ATENÇÃO à barra inicial: sem ela, `logs/` casa com QUALQUER diretório chamado
+# "logs" em qualquer profundidade — foi assim que
+# src/main/resources/templates/logs/ (a tela da central de logs) ficou invisível
+# ao git por dois commits, e o /logs subiu para produção estourando
+# TemplateInputException (DT-31). O alvo aqui é só o diretório de log em
+# runtime na raiz do projeto.
+/logs/
 spring.log
 
 # ---------------------------------------------------------------------------
