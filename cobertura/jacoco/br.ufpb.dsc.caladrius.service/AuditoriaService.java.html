@@ -116,9 +116,9 @@ public class AuditoriaService {
 <span class="fc" id="L116">            return repository.findAllByOrderByInstanteDesc(pageable);</span>
         }
         // A área &quot;Sistema&quot; é o complemento: o que ainda não foi classificado.
-<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        return area == AreaSistema.SISTEMA</span>
-<span class="nc" id="L120">                ? repository.findByAcaoNotInOrderByInstanteDesc(</span>
-<span class="nc" id="L121">                        AreaSistema.todasAsAcoesConhecidas(), pageable)</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        return area == AreaSistema.SISTEMA</span>
+<span class="fc" id="L120">                ? repository.findByAcaoNotInOrderByInstanteDesc(</span>
+<span class="fc" id="L121">                        AreaSistema.todasAsAcoesConhecidas(), pageable)</span>
 <span class="fc" id="L122">                : repository.findByAcaoInOrderByInstanteDesc(area.getAcoes(), pageable);</span>
     }
 

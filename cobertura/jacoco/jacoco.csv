@@ -5,7 +5,7 @@ caladrius,br.ufpb.dsc.caladrius.service,ViagemService,80,552,9,27,3,114,15,24,9,
 caladrius,br.ufpb.dsc.caladrius.service,IdentidadeOauthService,4,180,3,17,2,45,3,14,0,7
 caladrius,br.ufpb.dsc.caladrius.service,ConviteService,102,442,7,23,18,95,11,19,4,11
 caladrius,br.ufpb.dsc.caladrius.service,UsuarioService,27,578,19,57,4,135,17,40,0,19
-caladrius,br.ufpb.dsc.caladrius.service,AuditoriaService,6,177,2,10,2,50,2,14,0,10
+caladrius,br.ufpb.dsc.caladrius.service,AuditoriaService,0,183,1,11,0,52,1,15,0,10
 caladrius,br.ufpb.dsc.caladrius.service,RecuperacaoSenhaService,2,118,4,8,1,26,4,8,0,6
 caladrius,br.ufpb.dsc.caladrius.service,WhatsappService,2,309,3,34,1,80,3,32,0,16
 caladrius,br.ufpb.dsc.caladrius.service,ParametroSistema,26,105,5,3,4,19,4,9,1,8
@@ -13,8 +13,8 @@ caladrius,br.ufpb.dsc.caladrius.service,VeiculoService,5,209,2,10,0,45,2,13,0,9
 caladrius,br.ufpb.dsc.caladrius.service,ConfiguracaoService,0,95,0,4,0,22,0,12,0,10
 caladrius,br.ufpb.dsc.caladrius.service,FeatureFlagService,0,221,0,18,0,49,0,19,0,10
 caladrius,br.ufpb.dsc.caladrius.service,MunicipioService,0,94,0,6,0,22,0,10,0,7
-caladrius,br.ufpb.dsc.caladrius.service,EnderecoService,11,138,3,9,1,33,3,13,0,10
 caladrius,br.ufpb.dsc.caladrius.service,OnboardingService,15,109,4,8,3,28,4,4,0,2
+caladrius,br.ufpb.dsc.caladrius.service,EnderecoService,11,138,3,9,1,33,3,13,0,10
 caladrius,br.ufpb.dsc.caladrius.service,SolicitacaoViagemService,87,724,14,38,10,148,22,36,9,23
 caladrius,br.ufpb.dsc.caladrius.service,VerificacaoService,28,343,4,14,6,78,7,21,3,16
 caladrius,br.ufpb.dsc.caladrius.service,ChaveFeature,26,52,4,0,4,13,3,6,1,6
@@ -34,8 +34,8 @@ caladrius,br.ufpb.dsc.caladrius.dto,ConfiguracaoUmami,0,114,2,20,0,20,2,15,0,6
 caladrius,br.ufpb.dsc.caladrius.dto,ViagemForm,0,21,0,0,0,1,0,1,0,1
 caladrius,br.ufpb.dsc.caladrius.dto,ConfiguracaoEnvioWhatsapp,0,9,0,0,0,1,0,1,0,1
 caladrius,br.ufpb.dsc.caladrius.domain.enums,StatusViagem,0,49,0,0,0,10,0,3,0,3
-caladrius,br.ufpb.dsc.caladrius.domain.enums,DirecaoMensagem,6,30,0,0,2,7,2,2,2,2
 caladrius,br.ufpb.dsc.caladrius.domain.enums,StatusVeiculo,0,42,0,0,0,9,0,3,0,3
+caladrius,br.ufpb.dsc.caladrius.domain.enums,DirecaoMensagem,0,36,0,0,0,9,0,4,0,4
 caladrius,br.ufpb.dsc.caladrius.domain.enums,FinalidadeToken,0,15,0,0,0,3,0,1,0,1
 caladrius,br.ufpb.dsc.caladrius.domain.enums,TipoSolicitacao,6,30,0,0,2,7,2,2,2,2
 caladrius,br.ufpb.dsc.caladrius.domain.enums,CategoriaAuditoria,0,35,0,0,0,8,0,3,0,3
@@ -58,12 +58,12 @@ caladrius,br.ufpb.dsc.caladrius.domain,Usuario,17,129,5,5,5,48,7,30,3,29
 caladrius,br.ufpb.dsc.caladrius.domain,CodigoVerificacao,10,85,5,5,4,31,6,21,2,20
 caladrius,br.ufpb.dsc.caladrius.domain,IdentidadeOauth,46,21,2,0,20,9,13,3,12,3
 caladrius,br.ufpb.dsc.caladrius.domain,Veiculo,3,111,1,1,1,45,1,24,0,24
-caladrius,br.ufpb.dsc.caladrius.domain,MensagemWhatsapp,38,38,3,3,14,15,12,5,9,5
+caladrius,br.ufpb.dsc.caladrius.domain,MensagemWhatsapp,26,50,3,3,10,19,8,9,5,9
 caladrius,br.ufpb.dsc.caladrius.domain,TokenAtivacao,15,61,3,5,5,22,8,13,5,12
 caladrius,br.ufpb.dsc.caladrius.domain,Cidade,0,52,0,0,0,20,0,11,0,11
 caladrius,br.ufpb.dsc.caladrius.domain,Endereco,18,51,0,0,6,24,6,14,6,14
-caladrius,br.ufpb.dsc.caladrius.domain,LogAuditoria,10,87,2,2,4,35,4,22,2,22
 caladrius,br.ufpb.dsc.caladrius.domain,Notificacao,27,29,1,1,11,13,9,5,8,5
+caladrius,br.ufpb.dsc.caladrius.domain,LogAuditoria,7,90,1,3,3,36,3,23,2,22
 caladrius,br.ufpb.dsc.caladrius.domain,ConversaBot,20,102,0,0,8,43,6,22,6,22
 caladrius,br.ufpb.dsc.caladrius.domain,Viagem,22,103,2,2,8,42,7,26,5,26
 caladrius,br.ufpb.dsc.caladrius.domain,Municipio,7,30,0,0,3,13,2,8,2,8

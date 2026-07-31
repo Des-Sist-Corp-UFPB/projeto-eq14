@@ -115,18 +115,18 @@ some.
     -v /var/run/docker.sock:/var/run/docker.sock --network host \
     maven:3.9.9-eclipse-temurin-21 mvn -B clean test jacoco:report
   ```
-- **Percentual total: `87,7%` de cobertura de linhas** (88,0% de instruções, 71,0% de ramos),
-  com **388 testes — 0 falhas, 0 erros**. Medição de **2026-07-31**, com o relatório commitado
-  em `cobertura/`.
+- **Percentual total: `88,0%` de cobertura de linhas** (3009 de 3419; 88,2% de instruções,
+  71,2% de ramos), com **393 testes — 0 falhas, 0 erros**. Medição de **2026-07-31**, com o
+  relatório commitado em `cobertura/`.
 
 | Pacote | Linhas | | Pacote | Linhas |
 |---|---:|---|---|---:|
 | `observabilidade` | 100,0% | | `whatsapp` | 87,2% |
 | `health` | 100,0% | | `config` | 84,0% |
-| `dto` | 100,0% | | `domain` | 81,7% |
+| `dto` | 100,0% | | `domain` | 82,6% |
 | `util` | 97,1% | | `controller` | 81,4% |
-| `domain.enums` | 96,0% | | `whatsapp.bot` | 81,1% |
-| `service` | 95,0% | | `security` | 75,0% |
+| `domain.enums` | 97,0% | | `whatsapp.bot` | 81,1% |
+| `service` | 95,1% | | `security` | 75,0% |
 | `notificacao` | 89,7% | | `exception` | 66,7% |
 
   Os cenários por camada estão documentados em [`docs/testes/`](docs/testes/).
