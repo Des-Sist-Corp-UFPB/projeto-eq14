@@ -116,7 +116,19 @@ public class WhatsappService {
     public boolean enviarTexto(String telefone, String texto) {
         ProvedorWhatsapp whatsapp = provedor.getIfAvailable();
         if (whatsapp == null) {
-            log.info("[WHATSAPP/stub — integração não configurada] para {}: {}", telefone, texto);
+            // O CORPO da mensagem NÃO vai para o log de nível INFO: ele carrega
+            // segredos de uso único (link `/ativar?token=…` do convite/"Acesso à
+            // plataforma" e códigos OTP — SPEC-11/SPEC-12) e dado pessoal sensível
+            // (condições de saúde da solicitação). Em produção o log é exportado ao
+            // Loki central da disciplina (SPEC-14), fora do nosso controle: publicar
+            // o token ali anularia o hash com que ele é guardado no banco.
+            // O texto completo continua disponível em DEBUG, que só se liga em dev.
+            // O destinatário também é achatado: ele chega do webhook (JID do provedor)
+            // e um "\n" ali forjaria uma linha inteira de log.
+            String destino = telefone == null ? "" : telefone.replaceAll("[\\r\\n]+", " ");
+            log.info("[WHATSAPP/stub — integração não configurada] para {}: {} caracteres não enviados",
+                    destino, texto == null ? 0 : texto.length());
+            log.debug("[WHATSAPP/stub] conteúdo para {}: {}", destino, umaLinha(texto));
             return false;
         }
         try {
@@ -260,5 +272,20 @@ public class WhatsappService {
             texto = texto + "\n\n— " + cfg.nomeExibicao().trim();
         }
         return texto;
+    }
+
+    // ------------------------------------------------------------ apoio
+
+    /**
+     * Achata quebras de linha antes de mandar um texto de origem externa ao log.
+     * Sem isso, uma mensagem recebida pelo webhook poderia injetar linhas inteiras
+     * no log e forjar eventos (CWE-117, <em>log injection</em> — apontado pelo
+     * FindSecBugs como {@code CRLF_INJECTION_LOGS}).
+     */
+    static String umaLinha(String texto) {
+        if (texto == null) {
+            return "";
+        }
+        return texto.replaceAll("[\\r\\n]+", " ⏎ ");
     }
 }

@@ -206,7 +206,7 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
   `ParametroSistema`, `ManutencaoFilter` (503 + página pública, libera SYSADMIN e o contrato `/ping`),
   gate do bot no webhook, `MunicipioService` (entitlement) e telas `/admin/features` + `/admin/municipios`.
   **Migration V15** (só `municipios.pagamento_habilitado`). **Cobertura de testes com gate**: `jacoco:check`
-  falha abaixo de **85%** — hoje **393 testes verdes**, **88,0% de linhas**. Cenários documentados em
+  falha abaixo de **85%** — hoje **398 testes verdes**, **88,1% de linhas**. Cenários documentados em
   **[`docs/testes/`](docs/testes/)**. Antes: SPEC-14 (OpenTelemetry, em produção), SPEC-12 (V14),
   SPEC-11/10 (WhatsApp). Migrations até **V15**; teste de contexto Testcontainers cobre V1→V15.
 - **Como rodar o build sem Java na máquina** (é o que valida antes do push):

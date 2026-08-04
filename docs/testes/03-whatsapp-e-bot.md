@@ -18,7 +18,7 @@ Testes da integração com o WhatsApp ([SPEC-10](../sdd/specs/SPEC-10-integracao
 
 ---
 
-## `WhatsappServiceTest` — 22 cenários
+## `WhatsappServiceTest` — 26 cenários
 
 ### Envio
 | Cenário | Protege |
@@ -26,6 +26,24 @@ Testes da integração com o WhatsApp ([SPEC-10](../sdd/specs/SPEC-10-integracao
 | **sem integração configurada, o envio é no-op** (devolve `false`, não registra nada) | **RN-WPP-02** — sem `EVOLUTION_URL`/`API_KEY` a app sobe e opera como stub |
 | envio bem-sucedido devolve `true` e registra a mensagem `ENVIADA` | log de mensagens (RN-WPP-10) |
 | **falha do provedor NÃO propaga** — devolve `false` e não registra envio | **RN-WPP-01** — Evolution fora do ar não pode derrubar a aprovação de uma viagem |
+
+### Log do envio em stub (privacidade e CWE-117)
+O caminho de stub é o que **roda hoje em produção** — a Evolution ainda não subiu — e desde a
+[SPEC-14](../sdd/specs/SPEC-14-observabilidade-opentelemetry.md) o log sai da nossa máquina rumo ao
+Loki central da disciplina. Estes cenários prendem um `ListAppender` no logger do serviço, porque a
+propriedade que interessa **só é visível no log**:
+
+| Cenário | Protege |
+|---|---|
+| **o corpo da mensagem NÃO aparece no INFO** — só destinatário e tamanho | o texto carrega **segredo de uso único** (link `/ativar?token=…`, código OTP — SPEC-11/12) e **dado pessoal sensível** (condições de saúde); publicá-lo no Loki anularia o hash com que o token é guardado no banco |
+| o texto completo continua em **DEBUG** (que só se liga em dev), em uma linha só | não perder a capacidade de depurar o stub localmente |
+| **quebra de linha no telefone não forja uma linha de log** | **CWE-117** (`CRLF_INJECTION_LOGS`) — o telefone chega do webhook; um `\n` ali inventaria um evento inteiro na trilha |
+| telefone e texto nulos não quebram o log | o stub é chamado por vários fluxos, inclusive com campo ausente |
+| `umaLinha`: nulo vira vazio, quebras seguidas viram **um** marcador `⏎` | o sanitizador em si, usado em todo texto de origem externa que vai ao log |
+
+> A supressão correspondente no [`spotbugs-exclude.xml`](../../spotbugs-exclude.xml) vem **depois**
+> da correção, não no lugar dela: o FindSecBugs não reconhece `String.replaceAll` como sanitizador e
+> segue apontando o sink já saneado. Estes cinco cenários são a prova de que ele está saneado.
 
 ### Recebimento
 | Cenário | Protege |

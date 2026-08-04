@@ -10,15 +10,22 @@ import br.ufpb.dsc.caladrius.whatsapp.MensagemRecebida;
 import br.ufpb.dsc.caladrius.whatsapp.ProvedorWhatsapp;
 import br.ufpb.dsc.caladrius.whatsapp.StatusConexaoWhatsapp;
 import br.ufpb.dsc.caladrius.whatsapp.WhatsappException;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,7 +82,7 @@ class WhatsappServiceTest {
     class Envio {
 
         @Test
-        @DisplayName("RN-WPP-02: sem integração configurada o envio é no-op (false) e nada é logado")
+        @DisplayName("RN-WPP-02: sem integração configurada o envio é no-op (false) e nada é registrado")
         void semProvedorNaoEnvia() {
             assertThat(semProvedor().enviarTexto("83999990000", "oi")).isFalse();
             verify(mensagemRepository, never()).save(any());
@@ -101,6 +108,120 @@ class WhatsappServiceTest {
 
             assertThat(comProvedor(provedor).enviarTexto("83999990000", "oi")).isFalse();
             verify(mensagemRepository, never()).save(any());
+        }
+    }
+
+    // -------------------------------------------------------- log do envio (stub)
+
+    /**
+     * O caminho de <em>stub</em> (RN-WPP-02) é o que roda hoje em produção — a Evolution
+     * ainda não subiu. Ele registra em log toda mensagem que <strong>deixou</strong> de ser
+     * enviada, e desde a SPEC-14 esse log é exportado ao Loki central da disciplina, fora do
+     * nosso controle. Os cenários abaixo protegem as duas propriedades que isso exige:
+     *
+     * <ul>
+     *   <li><strong>o corpo não vai para o INFO</strong> — ele carrega segredo de uso único
+     *       (link {@code /ativar?token=…} e código OTP) e dado pessoal sensível (condições de
+     *       saúde); publicá-lo anularia o hash com que o token é guardado no banco;</li>
+     *   <li><strong>nada de origem externa entra no log com quebra de linha</strong> — o
+     *       telefone chega do webhook (JID do provedor) e um {@code \n} ali forjaria uma
+     *       linha inteira de log (CWE-117).</li>
+     * </ul>
+     *
+     * <p>É a única parte da classe que só se verifica olhando o log — daí o
+     * {@link ListAppender} preso ao logger do serviço.
+     */
+    @Nested
+    @DisplayName("Log do envio em stub (privacidade e CWE-117)")
+    class LogDoStub {
+
+        /** Um convite real: o token no link é segredo de uso único (SPEC-11/SPEC-12). */
+        private static final String CONVITE =
+                "Acesse https://caladrius.app/ativar?token=abc123 para definir sua senha";
+
+        private ch.qos.logback.classic.Logger logger;
+        private ListAppender<ILoggingEvent> capturados;
+        private Level nivelOriginal;
+
+        @BeforeEach
+        void ligarCaptura() {
+            logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(WhatsappService.class);
+            nivelOriginal = logger.getLevel();
+            capturados = new ListAppender<>();
+            capturados.start();
+            logger.addAppender(capturados);
+        }
+
+        @AfterEach
+        void desligarCaptura() {
+            logger.detachAppender(capturados);
+            logger.setLevel(nivelOriginal); // application-test.yml deixa o pacote em DEBUG
+        }
+
+        /** A mensagem já interpolada do único evento daquele nível. */
+        private String linhaDe(Level nivel) {
+            List<ILoggingEvent> eventos = capturados.list.stream()
+                    .filter(evento -> evento.getLevel() == nivel)
+                    .toList();
+            assertThat(eventos).as("eventos de log em %s", nivel).hasSize(1);
+            return eventos.get(0).getFormattedMessage();
+        }
+
+        @Test
+        @DisplayName("o corpo da mensagem NÃO vai para o INFO — só o destinatário e o tamanho")
+        void corpoNaoVaiParaOInfo() {
+            logger.setLevel(Level.INFO);
+
+            semProvedor().enviarTexto("83999990000", CONVITE);
+
+            assertThat(linhaDe(Level.INFO))
+                    .doesNotContain("token=abc123")
+                    .doesNotContain(CONVITE)
+                    .contains("83999990000")
+                    .contains(CONVITE.length() + " caracteres");
+        }
+
+        @Test
+        @DisplayName("o texto completo continua em DEBUG (só se liga em dev), achatado em uma linha")
+        void corpoFicaEmDebug() {
+            logger.setLevel(Level.DEBUG);
+
+            semProvedor().enviarTexto("83999990000", "Seu código é 123456\nnão compartilhe");
+
+            assertThat(linhaDe(Level.DEBUG))
+                    .contains("Seu código é 123456 ⏎ não compartilhe")
+                    .doesNotContain("\n");
+        }
+
+        @Test
+        @DisplayName("CWE-117: quebra de linha no telefone não forja uma linha de log")
+        void telefoneComQuebraNaoForjaLinha() {
+            logger.setLevel(Level.INFO);
+
+            semProvedor().enviarTexto("83999990000\nINFO  Usuário promovido a GERENTE", "oi");
+
+            assertThat(linhaDe(Level.INFO))
+                    .doesNotContain("\n")
+                    .doesNotContain("\r")
+                    .contains("promovido a GERENTE"); // continua visível — porém na MESMA linha
+        }
+
+        @Test
+        @DisplayName("telefone e texto nulos não quebram o log (0 caracteres)")
+        void nulosNaoQuebramOLog() {
+            logger.setLevel(Level.INFO);
+
+            assertThat(semProvedor().enviarTexto(null, null)).isFalse();
+
+            assertThat(linhaDe(Level.INFO)).contains("0 caracteres");
+        }
+
+        @Test
+        @DisplayName("umaLinha: nulo vira vazio, quebras seguidas viram um único marcador")
+        void umaLinhaAchataQuebras() {
+            assertThat(WhatsappService.umaLinha(null)).isEmpty();
+            assertThat(WhatsappService.umaLinha("a\r\n\nb")).isEqualTo("a ⏎ b");
+            assertThat(WhatsappService.umaLinha("sem quebra")).isEqualTo("sem quebra");
         }
     }
 

@@ -13,26 +13,28 @@ complemento executável do SDD — cada regra de negócio (`RN-*`) e critério d
 
 | Métrica | Valor |
 |---|---|
-| **Testes** | **368** (JUnit 5), 0 falhas |
-| **Cobertura de linhas** | **≥ 87%** |
-| **Cobertura de instruções** | **≥ 87%** |
-| **Cobertura de métodos** | **≥ 86%** |
-| **Cobertura de ramos** | **≥ 69%** |
+| **Testes** | **398** (JUnit 5), 0 falhas |
+| **Cobertura de linhas** | **88,1%** (3017 de 3425) |
+| **Cobertura de instruções** | **88,3%** |
+| **Cobertura de métodos** | **87,3%** |
+| **Cobertura de ramos** | **71,5%** |
 | **Gate no build** | `jacoco:check` — **falha** abaixo de **85%** (linhas e instruções) e **65%** (ramos) |
+
+> Medição de **2026-08-04**, com o relatório commitado em [`cobertura/jacoco/`](../../cobertura/jacoco/index.html).
 
 Cobertura por camada (linhas):
 
 | Pacote | Cobertura | Leitura |
 |---|---|---|
-| `service` | **95,1%** | onde mora a regra de negócio — é o alvo prioritário |
-| `dto` · `observabilidade` | **100%** | |
+| `service` | **95,2%** | onde mora a regra de negócio — é o alvo prioritário |
+| `dto` · `observabilidade` · `health` | **100%** | |
 | `util` | 97,1% | |
-| `domain.enums` | 96,2% | |
+| `domain.enums` | 97,0% | |
 | `notificacao` | 89,7% | |
-| `config` | 82,8% | filtros e listeners cobertos; `SecurityConfig` é exercitado pelos testes web |
-| `domain` | 82,4% | entidades: o que não é lido pelas telas fica descoberto |
-| `whatsapp` / `whatsapp.bot` | 82,4% / 81,1% | máquina de estados do bot e adaptador da Evolution |
-| `controller` | 80,8% | |
+| `config` | 84,0% | filtros e listeners cobertos; `SecurityConfig` é exercitado pelos testes web |
+| `domain` | 82,8% | entidades: o que não é lido pelas telas fica descoberto |
+| `whatsapp` / `whatsapp.bot` | 87,2% / 81,1% | máquina de estados do bot e adaptador da Evolution |
+| `controller` | 81,4% | |
 | `security` | 75,0% | falta o `CaladriusOidcUserService` (exige simular o fluxo OIDC completo) |
 | `exception` | 66,7% | classes de exceção quase sem lógica |
 

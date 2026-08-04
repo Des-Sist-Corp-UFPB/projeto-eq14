@@ -28,7 +28,63 @@
       O método main() com System.exit implícito não é um problema real aqui.
     -->
     <Match>
-        <Class name="br.ufpb.dsc.mercado.MercadoApplication"/>
+        <Class name="br.ufpb.dsc.caladrius.CaladriusApplication"/>
+    </Match>
+
+    <!--
+      EI_EXPOSE_REP / EI_EXPOSE_REP2 — "may expose internal representation".
+
+      O detector aponta todo getter que devolve (ou setter/construtor que guarda) uma
+      referência a objeto mutável sem copiar. No CALADRIUS isso acontece em dois lugares,
+      e em nenhum dos dois é uma falha de segurança:
+
+        1. ENTIDADES JPA (domain/): viagem.getMotorista(), solicitacao.setLinha(...),
+           linha.getDias(). Devolver a referência gerenciada é EXIGÊNCIA do Hibernate —
+           é assim que ele faz dirty checking e resolve o lazy loading. Copiar
+           defensivamente quebraria o contexto de persistência.
+
+        2. INJEÇÃO DE DEPENDÊNCIA por construtor (service/, controller/, config/):
+           this.viagemRepository = viagemRepository. São beans SINGLETON do Spring,
+           compartilhados por projeto e sem estado mutável por requisição; "copiar" um
+           repositório não faria sentido.
+
+      Não ocorre aqui o cenário que o detector protege (guardar um array/Date vindo de
+      código não confiável). Quem protege o dado nesta aplicação é a camada de
+      autorização (RBAC no SecurityConfig) e o isolamento por dono nas consultas —
+      não a cópia defensiva de um objeto gerenciado pelo Hibernate.
+
+      Escopo: restrito ao nosso pacote raiz — bug novo em código de terceiro continua aparecendo.
+    -->
+    <Match>
+        <Class name="~br\.ufpb\.dsc\.caladrius\..*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+      CRLF_INJECTION_LOGS em WhatsappService.enviarTexto (caminho de stub).
+
+      ATENÇÃO: esta é a ÚNICA supressão de alerta de SEGURANÇA do projeto, e ela vem
+      DEPOIS da correção — não no lugar dela. O que foi corrigido no código:
+
+        - o CORPO da mensagem saiu do nível INFO. Ele carrega segredo de uso único
+          (link `/ativar?token=…` e código OTP) e dado pessoal sensível (condições de
+          saúde). Em produção o log é exportado ao Loki central da disciplina, então
+          publicá-lo ali anularia o hash com que o token é guardado no banco;
+        - destinatário e texto passam por `replaceAll("[\r\n]+", …)` no próprio ponto
+          de log, matando a injeção de linha (CWE-117).
+
+      Por que o alerta persiste: o detector de taint do FindSecBugs marca qualquer
+      `Logger.info/debug(String, Object, Object)` cujo argumento venha do webhook, e
+      NÃO reconhece `String.replaceAll` como sanitizador — o dado atravessa
+      MensagemRecebida → BotAtendimentoService → NotificacaoWhatsappCanal e chega
+      "sujo" na análise. É falso positivo sobre um sink já saneado.
+
+      Escopo: uma classe, um padrão. Reavaliar se o método mudar.
+    -->
+    <Match>
+        <Class name="br.ufpb.dsc.caladrius.service.WhatsappService"/>
+        <Method name="enviarTexto"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
     </Match>
 
 </FindBugsFilter>

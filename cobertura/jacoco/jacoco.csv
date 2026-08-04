@@ -1,13 +1,13 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
 caladrius,br.ufpb.dsc.caladrius.service,CidadeService,0,161,0,4,0,33,0,11,0,9
 caladrius,br.ufpb.dsc.caladrius.service,LinhaProgramadaService,2,279,1,19,0,57,1,21,0,12
-caladrius,br.ufpb.dsc.caladrius.service,ViagemService,80,552,9,27,3,114,15,24,9,12
+caladrius,br.ufpb.dsc.caladrius.service,ViagemService,75,557,8,28,2,115,14,25,8,13
 caladrius,br.ufpb.dsc.caladrius.service,IdentidadeOauthService,4,180,3,17,2,45,3,14,0,7
 caladrius,br.ufpb.dsc.caladrius.service,ConviteService,102,442,7,23,18,95,11,19,4,11
 caladrius,br.ufpb.dsc.caladrius.service,UsuarioService,27,578,19,57,4,135,17,40,0,19
 caladrius,br.ufpb.dsc.caladrius.service,AuditoriaService,0,183,1,11,0,52,1,15,0,10
 caladrius,br.ufpb.dsc.caladrius.service,RecuperacaoSenhaService,2,118,4,8,1,26,4,8,0,6
-caladrius,br.ufpb.dsc.caladrius.service,WhatsappService,2,309,3,34,1,80,3,32,0,16
+caladrius,br.ufpb.dsc.caladrius.service,WhatsappService,2,339,3,40,1,86,3,36,0,17
 caladrius,br.ufpb.dsc.caladrius.service,ParametroSistema,26,105,5,3,4,19,4,9,1,8
 caladrius,br.ufpb.dsc.caladrius.service,VeiculoService,5,209,2,10,0,45,2,13,0,9
 caladrius,br.ufpb.dsc.caladrius.service,ConfiguracaoService,0,95,0,4,0,22,0,12,0,10
@@ -65,7 +65,7 @@ caladrius,br.ufpb.dsc.caladrius.domain,Endereco,18,51,0,0,6,24,6,14,6,14
 caladrius,br.ufpb.dsc.caladrius.domain,Notificacao,27,29,1,1,11,13,9,5,8,5
 caladrius,br.ufpb.dsc.caladrius.domain,LogAuditoria,7,90,1,3,3,36,3,23,2,22
 caladrius,br.ufpb.dsc.caladrius.domain,ConversaBot,20,102,0,0,8,43,6,22,6,22
-caladrius,br.ufpb.dsc.caladrius.domain,Viagem,22,103,2,2,8,42,7,26,5,26
+caladrius,br.ufpb.dsc.caladrius.domain,Viagem,19,106,2,2,7,43,6,27,4,27
 caladrius,br.ufpb.dsc.caladrius.domain,Municipio,7,30,0,0,3,13,2,8,2,8
 caladrius,br.ufpb.dsc.caladrius.whatsapp,EvolutionApiProvedor,50,353,12,17,14,91,12,14,0,11
 caladrius,br.ufpb.dsc.caladrius.whatsapp,WhatsappException,0,9,0,0,0,4,0,2,0,2
