@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * Semeia dados de <strong>demonstração apenas em DEV</strong> ({@code @Profile("dev")})
- * para exercitar a jornada do passageiro (SPEC-09) logo após {@code mvn spring-boot:run},
+ * para exercitar a jornada do passageiro (SPEC-VIA-03) logo após {@code mvn spring-boot:run},
  * sem precisar cadastrar tudo na mão.
  *
  * <p>Nunca roda em produção (perfil {@code prod}). É <strong>idempotente</strong>: cada

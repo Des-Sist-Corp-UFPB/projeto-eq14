@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrganizacaoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">OrganizacaoService.java</span></div><h1>OrganizacaoService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Organizacao;
+import br.ufpb.dsc.caladrius.exception.RegraNegocioException;
+import br.ufpb.dsc.caladrius.repository.OrganizacaoRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.text.Normalizer;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Cadastro das secretarias clientes — o plano de controle do modelo multi-tenant
+ * (SPEC-PLT-02 §3, fase 1).
+ *
+ * &lt;p&gt;O cuidado central é o &lt;strong&gt;slug&lt;/strong&gt;: ele identifica o tenant, vira
+ * subdomínio e, na fase 2, o nome do schema de dados. Por isso é normalizado (sem
+ * acento, minúsculo, kebab-case) e único.
+ */
+@Service
+public class OrganizacaoService {
+
+    /** Limite da coluna `slug` (V16) — e folga suficiente para o prefixo `tenant_`. */
+    private static final int TAMANHO_MAXIMO_SLUG = 60;
+
+    private final OrganizacaoRepository organizacaoRepository;
+
+<span class="fc" id="L31">    public OrganizacaoService(OrganizacaoRepository organizacaoRepository) {</span>
+<span class="fc" id="L32">        this.organizacaoRepository = organizacaoRepository;</span>
+<span class="fc" id="L33">    }</span>
+
+    /**
+     * Cria uma secretaria em {@code RASCUNHO}. Ela só passa a operar quando o pagamento
+     * confirma (SPEC-PLT-03, RN-PAG-01) — este método não concede acesso a ninguém.
+     *
+     * @param slug identificador legível; se ausente, é derivado do nome
+     */
+    @Transactional
+    public Organizacao criar(String nome, String documento, String slug) {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (!StringUtils.hasText(nome)) {</span>
+<span class="fc" id="L44">            throw new RegraNegocioException(&quot;O nome da secretaria é obrigatório.&quot;);</span>
+        }
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        String slugFinal = normalizarSlug(StringUtils.hasText(slug) ? slug : nome);</span>
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        if (slugFinal.isEmpty()) {</span>
+<span class="nc" id="L48">            throw new RegraNegocioException(&quot;Não foi possível derivar um identificador do nome informado.&quot;);</span>
+        }
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (organizacaoRepository.existsBySlug(slugFinal)) {</span>
+<span class="fc" id="L51">            throw new RegraNegocioException(&quot;Já existe uma secretaria com o identificador '&quot; + slugFinal + &quot;'.&quot;);</span>
+        }
+<span class="fc" id="L53">        Organizacao organizacao = new Organizacao(nome.trim(), slugFinal);</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        organizacao.setDocumento(StringUtils.hasText(documento) ? documento.trim() : null);</span>
+<span class="fc" id="L55">        return organizacaoRepository.save(organizacao);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Optional&lt;Organizacao&gt; porSlug(String slug) {
+<span class="nc" id="L60">        return organizacaoRepository.findBySlug(normalizarSlug(slug));</span>
+    }
+
+    @Transactional(readOnly = true)
+    public Optional&lt;Organizacao&gt; porId(UUID id) {
+<span class="nc" id="L65">        return organizacaoRepository.findById(id);</span>
+    }
+
+    /**
+     * Todas as secretarias. Só o SYSADMIN da plataforma enxerga esta lista
+     * (RN-MT-13) — ela &lt;strong&gt;nunca&lt;/strong&gt; é exposta ao usuário final, que
+     * descobre a sua secretaria por convite, subdomínio ou município (§6 da spec).
+     */
+    @Transactional(readOnly = true)
+    public List&lt;Organizacao&gt; listar() {
+<span class="nc" id="L75">        return organizacaoRepository.findAll();</span>
+    }
+
+    /**
+     * Reduz um texto livre a um identificador seguro: sem acento, minúsculo, com
+     * hífen no lugar de qualquer separador. &quot;Secretaria de Saúde de João Pessoa&quot;
+     * vira &quot;secretaria-de-saude-de-joao-pessoa&quot;.
+     */
+    public static String normalizarSlug(String texto) {
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (!StringUtils.hasText(texto)) {</span>
+<span class="nc" id="L85">            return &quot;&quot;;</span>
+        }
+<span class="fc" id="L87">        String semAcento = Normalizer.normalize(texto.trim(), Normalizer.Form.NFD)</span>
+<span class="fc" id="L88">                .replaceAll(&quot;\\p{InCombiningDiacriticalMarks}+&quot;, &quot;&quot;);</span>
+<span class="fc" id="L89">        String slug = semAcento.toLowerCase()</span>
+<span class="fc" id="L90">                .replaceAll(&quot;[^a-z0-9]+&quot;, &quot;-&quot;)</span>
+<span class="fc" id="L91">                .replaceAll(&quot;^-+|-+$&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">        return slug.length() &gt; TAMANHO_MAXIMO_SLUG ? slug.substring(0, TAMANHO_MAXIMO_SLUG) : slug;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

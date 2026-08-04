@@ -11,13 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * health check e telas de entrada.
  *
  * <p>Esta classe roda <strong>sem</strong> as variáveis do Umami, então é também onde se
- * verifica o estado padrão do analytics: desligado, sem script (SPEC-17, RN-ANL-01). O
+ * verifica o estado padrão do analytics: desligado, sem script (SPEC-OPE-02, RN-ANL-01). O
  * estado ligado fica em {@link AnalyticsUmamiWebTest}.
  */
 @DisplayName("Web — Páginas públicas")
 class PaginasPublicasTest extends IntegracaoWebTestBase {
 
-    // ===================== Health check (SPEC-17) =====================
+    // ===================== Health check (SPEC-OPE-02) =====================
 
     /** Contrato público da disciplina: /ping responde 200 com JSON. */
     @Test
@@ -42,7 +42,7 @@ class PaginasPublicasTest extends IntegracaoWebTestBase {
     }
 
     /**
-     * SPEC-17: o campo vem de um {@code SELECT} real contra o PostgreSQL do Testcontainers —
+     * SPEC-OPE-02: o campo vem de um {@code SELECT} real contra o PostgreSQL do Testcontainers —
      * é o caminho feliz do {@code BancoHealthIndicator}, que o teste unitário não cobre.
      */
     @Test
@@ -94,7 +94,7 @@ class PaginasPublicasTest extends IntegracaoWebTestBase {
                 .andExpect(status().isOk());
     }
 
-    // ===================== Analytics desligado (SPEC-17) =====================
+    // ===================== Analytics desligado (SPEC-OPE-02) =====================
 
     /**
      * RN-ANL-01: sem {@code UMAMI_URL}/{@code UMAMI_WEBSITE_ID} nenhum script é renderizado.

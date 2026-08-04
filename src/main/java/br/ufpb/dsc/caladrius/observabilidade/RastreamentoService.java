@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Instrumentação <strong>manual</strong> de traces (SPEC-14 / ADR-18). Fina camada
+ * Instrumentação <strong>manual</strong> de traces (SPEC-OPE-01 / ADR-18). Fina camada
  * sobre a API do OpenTelemetry: abre um <em>span</em> de negócio ao redor de uma
  * ação, anexa atributos de domínio e — se a ação falhar — grava a exceção e marca o
  * span como {@link StatusCode#ERROR}, sem engolir o erro (a exceção segue propagando).

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VinculoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.service</a> &gt; <span class="el_source">VinculoService.java</span></div><h1>VinculoService.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.service;
+
+import br.ufpb.dsc.caladrius.domain.Organizacao;
+import br.ufpb.dsc.caladrius.domain.Usuario;
+import br.ufpb.dsc.caladrius.domain.Vinculo;
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusVinculo;
+import br.ufpb.dsc.caladrius.exception.RecursoNaoEncontradoException;
+import br.ufpb.dsc.caladrius.repository.VinculoRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Quem pertence a qual secretaria, com qual papel (SPEC-PLT-02 §4 / ADR-22).
+ *
+ * &lt;p&gt;Dois invariantes governam esta classe:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;strong&gt;RN-MT-08&lt;/strong&gt; — o vínculo nasce {@link StatusVinculo#PENDENTE}.
+ *       Escolher uma secretaria na tela de cadastro &lt;em&gt;não&lt;/em&gt; dá acesso a ela; quem
+ *       ativa é um gestor da organização. Sem isso, o auto-cadastro viraria um atalho
+ *       para dentro dos dados de qualquer cliente;&lt;/li&gt;
+ *   &lt;li&gt;&lt;strong&gt;isolamento por dono&lt;/strong&gt; — toda leitura de um vínculo específico
+ *       exige o id do dono, e o que não é seu responde &quot;não encontrado&quot; em vez de
+ *       &quot;proibido&quot;: negar sem confirmar a existência (mesmo padrão anti-enumeração da
+ *       recuperação de senha, SPEC-ACE-03).&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Service
+public class VinculoService {
+
+    private final VinculoRepository vinculoRepository;
+    private final AuditoriaService auditoriaService;
+
+<span class="fc" id="L38">    public VinculoService(VinculoRepository vinculoRepository, AuditoriaService auditoriaService) {</span>
+<span class="fc" id="L39">        this.vinculoRepository = vinculoRepository;</span>
+<span class="fc" id="L40">        this.auditoriaService = auditoriaService;</span>
+<span class="fc" id="L41">    }</span>
+
+    /**
+     * Solicita o vínculo de uma pessoa a uma secretaria. &lt;strong&gt;Idempotente&lt;/strong&gt;:
+     * pedir de novo devolve o vínculo que já existe — a pessoa clicando duas vezes não
+     * gera duas solicitações para o gestor avaliar.
+     */
+    @Transactional
+    public Vinculo solicitar(Usuario usuario, Organizacao organizacao, Papel papel) {
+<span class="fc" id="L50">        return vinculoRepository</span>
+<span class="fc" id="L51">                .findByUsuarioIdAndOrganizacaoIdAndPapelAndStatusNot(</span>
+<span class="fc" id="L52">                        usuario.getId(), organizacao.getId(), papel, StatusVinculo.REVOGADO)</span>
+<span class="fc" id="L53">                .orElseGet(() -&gt; vinculoRepository.save(new Vinculo(usuario, organizacao, papel)));</span>
+    }
+
+    /** Ativa o vínculo (ação de gestor da organização) e deixa rastro na central de logs. */
+    @Transactional
+    public Vinculo aprovar(UUID vinculoId, Usuario aprovador) {
+<span class="fc" id="L59">        Vinculo vinculo = vinculoRepository.findById(vinculoId)</span>
+<span class="fc" id="L60">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Vínculo não encontrado.&quot;));</span>
+<span class="fc" id="L61">        vinculo.aprovar(aprovador);</span>
+<span class="fc" id="L62">        Vinculo salvo = vinculoRepository.save(vinculo);</span>
+<span class="fc" id="L63">        auditoriaService.registrarOperacao(&quot;VINCULO_APROVADO&quot;, &quot;Vinculo&quot;, String.valueOf(vinculoId),</span>
+<span class="fc" id="L64">                descrever(salvo));</span>
+<span class="fc" id="L65">        return salvo;</span>
+    }
+
+    /** Encerra o acesso sem apagar o registro (RN-MT-16). */
+    @Transactional
+    public void revogar(UUID vinculoId, Usuario responsavel) {
+<span class="fc" id="L71">        Vinculo vinculo = vinculoRepository.findById(vinculoId)</span>
+<span class="pc" id="L72">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Vínculo não encontrado.&quot;));</span>
+<span class="fc" id="L73">        vinculo.revogar();</span>
+<span class="fc" id="L74">        vinculoRepository.save(vinculo);</span>
+<span class="fc" id="L75">        auditoriaService.registrarOperacao(&quot;VINCULO_REVOGADO&quot;, &quot;Vinculo&quot;, String.valueOf(vinculoId),</span>
+<span class="fc" id="L76">                descrever(vinculo));</span>
+<span class="fc" id="L77">    }</span>
+
+    /** Os vínculos ativos de uma pessoa — o que alimenta a tela de escolha de contexto. */
+    @Transactional(readOnly = true)
+    public List&lt;Vinculo&gt; ativosDe(UUID usuarioId) {
+<span class="fc" id="L82">        return vinculoRepository.findByUsuarioIdAndStatus(usuarioId, StatusVinculo.ATIVO);</span>
+    }
+
+    /**
+     * Um vínculo &lt;strong&gt;da própria pessoa&lt;/strong&gt;. O de outra responde
+     * {@link RecursoNaoEncontradoException} — 404, não 403, para não confirmar que
+     * aquele vínculo existe.
+     */
+    @Transactional(readOnly = true)
+    public Vinculo doUsuario(UUID vinculoId, UUID usuarioId) {
+<span class="fc" id="L92">        return vinculoRepository.findByIdAndUsuarioId(vinculoId, usuarioId)</span>
+<span class="fc" id="L93">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Vínculo não encontrado.&quot;));</span>
+    }
+
+    /** Solicitações pendentes de uma secretaria (fila do gestor). */
+    @Transactional(readOnly = true)
+    public List&lt;Vinculo&gt; pendentesDe(UUID organizacaoId) {
+<span class="nc" id="L99">        return vinculoRepository.findByOrganizacaoIdAndStatus(organizacaoId, StatusVinculo.PENDENTE);</span>
+    }
+
+    private String descrever(Vinculo vinculo) {
+<span class="fc" id="L103">        return vinculo.getPapel() + &quot; em &quot; + vinculo.getOrganizacao().getNome();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -38,7 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * Testes de <strong>cenário real</strong> (SPEC-14): dirigem os métodos de negócio de
+ * Testes de <strong>cenário real</strong> (SPEC-OPE-01): dirigem os métodos de negócio de
  * {@link SolicitacaoViagemService} de verdade e verificam que a telemetria manual emitida
  * reflete a operação de domínio — nome do span, atributos (destino/tipo) e status
  * (sucesso × ERROR). Cobre os <strong>dois</strong> spans fiados:
@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
  * mockados como nos demais testes do serviço.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SolicitacaoViagemService — telemetria de negócio (SPEC-14, cenário real)")
+@DisplayName("SolicitacaoViagemService — telemetria de negócio (SPEC-OPE-01, cenário real)")
 class SolicitacaoViagemTelemetriaTest {
 
     @RegisterExtension

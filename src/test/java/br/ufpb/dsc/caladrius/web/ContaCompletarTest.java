@@ -13,9 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Testes de integração HTTP do fluxo de <strong>perfil incompleto</strong> do login
- * social (SPEC-08): o filtro que prende a navegação e a tela {@code /conta/completar}.
+ * social (SPEC-ACE-02): o filtro que prende a navegação e a tela {@code /conta/completar}.
  */
-@DisplayName("Web — Completar perfil (SPEC-08)")
+@DisplayName("Web — Completar perfil (SPEC-ACE-02)")
 class ContaCompletarTest extends IntegracaoWebTestBase {
 
     /** Conta de login social sem telefone vê a tela de completar cadastro. */

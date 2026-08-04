@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.whatsapp;
 
 /**
- * Consumidor das mensagens recebidas pelo webhook (SPEC-10).
+ * Consumidor das mensagens recebidas pelo webhook (SPEC-WPP-01).
  *
  * <p>Interface entre o {@code WhatsappWebhookController} e o bot de
  * atendimento: o controller entrega a {@link MensagemRecebida} normalizada e

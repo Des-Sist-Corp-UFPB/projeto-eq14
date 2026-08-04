@@ -1,7 +1,7 @@
 # 03 — WhatsApp: fachada, adaptador, bot e webhook
 
-Testes da integração com o WhatsApp ([SPEC-10](../sdd/specs/SPEC-10-integracao-whatsapp.md) e
-[SPEC-11](../sdd/specs/SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md)). A arquitetura é
+Testes da integração com o WhatsApp ([SPEC-WPP-01](../sdd/specs/whatsapp/SPEC-WPP-01-integracao-whatsapp.md) e
+[SPEC-WPP-02](../sdd/specs/whatsapp/SPEC-WPP-02-solicitacao-sob-demanda-e-onboarding-whatsapp.md)). A arquitetura é
 **porta + adaptador** (ADR-14), e a suíte reflete isso:
 
 | Peça | Teste | Tipo |
@@ -29,13 +29,13 @@ Testes da integração com o WhatsApp ([SPEC-10](../sdd/specs/SPEC-10-integracao
 
 ### Log do envio em stub (privacidade e CWE-117)
 O caminho de stub é o que **roda hoje em produção** — a Evolution ainda não subiu — e desde a
-[SPEC-14](../sdd/specs/SPEC-14-observabilidade-opentelemetry.md) o log sai da nossa máquina rumo ao
+[SPEC-OPE-01](../sdd/specs/operacao/SPEC-OPE-01-observabilidade-opentelemetry.md) o log sai da nossa máquina rumo ao
 Loki central da disciplina. Estes cenários prendem um `ListAppender` no logger do serviço, porque a
 propriedade que interessa **só é visível no log**:
 
 | Cenário | Protege |
 |---|---|
-| **o corpo da mensagem NÃO aparece no INFO** — só destinatário e tamanho | o texto carrega **segredo de uso único** (link `/ativar?token=…`, código OTP — SPEC-11/12) e **dado pessoal sensível** (condições de saúde); publicá-lo no Loki anularia o hash com que o token é guardado no banco |
+| **o corpo da mensagem NÃO aparece no INFO** — só destinatário e tamanho | o texto carrega **segredo de uso único** (link `/ativar?token=…`, código OTP — SPEC-WPP-02/12) e **dado pessoal sensível** (condições de saúde); publicá-lo no Loki anularia o hash com que o token é guardado no banco |
 | o texto completo continua em **DEBUG** (que só se liga em dev), em uma linha só | não perder a capacidade de depurar o stub localmente |
 | **quebra de linha no telefone não forja uma linha de log** | **CWE-117** (`CRLF_INJECTION_LOGS`) — o telefone chega do webhook; um `\n` ali inventaria um evento inteiro na trilha |
 | telefone e texto nulos não quebram o log | o stub é chamado por vários fluxos, inclusive com campo ausente |
@@ -90,7 +90,7 @@ formato da Evolution — por isso o teste checa o contrato literal:
 
 ---
 
-## `BotAtendimentoServiceTest` — 14 cenários (SPEC-11)
+## `BotAtendimentoServiceTest` — 14 cenários (SPEC-WPP-02)
 
 A máquina de estados da conversa (`conversas_bot`). O bot é **desacoplado**: só fala com serviços e
 com a porta — por isso é testável sem WhatsApp nenhum.
@@ -130,7 +130,7 @@ O único endpoint público de entrada servidor-a-servidor.
 | mensagem válida: 200, registra no log e **o bot abre a conversa no MENU** | ponta a ponta: HTTP → log → bot → `conversas_bot` |
 | evento repetido (mesmo id) é ignorado | idempotência com o banco de verdade |
 | **grupos e `fromMe` são ignorados** | **RN-WPP-04** — o bot não responde em grupo nem a si mesmo |
-| **bot desligado**: registra a mensagem, **não aciona o bot**, responde 200 | **CA-FLG-03** (SPEC-13) — o kill switch não perde mensagem |
+| **bot desligado**: registra a mensagem, **não aciona o bot**, responde 200 | **CA-FLG-03** (SPEC-PLT-01) — o kill switch não perde mensagem |
 | evento de conexão é aceito (atualiza o painel) | |
 
 ---

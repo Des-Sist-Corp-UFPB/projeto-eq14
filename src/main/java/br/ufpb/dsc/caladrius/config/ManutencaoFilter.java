@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Modo de manutenção (SPEC-13, RN-FLG-03): com a flag
+ * Modo de manutenção (SPEC-PLT-01, RN-FLG-03): com a flag
  * {@link ChaveFeature#MODO_MANUTENCAO} ligada, toda requisição de usuário comum
  * recebe a <strong>página de manutenção</strong> com HTTP <strong>503</strong>, e
  * só o <strong>SYSADMIN</strong> continua navegando — é ele quem desliga a flag e

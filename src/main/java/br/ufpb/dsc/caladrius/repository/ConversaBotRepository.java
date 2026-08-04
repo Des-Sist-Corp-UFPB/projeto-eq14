@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repositório Spring Data JPA para {@link ConversaBot} (SPEC-10).
+ * Repositório Spring Data JPA para {@link ConversaBot} (SPEC-WPP-01).
  */
 @Repository
 public interface ConversaBotRepository extends JpaRepository<ConversaBot, UUID> {

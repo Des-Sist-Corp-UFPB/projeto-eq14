@@ -23,7 +23,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * &lt;p&gt;O Spring Security processa o {@code POST /login} internamente; este
  * controller apenas serve a &lt;strong&gt;página&lt;/strong&gt; de login (que aceita e-mail
  * OU telefone) e cuida do auto-cadastro de passageiros (incluindo o endereço
- * opcional — SPEC-07).
+ * opcional — SPEC-CAD-04).
  */
 @Controller
 public class AuthController {
@@ -73,18 +73,18 @@ public class AuthController {
         Usuario novo;
         try {
 <span class="fc" id="L75">            novo = usuarioService.registrarPassageiro(form);</span>
-            // SPEC-07: salva o endereço, se algum campo foi informado (opcional).
+            // SPEC-CAD-04: salva o endereço, se algum campo foi informado (opcional).
 <span class="fc" id="L77">            enderecoService.salvar(novo.getId(), form.paraEnderecoForm());</span>
 <span class="fc" id="L78">        } catch (RegraNegocioException e) {</span>
 <span class="fc" id="L79">            bindingResult.reject(&quot;cadastro.invalido&quot;, e.getMessage());</span>
 <span class="fc" id="L80">            model.addAttribute(&quot;municipios&quot;, enderecoService.listarMunicipios());</span>
 <span class="fc" id="L81">            return &quot;auth/registro&quot;;</span>
 <span class="fc" id="L82">        }</span>
-        // SPEC-12: se informou e-mail, dispara o link de verificação (não bloqueia).
+        // SPEC-ACE-03: se informou e-mail, dispara o link de verificação (não bloqueia).
 <span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (StringUtils.hasText(novo.getEmail())) {</span>
 <span class="nc" id="L85">            conviteService.enviarVerificacaoEmail(novo);</span>
         }
-        // SPEC-12: com verificação exigida, a conta nasce PENDENTE — leva para o
+        // SPEC-ACE-03: com verificação exigida, a conta nasce PENDENTE — leva para o
         // código do telefone antes de liberar o login.
 <span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (novo.getStatus() == StatusUsuario.PENDENTE) {</span>
 <span class="nc" id="L90">            redirectAttributes.addFlashAttribute(&quot;telefone&quot;, novo.getTelefone());</span>

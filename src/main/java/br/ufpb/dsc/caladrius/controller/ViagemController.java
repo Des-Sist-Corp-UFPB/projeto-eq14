@@ -105,7 +105,7 @@ public class ViagemController {
         }
     }
 
-    // ===================== SPEC-06: painel semanal =====================
+    // ===================== SPEC-VIA-02: painel semanal =====================
 
     @GetMapping("/semana")
     public String painelSemana(@RequestParam(name = "ref", required = false)

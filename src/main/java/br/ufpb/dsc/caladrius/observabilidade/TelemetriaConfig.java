@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Fornece o {@link OpenTelemetry} usado pela instrumentação manual (SPEC-14).
+ * Fornece o {@link OpenTelemetry} usado pela instrumentação manual (SPEC-OPE-01).
  *
  * <p>Com o agente Java anexado (dev/prod configurados via {@code JAVA_TOOL_OPTIONS}),
  * {@link GlobalOpenTelemetry#get()} devolve a instância do agente e os spans de negócio

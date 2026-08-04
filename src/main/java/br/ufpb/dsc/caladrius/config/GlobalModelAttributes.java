@@ -22,7 +22,7 @@ import java.util.List;
  * aplicado antes de qualquer método de qualquer controller.
  *
  * <p>Publicamos a URI atual (destaque do menu), as notificações in-app do usuário
- * logado (sino da barra superior) e a configuração do analytics de uso (SPEC-17),
+ * logado (sino da barra superior) e a configuração do analytics de uso (SPEC-OPE-02),
  * consumida pelo fragmento {@code fragments/analytics.html}.
  */
 @ControllerAdvice
@@ -45,7 +45,7 @@ public class GlobalModelAttributes {
     /**
      * {@code true} quando o login social com Google está configurado (há
      * credenciais e, portanto, um {@code ClientRegistrationRepository}). Usado na
-     * tela de login para exibir/ocultar o botão "Continuar com Google" — SPEC-08.
+     * tela de login para exibir/ocultar o botão "Continuar com Google" — SPEC-ACE-02.
      */
     @ModelAttribute("googleHabilitado")
     public boolean googleHabilitado() {
@@ -53,7 +53,7 @@ public class GlobalModelAttributes {
     }
 
     /**
-     * Configuração do analytics de uso (Umami) — SPEC-17. Lida do ambiente uma única
+     * Configuração do analytics de uso (Umami) — SPEC-OPE-02. Lida do ambiente uma única
      * vez, na construção: sem {@code UMAMI_URL}/{@code UMAMI_WEBSITE_ID} vem desligada
      * e o fragmento {@code fragments/analytics.html} não renderiza script algum.
      */

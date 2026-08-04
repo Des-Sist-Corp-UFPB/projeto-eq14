@@ -3,7 +3,7 @@
 import java.util.Optional;
 
 /**
- * Catálogo dos &lt;strong&gt;parâmetros de negócio&lt;/strong&gt; externalizados (SPEC-13 §5.2,
+ * Catálogo dos &lt;strong&gt;parâmetros de negócio&lt;/strong&gt; externalizados (SPEC-PLT-01 §5.2,
  * D4) — constantes que antes viviam &quot;chumbadas&quot; no código e passaram a ser
  * configuráveis em runtime pelo SYSADMIN.
  *
@@ -14,15 +14,15 @@ import java.util.Optional;
  */
 <span class="fc" id="L15">public enum ParametroSistema {</span>
 
-    /** Validade do código OTP, em minutos (SPEC-12). */
+    /** Validade do código OTP, em minutos (SPEC-ACE-03). */
 <span class="fc" id="L18">    OTP_VALIDADE_MINUTOS(&quot;param.otp.validade_minutos&quot;, 10, 1, 60,</span>
             &quot;Validade do código OTP (minutos)&quot;),
 
-    /** Tentativas erradas até o &lt;em&gt;lockout&lt;/em&gt; do código (SPEC-12, RN-VER-05). */
+    /** Tentativas erradas até o &lt;em&gt;lockout&lt;/em&gt; do código (SPEC-ACE-03, RN-VER-05). */
 <span class="fc" id="L22">    OTP_MAX_TENTATIVAS(&quot;param.otp.max_tentativas&quot;, 5, 1, 10,</span>
             &quot;Tentativas até bloquear o código OTP&quot;),
 
-    /** Espera mínima entre dois pedidos de código (SPEC-12, RN-VER-06). */
+    /** Espera mínima entre dois pedidos de código (SPEC-ACE-03, RN-VER-06). */
 <span class="fc" id="L26">    OTP_COOLDOWN_SEGUNDOS(&quot;param.otp.cooldown_segundos&quot;, 60, 0, 600,</span>
             &quot;Espera entre reenvios de OTP (segundos)&quot;),
 

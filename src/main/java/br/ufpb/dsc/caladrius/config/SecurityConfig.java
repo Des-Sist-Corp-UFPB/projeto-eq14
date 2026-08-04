@@ -1,9 +1,11 @@
 package br.ufpb.dsc.caladrius.config;
 
+import br.ufpb.dsc.caladrius.multitenancia.ContextoTenantFilter;
 import br.ufpb.dsc.caladrius.security.CaladriusOidcUserService;
 import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
 import br.ufpb.dsc.caladrius.service.AuditoriaService;
 import br.ufpb.dsc.caladrius.service.FeatureFlagService;
+import br.ufpb.dsc.caladrius.service.VinculoService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +58,7 @@ public class SecurityConfig {
                                            AuditoriaService auditoriaService,
                                            CaladriusOidcUserService oidcUserService,
                                            FeatureFlagService featureFlagService,
+                                           VinculoService vinculoService,
                                            ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
@@ -63,16 +66,16 @@ public class SecurityConfig {
                         // /ping é o contrato público exigido pela disciplina (200 JSON).
                         .requestMatchers(
                                 "/login", "/registrar", "/ativar",
-                                // Verificação de contato e recuperação de senha (SPEC-12).
+                                // Verificação de contato e recuperação de senha (SPEC-ACE-03).
                                 "/verificar-telefone", "/verificar-telefone/reenviar",
                                 "/verificar-email", "/esqueci-senha", "/redefinir-senha",
-                                // Página de manutenção (SPEC-13, RN-FLG-03) — pública por
+                                // Página de manutenção (SPEC-PLT-01, RN-FLG-03) — pública por
                                 // definição: é o que se vê quando o sistema está fora do ar.
                                 "/manutencao",
                                 "/ping", "/actuator/health",
                                 "/webjars/**", "/css/**", "/js/**"
                         ).permitAll()
-                        // Webhook da Evolution (SPEC-10): chamada servidor-a-servidor,
+                        // Webhook da Evolution (SPEC-WPP-01): chamada servidor-a-servidor,
                         // autenticada pelo header X-Webhook-Token no controller (RN-WPP-03).
                         .requestMatchers("/webhooks/whatsapp").permitAll()
                         // Administração do sistema — exclusiva do SYSADMIN (papel isolado).
@@ -88,7 +91,7 @@ public class SecurityConfig {
                                 "/veiculos/**", "/cidades/**",
                                 "/usuarios/**", "/viagens/**", "/linhas/**",
                                 "/historico/**", "/analise/**", "/whatsapp/**",
-                                // Avaliação das solicitações sob demanda (SPEC-11).
+                                // Avaliação das solicitações sob demanda (SPEC-WPP-02).
                                 "/gestao/**"
                         ).hasRole("GERENTE")
                         // Qualquer outra rota exige apenas estar autenticado.
@@ -124,13 +127,13 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(
                                 "/veiculos/**", "/cidades/**",
                                 "/usuarios/**", "/viagens/**",
-                                // Webhook servidor-a-servidor (SPEC-10): sem sessão/token
+                                // Webhook servidor-a-servidor (SPEC-WPP-01): sem sessão/token
                                 // CSRF — a autenticação é o X-Webhook-Token.
                                 "/webhooks/whatsapp"
                         )
                 );
 
-        // Login social (Google/OIDC) — SPEC-08. Só é ativado quando há credenciais
+        // Login social (Google/OIDC) — SPEC-ACE-02. Só é ativado quando há credenciais
         // configuradas (GOOGLE_CLIENT_ID/SECRET); sem elas, o Boot não cria o
         // ClientRegistrationRepository e o app sobe normalmente apenas com o formLogin.
         if (clientRegistrationRepository.getIfAvailable() != null) {
@@ -141,13 +144,18 @@ public class SecurityConfig {
             );
         }
 
-        // Após a autenticação/autorização, dois filtros de navegação. A ordem importa:
-        //   1) manutenção (SPEC-13) — kill switch global, tem de vir primeiro, senão um
+        // Após a autenticação/autorização, três filtros de navegação. A ordem importa:
+        //   1) manutenção (SPEC-PLT-01) — kill switch global, tem de vir primeiro, senão um
         //      usuário de perfil incompleto seria mandado a /conta/completar em vez de
         //      ver a página de manutenção;
-        //   2) perfil incompleto (SPEC-08) — leva contas sem telefone a /conta/completar.
+        //   2) perfil incompleto (SPEC-ACE-02) — leva contas sem telefone a /conta/completar;
+        //   3) contexto de tenant (SPEC-PLT-02) — define a organização da requisição e, com
+        //      mais de um vínculo, leva a /entrar/onde. Vem por ÚLTIMO de propósito: só faz
+        //      sentido escolher a secretaria depois que a conta está completa. Sem vínculo
+        //      nenhum (situação de todas as contas hoje) ele apenas segue adiante.
         http.addFilterAfter(new ManutencaoFilter(featureFlagService), AuthorizationFilter.class);
         http.addFilterAfter(new PerfilIncompletoFilter(), ManutencaoFilter.class);
+        http.addFilterAfter(new ContextoTenantFilter(vinculoService), PerfilIncompletoFilter.class);
 
         return http.build();
     }

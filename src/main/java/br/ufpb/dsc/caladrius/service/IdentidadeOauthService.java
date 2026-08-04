@@ -15,9 +15,9 @@ import org.springframework.util.StringUtils;
 import java.util.EnumSet;
 
 /**
- * Resolve o login social (OAuth2/OIDC) em um {@link Usuario} do sistema — SPEC-08.
+ * Resolve o login social (OAuth2/OIDC) em um {@link Usuario} do sistema — SPEC-ACE-02.
  *
- * <p>É o <strong>núcleo da regra de negócio</strong> da SPEC-08: dada a identidade
+ * <p>É o <strong>núcleo da regra de negócio</strong> da SPEC-ACE-02: dada a identidade
  * devolvida pelo provedor (Google), aplica a resolução em três passos
  * (identidade → e-mail verificado → auto-provisão). Mantida separada do
  * {@code CaladriusOidcUserService} (camada web/segurança) para ser testável sem
@@ -41,7 +41,7 @@ public class IdentidadeOauthService {
 
     /**
      * Resolve um login social no {@link Usuario} correspondente, vinculando ou
-     * criando a conta conforme a §2.1 da SPEC-08.
+     * criando a conta conforme a §2.1 da SPEC-ACE-02.
      *
      * @param provedor         provedor externo (ex.: {@link ProvedorOauth#GOOGLE})
      * @param subject          {@code sub} imutável do provedor

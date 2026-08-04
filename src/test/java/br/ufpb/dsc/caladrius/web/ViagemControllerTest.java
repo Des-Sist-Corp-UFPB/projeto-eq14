@@ -21,14 +21,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração HTTP do {@code ViagemController} (SPEC-05/06): criação de
+ * Testes de integração HTTP do {@code ViagemController} (SPEC-VIA-01/06): criação de
  * viagem imprevista, painel semanal, designação a partir de uma linha e transição
  * de status — percorrendo controller → serviço → banco de verdade.
  *
  * <p>O gerente aqui é <strong>persistido</strong> (e não só um principal sintético)
  * porque o serviço registra quem criou a viagem e recarrega esse usuário do banco.
  */
-@DisplayName("Web — ViagemController (SPEC-05/06)")
+@DisplayName("Web — ViagemController (SPEC-VIA-01/06)")
 class ViagemControllerTest extends IntegracaoWebTestBase {
 
     @Autowired private ViagemRepository viagemRepository;

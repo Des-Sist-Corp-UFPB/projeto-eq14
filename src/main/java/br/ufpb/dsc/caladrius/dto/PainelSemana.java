@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Modelo de visão do painel semanal (SPEC-06, FR-VIA-09): para cada dia da
+ * Modelo de visão do painel semanal (SPEC-VIA-02, FR-VIA-09): para cada dia da
  * semana, as linhas que operam e a viagem já designada (se houver).
  */
 public record PainelSemana(LocalDate inicio, LocalDate fim, List<DiaPainel> dias) {

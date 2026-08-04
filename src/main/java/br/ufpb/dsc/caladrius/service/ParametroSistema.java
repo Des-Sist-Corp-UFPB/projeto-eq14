@@ -3,7 +3,7 @@ package br.ufpb.dsc.caladrius.service;
 import java.util.Optional;
 
 /**
- * Catálogo dos <strong>parâmetros de negócio</strong> externalizados (SPEC-13 §5.2,
+ * Catálogo dos <strong>parâmetros de negócio</strong> externalizados (SPEC-PLT-01 §5.2,
  * D4) — constantes que antes viviam "chumbadas" no código e passaram a ser
  * configuráveis em runtime pelo SYSADMIN.
  *
@@ -14,15 +14,15 @@ import java.util.Optional;
  */
 public enum ParametroSistema {
 
-    /** Validade do código OTP, em minutos (SPEC-12). */
+    /** Validade do código OTP, em minutos (SPEC-ACE-03). */
     OTP_VALIDADE_MINUTOS("param.otp.validade_minutos", 10, 1, 60,
             "Validade do código OTP (minutos)"),
 
-    /** Tentativas erradas até o <em>lockout</em> do código (SPEC-12, RN-VER-05). */
+    /** Tentativas erradas até o <em>lockout</em> do código (SPEC-ACE-03, RN-VER-05). */
     OTP_MAX_TENTATIVAS("param.otp.max_tentativas", 5, 1, 10,
             "Tentativas até bloquear o código OTP"),
 
-    /** Espera mínima entre dois pedidos de código (SPEC-12, RN-VER-06). */
+    /** Espera mínima entre dois pedidos de código (SPEC-ACE-03, RN-VER-06). */
     OTP_COOLDOWN_SEGUNDOS("param.otp.cooldown_segundos", 60, 0, 600,
             "Espera entre reenvios de OTP (segundos)"),
 

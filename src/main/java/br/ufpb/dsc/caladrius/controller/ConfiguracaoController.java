@@ -15,7 +15,7 @@ import java.util.UUID;
 
 /**
  * Configurações do sistema (SYSADMIN): tempo de sessão dinâmico (DT-10) e
- * cidade-sede (origem padrão das viagens, SPEC-06).
+ * cidade-sede (origem padrão das viagens, SPEC-VIA-02).
  */
 @Controller
 @RequestMapping("/admin/configuracoes")

@@ -24,10 +24,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Testes de integração HTTP da visão do passageiro (SPEC-09): RBAC, fluxo de
+ * Testes de integração HTTP da visão do passageiro (SPEC-VIA-03): RBAC, fluxo de
  * solicitação via sistema e isolamento (um passageiro não vê o do outro).
  */
-@DisplayName("Web — Solicitação de transporte do passageiro (SPEC-09)")
+@DisplayName("Web — Solicitação de transporte do passageiro (SPEC-VIA-03)")
 class SolicitacaoControllerTest extends IntegracaoWebTestBase {
 
     @Autowired private CidadeRepository cidadeRepository;

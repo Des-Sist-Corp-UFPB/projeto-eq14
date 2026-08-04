@@ -65,7 +65,7 @@ public enum AreaSistema {
                     "WHATSAPP_CONFIG_ALTERADA", "WHATSAPP_TESTE_ENVIADO"),
             Set.of()),
 
-    /** Configuração dinâmica e feature toggle (SPEC-13). */
+    /** Configuração dinâmica e feature toggle (SPEC-PLT-01). */
     CONFIGURACAO("Configuração", "configuracao",
             Set.of("CONFIG_ALTERADA", "FEATURE_ALTERADA", "PARAMETRO_ALTERADO"),
             Set.of()),

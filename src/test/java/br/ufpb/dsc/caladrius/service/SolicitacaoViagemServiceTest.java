@@ -41,11 +41,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Testes unitários (Mockito) de {@link SolicitacaoViagemService} — SPEC-09:
+ * Testes unitários (Mockito) de {@link SolicitacaoViagemService} — SPEC-VIA-03:
  * solicitação, alocação automática, validações e cancelamento.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SolicitacaoViagemService — Testes Unitários (SPEC-09)")
+@DisplayName("SolicitacaoViagemService — Testes Unitários (SPEC-VIA-03)")
 class SolicitacaoViagemServiceTest {
 
     @Mock private SolicitacaoViagemRepository solicitacaoRepository;
@@ -352,7 +352,7 @@ class SolicitacaoViagemServiceTest {
         verify(solicitacaoRepository, never()).save(any());
     }
 
-    // ===================== SPEC-11 — sob demanda =====================
+    // ===================== SPEC-WPP-02 — sob demanda =====================
 
     private br.ufpb.dsc.caladrius.domain.Cidade cidadeComId(UUID id, String nome) {
         br.ufpb.dsc.caladrius.domain.Cidade c = new br.ufpb.dsc.caladrius.domain.Cidade(nome, "PB", null);

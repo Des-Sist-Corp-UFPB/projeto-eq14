@@ -1,5 +1,5 @@
 # =============================================================================
-# docker-compose.tenant.yml — MODELO de ambiente ISOLADO por secretaria (SPEC-15)
+# docker-compose.tenant.yml — MODELO de ambiente ISOLADO por secretaria (SPEC-PLT-02)
 # =============================================================================
 # Opção A (silo): CADA secretaria/cliente roda o SEU PRÓPRIO stack — app + banco
 # dedicado + volume + subdomínio — totalmente isolado dos demais. Não existe
@@ -20,7 +20,7 @@
 #
 # O `name: caladrius-${TENANT}` faz o namespacing do Compose: containers, rede e
 # volume ganham o prefixo do ambiente — nenhum recurso é compartilhado entre
-# secretarias (RN-MT-01). Runbook: docs/multi-ambiente.md · decisão: SPEC-15.
+# secretarias (RN-MT-01). Runbook: docs/multi-ambiente.md · decisão: SPEC-PLT-02.
 # =============================================================================
 
 # Nome do projeto Compose — isola TODOS os recursos (containers/rede/volume) por ambiente.
@@ -66,17 +66,17 @@ services:
       DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-caladrius}
       DATABASE_USERNAME: ${POSTGRES_USER:-caladrius}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env do ambiente}
-      # URL pública desta secretaria (base do webhook do WhatsApp — SPEC-10/11).
+      # URL pública desta secretaria (base do webhook do WhatsApp — SPEC-WPP-01/11).
       APP_URL_PUBLICA: ${APP_URL_PUBLICA:-}
-      # Login social Google (SPEC-08) — opcional, POR AMBIENTE. Cadastre o redirect
+      # Login social Google (SPEC-ACE-02) — opcional, POR AMBIENTE. Cadastre o redirect
       # https://<DOMINIO>/login/oauth2/code/google no Google Console.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      # WhatsApp (SPEC-10/11) — instância/número/segredos PRÓPRIOS de cada secretaria.
+      # WhatsApp (SPEC-WPP-01/11) — instância/número/segredos PRÓPRIOS de cada secretaria.
       EVOLUTION_URL: ${EVOLUTION_URL:-}
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
       WHATSAPP_WEBHOOK_TOKEN: ${WHATSAPP_WEBHOOK_TOKEN:-}
-      # Observabilidade (SPEC-14) — opcional; o service.name distingue a secretaria no Grafana.
+      # Observabilidade (SPEC-OPE-01) — opcional; o service.name distingue a secretaria no Grafana.
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}

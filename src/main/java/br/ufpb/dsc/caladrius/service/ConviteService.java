@@ -59,7 +59,7 @@ public class ConviteService {
         this.featureFlags = featureFlags;
     }
 
-    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06) — os defaults
+    // Parâmetros de negócio configuráveis em runtime (SPEC-PLT-01, FR-FLG-06) — os defaults
     // do código (7 dias / 6 caracteres) preservam o comportamento anterior (RN-FLG-02).
 
     private int validadeDias() {
@@ -125,7 +125,7 @@ public class ConviteService {
     }
 
     /**
-     * "Acesso à plataforma" (SPEC-11): gera um token de ativação para um usuário
+     * "Acesso à plataforma" (SPEC-WPP-02): gera um token de ativação para um usuário
      * <strong>já existente</strong> (ex.: passageiro auto-cadastrado pelo WhatsApp,
      * sem senha) definir a sua senha e passar a logar na web. Reaproveita a mesma
      * engine de token do convite (ADR-11); não cria mecanismo de segurança novo.
@@ -161,7 +161,7 @@ public class ConviteService {
         if (!token.valido()) {
             throw new RegraNegocioException("Convite expirado ou já utilizado.");
         }
-        // Um token de verificação de e-mail não pode definir senha (SPEC-12).
+        // Um token de verificação de e-mail não pode definir senha (SPEC-ACE-03).
         if (token.getFinalidade() != FinalidadeToken.ATIVACAO) {
             throw new RegraNegocioException("Convite inválido.");
         }
@@ -185,7 +185,7 @@ public class ConviteService {
                 usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());
     }
 
-    // ------------------------------------------------- verificação de e-mail (SPEC-12)
+    // ------------------------------------------------- verificação de e-mail (SPEC-ACE-03)
 
     /**
      * Envia um <strong>link mágico</strong> por e-mail para confirmar o endereço

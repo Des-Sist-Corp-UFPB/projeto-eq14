@@ -42,7 +42,7 @@ public class UsuarioService {
     private final WhatsappService whatsappService;
 
     /**
-     * Override do gate de verificação de telefone no cadastro (SPEC-12, D5):
+     * Override do gate de verificação de telefone no cadastro (SPEC-ACE-03, D5):
      * {@code null} (padrão) = exige verificação apenas quando o WhatsApp está
      * configurado (degradação graciosa — RN-VER-07). No perfil {@code dev} é
      * {@code true} para dar de testar o fluxo com o canal em stub (código no log).
@@ -123,7 +123,7 @@ public class UsuarioService {
     }
 
     /**
-     * Completa o perfil de uma conta criada por login social (SPEC-08): grava o
+     * Completa o perfil de uma conta criada por login social (SPEC-ACE-02): grava o
      * telefone obrigatório (validado e único) e remove o marcador de perfil
      * incompleto. Idempotente em relação ao status (não altera papéis/status).
      *

@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.domain.enums;
 
 /**
- * Direção de uma mensagem WhatsApp registrada no log (SPEC-10, RN-WPP-10).
+ * Direção de uma mensagem WhatsApp registrada no log (SPEC-WPP-01, RN-WPP-10).
  */
 public enum DirecaoMensagem {
 

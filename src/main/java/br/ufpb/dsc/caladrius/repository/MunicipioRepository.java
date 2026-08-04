@@ -16,9 +16,9 @@ public interface MunicipioRepository extends JpaRepository<Municipio, UUID> {
     /** Lista para o select de endereço (ordenada por nome). */
     List<Municipio> findAllByOrderByNomeAsc();
 
-    /** Busca por nome na tela de adesão ao pagamento (SPEC-13) — a lista da PB é longa. */
+    /** Busca por nome na tela de adesão ao pagamento (SPEC-PLT-01) — a lista da PB é longa. */
     List<Municipio> findByNomeContainingIgnoreCaseOrderByNomeAsc(String nome);
 
-    /** Municípios que aderiram ao pagamento (SPEC-13, RN-FLG-05). */
+    /** Municípios que aderiram ao pagamento (SPEC-PLT-01, RN-FLG-05). */
     List<Municipio> findByPagamentoHabilitadoTrueOrderByNomeAsc();
 }

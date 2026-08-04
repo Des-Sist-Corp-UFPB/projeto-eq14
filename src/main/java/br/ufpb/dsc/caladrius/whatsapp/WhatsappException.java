@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.whatsapp;
 
 /**
- * Falha na comunicação com o provedor de WhatsApp (SPEC-10).
+ * Falha na comunicação com o provedor de WhatsApp (SPEC-WPP-01).
  *
  * <p>Exceção <strong>da porta</strong>: os adaptadores traduzem os erros do
  * provedor (HTTP 4xx/5xx, timeout, payload inesperado) para ela, de modo que

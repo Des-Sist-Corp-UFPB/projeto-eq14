@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Testes unitários (Mockito) de {@link VerificacaoService} — engine de OTP (SPEC-12).
+ * Testes unitários (Mockito) de {@link VerificacaoService} — engine de OTP (SPEC-ACE-03).
  * Escritos <strong>antes</strong> da implementação (TDD).
  */
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +57,7 @@ class VerificacaoServiceTest {
     private static final Pattern SEIS_DIGITOS = Pattern.compile("\\b(\\d{6})\\b");
 
     /**
-     * Os parâmetros do OTP passaram a vir do feature toggle (SPEC-13, FR-FLG-06). Aqui
+     * Os parâmetros do OTP passaram a vir do feature toggle (SPEC-PLT-01, FR-FLG-06). Aqui
      * o mock devolve sempre o <strong>default do código</strong> — que é exatamente o
      * comportamento sem configuração no banco (RN-FLG-02), preservando estes cenários.
      */

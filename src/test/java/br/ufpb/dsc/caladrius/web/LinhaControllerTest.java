@@ -17,11 +17,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração HTTP do {@code LinhaController} (SPEC-06): o CRUD das linhas
+ * Testes de integração HTTP do {@code LinhaController} (SPEC-VIA-02): o CRUD das linhas
  * programadas — o "template" recorrente de onde saem as viagens rotineiras — mais o
  * liga/desliga da linha e a trava de exclusão.
  */
-@DisplayName("Web — LinhaController (SPEC-06)")
+@DisplayName("Web — LinhaController (SPEC-VIA-02)")
 class LinhaControllerTest extends IntegracaoWebTestBase {
 
     @Autowired private LinhaProgramadaRepository linhaRepository;

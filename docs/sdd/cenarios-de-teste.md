@@ -34,7 +34,7 @@
 
 ---
 
-## 2. Viagens (SPEC-05) — payloads e cenários 🟡
+## 2. Viagens (SPEC-VIA-01) — payloads e cenários 🟡
 
 `POST /viagens` (form-urlencoded; forma do `ViagemForm`). **JSON equivalente** para fixtures:
 ```json
@@ -113,9 +113,9 @@
 
 ---
 
-## 8. SPEC-06 (viagens rotineiras) ⬜
+## 8. SPEC-VIA-02 (viagens rotineiras) ⬜
 Cenários (CA-VIA-08..14) já estão escritos na
-[SPEC-06 §7](specs/SPEC-06-viagens-rotineiras-e-imprevistas.md). Os testes serão montados junto
+[SPEC-VIA-02 §7](specs/viagens/SPEC-VIA-02-viagens-rotineiras-e-imprevistas.md). Os testes serão montados junto
 da implementação (#21), **após sua aprovação da spec**.
 
 ---

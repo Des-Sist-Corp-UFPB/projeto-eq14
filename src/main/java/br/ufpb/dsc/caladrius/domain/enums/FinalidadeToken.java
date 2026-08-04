@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.domain.enums;
 
 /**
- * Finalidade de um {@code TokenAtivacao} (link mágico) — SPEC-12.
+ * Finalidade de um {@code TokenAtivacao} (link mágico) — SPEC-ACE-03.
  *
  * <ul>
  *   <li>{@link #ATIVACAO} — convite/onboarding: define a senha e ativa a conta

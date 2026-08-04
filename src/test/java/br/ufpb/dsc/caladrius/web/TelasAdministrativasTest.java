@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Testes de integração HTTP das telas de administração e de conta: painel do
  * SYSADMIN, configuração dinâmica de sessão (DT-10), trilha de auditoria (#19),
- * convites por token (#20), perfil/endereço (SPEC-07) e a ativação por link.
+ * convites por token (#20), perfil/endereço (SPEC-CAD-04) e a ativação por link.
  *
  * <p>Cobrem também o <strong>RBAC</strong> de cada área — quem não pode entrar
  * recebe 403 — e os caminhos de erro que essas telas mostram em <em>flash</em>.

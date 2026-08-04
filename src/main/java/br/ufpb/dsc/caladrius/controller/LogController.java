@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  * que já existiam: {@code /historico} (o ciclo das solicitações, visão do gerente)
  * e {@code /admin/auditoria} (a mesma trilha dentro da área do SYSADMIN).
  *
- * <p>Quando existir organização/secretaria ([SPEC-16]), esta listagem passa a ser
+ * <p>Quando existir organização/secretaria ([SPEC-PLT-03]), esta listagem passa a ser
  * filtrada pelo tenant — é o mesmo ponto único de leitura.
  */
 @Controller

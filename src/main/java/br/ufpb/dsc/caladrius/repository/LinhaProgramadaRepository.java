@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Repositório das linhas programadas (templates recorrentes — SPEC-06).
+ * Repositório das linhas programadas (templates recorrentes — SPEC-VIA-02).
  */
 @Repository
 public interface LinhaProgramadaRepository extends JpaRepository<LinhaProgramada, UUID> {
@@ -19,7 +19,7 @@ public interface LinhaProgramadaRepository extends JpaRepository<LinhaProgramada
     /** Todas as linhas (gestão), ordenadas por horário de saída. */
     List<LinhaProgramada> findAllByOrderByHorarioSaidaAsc();
 
-    /** Linhas ativas (disponíveis ao passageiro — SPEC-09), por horário de saída. */
+    /** Linhas ativas (disponíveis ao passageiro — SPEC-VIA-03), por horário de saída. */
     List<LinhaProgramada> findByAtivaTrueOrderByHorarioSaidaAsc();
 
     /** Linhas ativas que operam num dia da semana (painel semanal). */

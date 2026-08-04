@@ -21,10 +21,10 @@ import java.util.UUID;
 
 /**
  * Solicitação de transporte feita por um passageiro para uma
- * {@link LinhaProgramada} numa data (SPEC-09).
+ * {@link LinhaProgramada} numa data (SPEC-VIA-03).
  *
  * <p>Mapeada para {@code solicitacoes_viagem} (migração V11). Quando o gerente
- * designa a viagem da linha naquela data (materializa a {@link Viagem} — SPEC-06),
+ * designa a viagem da linha naquela data (materializa a {@link Viagem} — SPEC-VIA-02),
  * a solicitação é <strong>alocada</strong>: {@link #viagem} é preenchida e o
  * {@link #status} passa a {@code ALOCADA}. A partir daí o passageiro vê apenas os
  * dados da viagem (motorista, veículo, horário, destino) — nunca informações de
@@ -47,7 +47,7 @@ public class SolicitacaoViagem {
     @JoinColumn(name = "passageiro", nullable = false)
     private Usuario passageiro;
 
-    /** Tipo da solicitação: por linha (SPEC-09) ou sob demanda (SPEC-11). */
+    /** Tipo da solicitação: por linha (SPEC-VIA-03) ou sob demanda (SPEC-WPP-02). */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 20)
     private TipoSolicitacao tipo = TipoSolicitacao.POR_LINHA;

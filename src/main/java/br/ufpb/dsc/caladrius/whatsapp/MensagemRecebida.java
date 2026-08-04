@@ -3,7 +3,7 @@ package br.ufpb.dsc.caladrius.whatsapp;
 import java.time.Instant;
 
 /**
- * Mensagem recebida pelo WhatsApp, já <strong>normalizada</strong> (SPEC-10):
+ * Mensagem recebida pelo WhatsApp, já <strong>normalizada</strong> (SPEC-WPP-01):
  * o bot e o restante do sistema só conhecem este record — nunca o payload do
  * provedor (Evolution).
  *

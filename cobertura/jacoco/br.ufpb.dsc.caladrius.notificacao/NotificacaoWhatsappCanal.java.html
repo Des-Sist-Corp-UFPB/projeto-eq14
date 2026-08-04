@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
- * Canal de WhatsApp do {@code NotificacaoService} (SPEC-10). Delega o envio à
+ * Canal de WhatsApp do {@code NotificacaoService} (SPEC-WPP-01). Delega o envio à
  * fachada {@link WhatsappService}, que fala com a porta {@code ProvedorWhatsapp}
  * e registra o log — a interface {@link CanalNotificacao} e todos os chamadores
  * ficaram intactos em relação à fase de stub.

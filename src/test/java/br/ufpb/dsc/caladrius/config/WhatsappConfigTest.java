@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Testes da normalização de {@code EVOLUTION_URL} (SPEC-10).
+ * Testes da normalização de {@code EVOLUTION_URL} (SPEC-WPP-01).
  *
  * <p>Nasceram de uma falha real em produção (2026-07-29): o painel do Railway exibe
  * o domínio <strong>sem</strong> o esquema (<code>evolution-api-....up.railway.app</code>).

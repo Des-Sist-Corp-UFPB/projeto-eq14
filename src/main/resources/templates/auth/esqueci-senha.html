@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPEC-12: "esqueci a senha" — card central, escolha do método (E-mail/Telefone) + Enviar. -->
+<!-- SPEC-ACE-03: "esqueci a senha" — card central, escolha do método (E-mail/Telefone) + Enviar. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
@@ -64,7 +64,7 @@
         }
         .seg input:checked + span { background: var(--cal-primary); color: #fff; border-color: var(--cal-primary); }
     </style>
-    <!-- Analytics de uso (Umami) — SPEC-17. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
+    <!-- Analytics de uso (Umami) — SPEC-OPE-02. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
     <th:block th:replace="~{fragments/analytics :: umami}"></th:block>
 </head>
 <body>

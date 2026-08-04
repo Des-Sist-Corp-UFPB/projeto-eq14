@@ -36,7 +36,7 @@ public final class Documentos {
      * (ex.: {@code "5583999999999@s.whatsapp.net"} → {@code "83999999999"}):
      * descarta o sufixo após o {@code @} e remove o DDI {@code 55} quando
      * presente. O resultado fica no formato de {@code usuarios.telefone}
-     * (apenas dígitos, DDD + número) — SPEC-10 §4.5.
+     * (apenas dígitos, DDD + número) — SPEC-WPP-01 §4.5.
      */
     public static String telefoneDeJid(String jid) {
         if (jid == null) {
@@ -55,7 +55,7 @@ public final class Documentos {
      * Variantes de um telefone brasileiro para busca: JIDs antigos do WhatsApp
      * podem vir <em>sem</em> o 9º dígito após o DDD. Devolve o telefone como
      * veio e, quando tem 10 dígitos (DDD + 8), também a variante com o {@code 9}
-     * inserido — SPEC-10 §4.5.
+     * inserido — SPEC-WPP-01 §4.5.
      */
     public static java.util.List<String> variantesTelefoneBr(String telefone) {
         String digitos = apenasDigitos(telefone);

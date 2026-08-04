@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Fachada do canal WhatsApp (SPEC-10): concentra o acesso à porta
+ * Fachada do canal WhatsApp (SPEC-WPP-01): concentra o acesso à porta
  * {@link ProvedorWhatsapp}, o log de mensagens ({@code mensagens_whatsapp} —
  * RN-WPP-10) e o estado de conexão que alimenta o painel do gerente.
  *
@@ -118,9 +118,9 @@ public class WhatsappService {
         if (whatsapp == null) {
             // O CORPO da mensagem NÃO vai para o log de nível INFO: ele carrega
             // segredos de uso único (link `/ativar?token=…` do convite/"Acesso à
-            // plataforma" e códigos OTP — SPEC-11/SPEC-12) e dado pessoal sensível
+            // plataforma" e códigos OTP — SPEC-WPP-02/SPEC-ACE-03) e dado pessoal sensível
             // (condições de saúde da solicitação). Em produção o log é exportado ao
-            // Loki central da disciplina (SPEC-14), fora do nosso controle: publicar
+            // Loki central da disciplina (SPEC-OPE-01), fora do nosso controle: publicar
             // o token ali anularia o hash com que ele é guardado no banco.
             // O texto completo continua disponível em DEBUG, que só se liga em dev.
             // O destinatário também é achatado: ele chega do webhook (JID do provedor)
@@ -162,7 +162,7 @@ public class WhatsappService {
         return true;
     }
 
-    /** Atualiza o cache de estado com o que o webhook reportou (§4.3 da SPEC-10). */
+    /** Atualiza o cache de estado com o que o webhook reportou (§4.3 da SPEC-WPP-01). */
     public void registrarEstadoConexao(StatusConexaoWhatsapp status, String qrCodeBase64) {
         this.estadoReportado = new ConexaoWhatsapp(status, qrCodeBase64);
     }
@@ -260,7 +260,7 @@ public class WhatsappService {
      * Renderiza a <strong>mensagem de confirmação</strong> configurada,
      * substituindo {@code {data}}, {@code {hora}} e {@code {destino}} e assinando
      * com o nome de exibição (se houver). Usada na notificação de aprovação de
-     * viagem (SPEC-11).
+     * viagem (SPEC-WPP-02).
      */
     public String mensagemConfirmacao(String destino, String data, String hora) {
         ConfiguracaoEnvioWhatsapp cfg = configuracaoEnvio();

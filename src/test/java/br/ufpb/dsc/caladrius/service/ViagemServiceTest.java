@@ -38,11 +38,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Testes unitários (Mockito) de {@link ViagemService} — SPEC-06: status,
+ * Testes unitários (Mockito) de {@link ViagemService} — SPEC-VIA-02: status,
  * conflito de disponibilidade e designação.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ViagemService — Testes Unitários (SPEC-06)")
+@DisplayName("ViagemService — Testes Unitários (SPEC-VIA-02)")
 class ViagemServiceTest {
 
     @Mock private ViagemRepository viagemRepository;

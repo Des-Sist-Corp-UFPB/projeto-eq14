@@ -10,7 +10,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 
 /**
- * Configuração do login social com Google (OAuth2/OIDC) — SPEC-08.
+ * Configuração do login social com Google (OAuth2/OIDC) — SPEC-ACE-02.
  *
  * <p>O {@link ClientRegistrationRepository} é criado <strong>apenas quando há
  * credenciais</strong> ({@code GOOGLE_CLIENT_ID} <em>não-vazio</em> no ambiente). Sem elas,

@@ -1,6 +1,6 @@
 # Multi-ambiente por secretaria — runbook operacional
 
-> **Decisão e avaliação das opções**: [`docs/sdd/specs/SPEC-15-multi-ambiente-por-secretaria.md`](sdd/specs/SPEC-15-multi-ambiente-por-secretaria.md)
+> **Decisão e avaliação das opções**: [`docs/sdd/specs/plataforma/SPEC-PLT-02-multi-ambiente-por-secretaria.md`](sdd/specs/plataforma/SPEC-PLT-02-multi-ambiente-por-secretaria.md)
 > · **ADR-19** ([plano técnico §9](sdd/02-plano-tecnico.md)). Este documento é o **como operar**.
 
 O CALADRIUS isola clientes pela **Opção A (instância por cliente / silo)**: **cada secretaria roda o
@@ -65,7 +65,7 @@ sudo caddy reload --config /etc/caddy/Caddyfile
 
 No 1º boot, o `DataInitializer` cria o **admin-bootstrap deste ambiente** (telefone `83999999999`,
 senha `admin123`). **Troque a senha no primeiro login.** A partir daí, novos gestores nascem por
-**convite** (SPEC-01) — cada secretaria tem a sua própria cadeia de gestores.
+**convite** (SPEC-ACE-01) — cada secretaria tem a sua própria cadeia de gestores.
 
 ## Atualizar a versão em todos os ambientes (rollout)
 
@@ -141,4 +141,4 @@ ls ambientes/
 A Opção A é ótima para **poucas dezenas** de secretarias. Se um dia surgir **painel único
 multi-secretaria**, **auto-serviço de cadastro** de clientes, **muitos** tenants pequenos ou
 **relatórios agregados**, reavalie a **Opção C (linha a linha)** — ver
-[SPEC-15 §7](sdd/specs/SPEC-15-multi-ambiente-por-secretaria.md).
+[SPEC-PLT-02 §7](sdd/specs/plataforma/SPEC-PLT-02-multi-ambiente-por-secretaria.md).

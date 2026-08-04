@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Testes unitários (Mockito) de {@link RecuperacaoSenhaService} — "esqueci a senha"
- * (SPEC-12), com foco no seletor de método, na anti-enumeração e no reset.
+ * (SPEC-ACE-03), com foco no seletor de método, na anti-enumeração e no reset.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RecuperacaoSenhaService — Testes Unitários (esqueci a senha)")

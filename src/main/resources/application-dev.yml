@@ -24,7 +24,7 @@ logging:
     br.ufpb.dsc.caladrius: DEBUG
     org.springframework.web: DEBUG
 
-# SPEC-12 — em DEV forçamos a verificação de telefone no cadastro mesmo com o
+# SPEC-ACE-03 — em DEV forçamos a verificação de telefone no cadastro mesmo com o
 # WhatsApp em stub, para dar de testar o fluxo pela interface. O código do OTP
 # aparece no log da app (canal WhatsApp stub loga em INFO: "[WHATSAPP/stub ...]").
 caladrius:

@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.dto;
 
 /**
- * Configurações de envio do canal WhatsApp (SPEC-10/11), geridas no painel do
+ * Configurações de envio do canal WhatsApp (SPEC-WPP-01/11), geridas no painel do
  * gerente e persistidas como configuração dinâmica ({@code ConfiguracaoService}).
  *
  * <p>Já teve também uma <em>janela de atendimento</em> (início/fim). Ela foi

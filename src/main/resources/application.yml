@@ -3,7 +3,7 @@ spring:
     name: caladrius
   profiles:
     active: dev
-  # Login social com Google (OAuth2/OIDC) — SPEC-08.
+  # Login social com Google (OAuth2/OIDC) — SPEC-ACE-02.
   # O registro do Google NÃO fica aqui de propósito: uma chave de registro vazia
   # faz o Spring Boot falhar na validação ("Client id must not be empty"). Em vez
   # disso, o ClientRegistrationRepository é criado por um bean condicional a
@@ -23,11 +23,11 @@ management:
       # Detalhes do health só são exibidos para usuários autenticados
       show-details: when-authorized
       # Já os COMPONENTES (nome + status, sem detalhe) aparecem para todos: é o que
-      # permite a um probe anônimo constatar que o banco é verificado (SPEC-17).
+      # permite a um probe anônimo constatar que o banco é verificado (SPEC-OPE-02).
       # Sem isto, /actuator/health devolve apenas {"status":"UP"} a quem não está logado.
       show-components: always
 
-# Healthcheck do banco (SPEC-17) — ver health/BancoHealthIndicator.
+# Healthcheck do banco (SPEC-OPE-02) — ver health/BancoHealthIndicator.
 caladrius:
   health:
     banco:

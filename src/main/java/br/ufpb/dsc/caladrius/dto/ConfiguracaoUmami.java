@@ -5,10 +5,10 @@ import org.springframework.util.StringUtils;
 import java.util.regex.Pattern;
 
 /**
- * Configuração do <strong>analytics de uso (Umami)</strong> — SPEC-17.
+ * Configuração do <strong>analytics de uso (Umami)</strong> — SPEC-OPE-02.
  *
  * <p>Carrega o que o fragmento {@code fragments/analytics.html} precisa para montar a
- * tag do rastreador. Segue o padrão de ativação condicional do projeto (SPEC-08/10/14):
+ * tag do rastreador. Segue o padrão de ativação condicional do projeto (SPEC-ACE-02/10/14):
  * <strong>sem {@code UMAMI_URL} e {@code UMAMI_WEBSITE_ID}, {@link #isAtivo()} é
  * {@code false} e nenhum script é renderizado</strong> — em dev e nos testes a
  * aplicação sobe idêntica, sem enviar nada (RN-ANL-01).

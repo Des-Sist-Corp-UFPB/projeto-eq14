@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Vinculo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">Vinculo.java</span></div><h1>Vinculo.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.Papel;
+import br.ufpb.dsc.caladrius.domain.enums.StatusVinculo;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Pertencimento de uma pessoa a uma secretaria, com um papel (SPEC-PLT-02 §4, ADR-22).
+ *
+ * &lt;p&gt;É a evolução de {@code papeis_usuario}: o papel deixa de valer globalmente e passa
+ * a valer &lt;strong&gt;dentro de uma organização&lt;/strong&gt;. Uma pessoa pode ter vários vínculos
+ * — motorista em uma secretaria e passageira em outra — com uma única credencial, e
+ * escolhe por qual entra a cada sessão (`/entrar/onde`).
+ *
+ * &lt;p&gt;&lt;strong&gt;RN-MT-08:&lt;/strong&gt; nasce {@link StatusVinculo#PENDENTE}; quem ativa é um
+ * gestor da organização.
+ */
+@Entity
+@Table(name = &quot;vinculos&quot;)
+public class Vinculo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = &quot;usuario&quot;, nullable = false)
+    private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = &quot;organizacao&quot;, nullable = false)
+    private Organizacao organizacao;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;papel&quot;, nullable = false, length = 30)
+    private Papel papel;
+
+<span class="fc" id="L53">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = false, length = 30)
+    private StatusVinculo status = StatusVinculo.PENDENTE;
+
+    @Column(name = &quot;criado_em&quot;, nullable = false)
+    private Instant criadoEm;
+
+    @Column(name = &quot;aprovado_em&quot;)
+    private Instant aprovadoEm;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;aprovado_por&quot;)
+    private Usuario aprovadoPor;
+
+<span class="fc" id="L67">    public Vinculo() {</span>
+<span class="fc" id="L68">    }</span>
+
+<span class="fc" id="L70">    public Vinculo(Usuario usuario, Organizacao organizacao, Papel papel) {</span>
+<span class="fc" id="L71">        this.usuario = usuario;</span>
+<span class="fc" id="L72">        this.organizacao = organizacao;</span>
+<span class="fc" id="L73">        this.papel = papel;</span>
+<span class="fc" id="L74">    }</span>
+
+    @PrePersist
+    protected void prePersist() {
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (this.criadoEm == null) {</span>
+<span class="fc" id="L79">            this.criadoEm = Instant.now();</span>
+        }
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        if (this.status == null) {</span>
+<span class="nc" id="L82">            this.status = StatusVinculo.PENDENTE;</span>
+        }
+<span class="fc" id="L84">    }</span>
+
+    /** Ativa o vínculo, registrando quem aprovou e quando. */
+    public void aprovar(Usuario aprovador) {
+<span class="fc" id="L88">        this.status = StatusVinculo.ATIVO;</span>
+<span class="fc" id="L89">        this.aprovadoEm = Instant.now();</span>
+<span class="fc" id="L90">        this.aprovadoPor = aprovador;</span>
+<span class="fc" id="L91">    }</span>
+
+    /** Encerra o acesso — o registro permanece (RN-MT-16). */
+    public void revogar() {
+<span class="fc" id="L95">        this.status = StatusVinculo.REVOGADO;</span>
+<span class="fc" id="L96">    }</span>
+
+    public boolean isAtivo() {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        return status == StatusVinculo.ATIVO;</span>
+    }
+
+    // ===================== Getters e Setters =====================
+
+    public UUID getId() {
+<span class="fc" id="L105">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L109">        this.id = id;</span>
+<span class="fc" id="L110">    }</span>
+
+    public Usuario getUsuario() {
+<span class="nc" id="L113">        return usuario;</span>
+    }
+
+    public void setUsuario(Usuario usuario) {
+<span class="nc" id="L117">        this.usuario = usuario;</span>
+<span class="nc" id="L118">    }</span>
+
+    public Organizacao getOrganizacao() {
+<span class="fc" id="L121">        return organizacao;</span>
+    }
+
+    public void setOrganizacao(Organizacao organizacao) {
+<span class="nc" id="L125">        this.organizacao = organizacao;</span>
+<span class="nc" id="L126">    }</span>
+
+    public Papel getPapel() {
+<span class="fc" id="L129">        return papel;</span>
+    }
+
+    public void setPapel(Papel papel) {
+<span class="nc" id="L133">        this.papel = papel;</span>
+<span class="nc" id="L134">    }</span>
+
+    public StatusVinculo getStatus() {
+<span class="fc" id="L137">        return status;</span>
+    }
+
+    public void setStatus(StatusVinculo status) {
+<span class="fc" id="L141">        this.status = status;</span>
+<span class="fc" id="L142">    }</span>
+
+    public Instant getCriadoEm() {
+<span class="nc" id="L145">        return criadoEm;</span>
+    }
+
+    public Instant getAprovadoEm() {
+<span class="fc" id="L149">        return aprovadoEm;</span>
+    }
+
+    public Usuario getAprovadoPor() {
+<span class="fc" id="L153">        return aprovadoPor;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

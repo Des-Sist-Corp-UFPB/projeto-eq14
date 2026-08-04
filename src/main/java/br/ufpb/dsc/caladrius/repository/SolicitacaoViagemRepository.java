@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Repositório das solicitações de viagem do passageiro (SPEC-09).
+ * Repositório das solicitações de viagem do passageiro (SPEC-VIA-03).
  */
 @Repository
 public interface SolicitacaoViagemRepository extends JpaRepository<SolicitacaoViagem, UUID> {
@@ -24,7 +24,7 @@ public interface SolicitacaoViagemRepository extends JpaRepository<SolicitacaoVi
      * {@code LazyInitializationException}). Mais recentes primeiro.
      *
      * <p>Usa {@code left join} na linha porque a solicitação <strong>sob demanda</strong>
-     * (SPEC-11) não tem linha; o destino, nesse caso, vem de {@code cidadeDestino}.
+     * (SPEC-WPP-02) não tem linha; o destino, nesse caso, vem de {@code cidadeDestino}.
      */
     @Query("""
             select s from SolicitacaoViagem s

@@ -3,7 +3,7 @@ package br.ufpb.dsc.caladrius.service;
 import java.util.Optional;
 
 /**
- * Catálogo das <strong>flags globais</strong> de funcionalidade (SPEC-13 §5.2).
+ * Catálogo das <strong>flags globais</strong> de funcionalidade (SPEC-PLT-01 §5.2).
  *
  * <p>Cada flag é uma linha chave/valor em {@code configuracoes_sistema} (D1 — não
  * há tabela nova) e carrega, aqui no código, o seu <strong>default seguro</strong>:

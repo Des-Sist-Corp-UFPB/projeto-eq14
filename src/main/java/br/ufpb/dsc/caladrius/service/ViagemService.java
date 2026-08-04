@@ -120,7 +120,7 @@ public class ViagemService {
         return viagem;
     }
 
-    // ===================== SPEC-06 =====================
+    // ===================== SPEC-VIA-02 =====================
 
     /**
      * Designa veículo + motorista a uma linha numa data → materializa a viagem

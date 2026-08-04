@@ -46,7 +46,7 @@ O sistema é baseado em papéis. Um mesmo usuário pode acumular papéis.
 > exigem o papel `GERENTE`. Passageiro e motorista já existem como conceito e como dados
 > (um passageiro consegue se cadastrar, um motorista consegue ser designado a uma viagem),
 > mas **ainda não têm telas próprias** — isso é escopo de incrementos futuros
-> (ver [SPEC-01](specs/SPEC-01-autenticacao.md) e o [Roadmap](03-tarefas-e-roadmap.md)).
+> (ver [SPEC-ACE-01](specs/acesso/SPEC-ACE-01-autenticacao.md) e o [Roadmap](03-tarefas-e-roadmap.md)).
 
 ---
 
@@ -77,12 +77,12 @@ Cada capacidade tem uma spec detalhada em [`specs/`](specs/).
 
 | # | Capacidade | Spec | Papel | Status |
 |---|---|---|---|---|
-| 1 | **Autenticação & auto-cadastro** — login por e-mail/telefone; registro público de passageiro; logout | [SPEC-01](specs/SPEC-01-autenticacao.md) | Público / Todos | ✅ Implementado |
-| 2 | **Gestão de usuários** — CRUD + atribuição de papéis + soft-delete | [SPEC-02](specs/SPEC-02-gestao-usuarios.md) | GERENTE | ✅ Implementado |
-| 3 | **Gestão de veículos** — CRUD da frota + soft-delete | [SPEC-03](specs/SPEC-03-gestao-veiculos.md) | GERENTE | ✅ Implementado |
-| 4 | **Gestão de cidades** — CRUD de origem/destinos | [SPEC-04](specs/SPEC-04-gestao-cidades.md) | GERENTE | ✅ Implementado |
-| 5 | **Gestão de viagens** — criar e listar viagens | [SPEC-05](specs/SPEC-05-gestao-viagens.md) | GERENTE | 🟡 Parcial (sem edição) |
-| 6 | **Painel inicial** — totais de cada cadastro | (coberto em SPEC-02/03/04/05) | Autenticado | ✅ Implementado |
+| 1 | **Autenticação & auto-cadastro** — login por e-mail/telefone; registro público de passageiro; logout | [SPEC-ACE-01](specs/acesso/SPEC-ACE-01-autenticacao.md) | Público / Todos | ✅ Implementado |
+| 2 | **Gestão de usuários** — CRUD + atribuição de papéis + soft-delete | [SPEC-CAD-01](specs/cadastros/SPEC-CAD-01-gestao-usuarios.md) | GERENTE | ✅ Implementado |
+| 3 | **Gestão de veículos** — CRUD da frota + soft-delete | [SPEC-CAD-02](specs/cadastros/SPEC-CAD-02-gestao-veiculos.md) | GERENTE | ✅ Implementado |
+| 4 | **Gestão de cidades** — CRUD de origem/destinos | [SPEC-CAD-03](specs/cadastros/SPEC-CAD-03-gestao-cidades.md) | GERENTE | ✅ Implementado |
+| 5 | **Gestão de viagens** — criar e listar viagens | [SPEC-VIA-01](specs/viagens/SPEC-VIA-01-gestao-viagens.md) | GERENTE | 🟡 Parcial (sem edição) |
+| 6 | **Painel inicial** — totais de cada cadastro | (coberto em SPEC-CAD-01/03/04/05) | Autenticado | ✅ Implementado |
 | 7 | **Solicitações de transporte** | — (planejado) | PASSAGEIRO | ⬜ Planejado |
 | 8 | **Alocação automática por prioridade** | — (planejado) | GERENTE | ⬜ Planejado |
 | 9 | **Escalas de motorista / telas por papel** | — (planejado) | MOTORISTA | ⬜ Planejado |

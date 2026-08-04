@@ -27,7 +27,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * suspensão da própria conta, mas nunca a exclusão — a remoção é responsabilidade
  * de um cargo superior. A trava do último gerente ativo é aplicada no serviço.
  *
- * <p><strong>Completar perfil (SPEC-08):</strong> contas criadas por login social
+ * <p><strong>Completar perfil (SPEC-ACE-02):</strong> contas criadas por login social
  * (Google) nascem sem telefone; aqui o usuário o informa para liberar o acesso.
  */
 @Controller

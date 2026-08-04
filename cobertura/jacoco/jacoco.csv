@@ -6,6 +6,8 @@ caladrius,br.ufpb.dsc.caladrius.service,IdentidadeOauthService,4,180,3,17,2,45,3
 caladrius,br.ufpb.dsc.caladrius.service,ConviteService,102,442,7,23,18,95,11,19,4,11
 caladrius,br.ufpb.dsc.caladrius.service,UsuarioService,27,578,19,57,4,135,17,40,0,19
 caladrius,br.ufpb.dsc.caladrius.service,AuditoriaService,0,183,1,11,0,52,1,15,0,10
+caladrius,br.ufpb.dsc.caladrius.service,OrganizacaoService,27,84,3,11,5,19,6,7,3,3
+caladrius,br.ufpb.dsc.caladrius.service,VinculoService,11,125,0,0,1,26,2,10,2,10
 caladrius,br.ufpb.dsc.caladrius.service,RecuperacaoSenhaService,2,118,4,8,1,26,4,8,0,6
 caladrius,br.ufpb.dsc.caladrius.service,WhatsappService,2,339,3,40,1,86,3,36,0,17
 caladrius,br.ufpb.dsc.caladrius.service,ParametroSistema,26,105,5,3,4,19,4,9,1,8
@@ -37,7 +39,9 @@ caladrius,br.ufpb.dsc.caladrius.domain.enums,StatusViagem,0,49,0,0,0,10,0,3,0,3
 caladrius,br.ufpb.dsc.caladrius.domain.enums,StatusVeiculo,0,42,0,0,0,9,0,3,0,3
 caladrius,br.ufpb.dsc.caladrius.domain.enums,DirecaoMensagem,0,36,0,0,0,9,0,4,0,4
 caladrius,br.ufpb.dsc.caladrius.domain.enums,FinalidadeToken,0,15,0,0,0,3,0,1,0,1
+caladrius,br.ufpb.dsc.caladrius.domain.enums,StatusVinculo,3,32,0,0,1,7,1,2,1,2
 caladrius,br.ufpb.dsc.caladrius.domain.enums,TipoSolicitacao,6,30,0,0,2,7,2,2,2,2
+caladrius,br.ufpb.dsc.caladrius.domain.enums,StatusOrganizacao,13,53,4,0,2,10,4,2,2,2
 caladrius,br.ufpb.dsc.caladrius.domain.enums,CategoriaAuditoria,0,35,0,0,0,8,0,3,0,3
 caladrius,br.ufpb.dsc.caladrius.domain.enums,AreaSistema,0,239,0,14,0,43,0,15,0,8
 caladrius,br.ufpb.dsc.caladrius.domain.enums,Papel,0,46,0,0,0,10,0,4,0,4
@@ -58,8 +62,10 @@ caladrius,br.ufpb.dsc.caladrius.domain,Usuario,17,129,5,5,5,48,7,30,3,29
 caladrius,br.ufpb.dsc.caladrius.domain,CodigoVerificacao,10,85,5,5,4,31,6,21,2,20
 caladrius,br.ufpb.dsc.caladrius.domain,IdentidadeOauth,46,21,2,0,20,9,13,3,12,3
 caladrius,br.ufpb.dsc.caladrius.domain,Veiculo,3,111,1,1,1,45,1,24,0,24
+caladrius,br.ufpb.dsc.caladrius.domain,Vinculo,29,71,4,2,10,28,9,13,6,13
 caladrius,br.ufpb.dsc.caladrius.domain,MensagemWhatsapp,26,50,3,3,10,19,8,9,5,9
 caladrius,br.ufpb.dsc.caladrius.domain,TokenAtivacao,15,61,3,5,5,22,8,13,5,12
+caladrius,br.ufpb.dsc.caladrius.domain,Organizacao,25,62,4,2,9,25,8,13,5,13
 caladrius,br.ufpb.dsc.caladrius.domain,Cidade,0,52,0,0,0,20,0,11,0,11
 caladrius,br.ufpb.dsc.caladrius.domain,Endereco,18,51,0,0,6,24,6,14,6,14
 caladrius,br.ufpb.dsc.caladrius.domain,Notificacao,27,29,1,1,11,13,9,5,8,5
@@ -75,7 +81,7 @@ caladrius,br.ufpb.dsc.caladrius.whatsapp,MensagemRecebida,0,18,0,0,0,1,0,1,0,1
 caladrius,br.ufpb.dsc.caladrius.whatsapp,StatusConexaoWhatsapp,6,38,0,0,2,8,2,2,2,2
 caladrius,br.ufpb.dsc.caladrius.whatsapp.bot,BotAtendimentoService,177,754,44,68,53,181,39,50,0,27
 caladrius,br.ufpb.dsc.caladrius.whatsapp.bot,MensagensBot,16,282,6,10,1,50,5,19,0,16
-caladrius,br.ufpb.dsc.caladrius.exception,RecursoNaoEncontradoException,4,7,0,0,2,2,1,1,1,1
+caladrius,br.ufpb.dsc.caladrius.exception,RecursoNaoEncontradoException,0,11,0,0,0,4,0,2,0,2
 caladrius,br.ufpb.dsc.caladrius.exception,RegraNegocioException,0,4,0,0,0,2,0,1,0,1
 caladrius,br.ufpb.dsc.caladrius.observabilidade,RastreamentoService,3,50,2,2,0,14,2,2,0,2
 caladrius,br.ufpb.dsc.caladrius.observabilidade,TelemetriaConfig,0,5,0,0,0,2,0,2,0,2
@@ -89,19 +95,22 @@ caladrius,br.ufpb.dsc.caladrius.config,GlobalExceptionHandler,0,6,0,0,0,2,0,2,0,
 caladrius,br.ufpb.dsc.caladrius.config,SessaoConfig.new HttpSessionListener() {...},11,6,0,0,3,1,1,1,1,1
 caladrius,br.ufpb.dsc.caladrius.config,PerfilIncompletoFilter,0,95,9,19,0,22,9,9,0,4
 caladrius,br.ufpb.dsc.caladrius.config,SessaoConfig,0,12,0,0,0,2,0,2,0,2
-caladrius,br.ufpb.dsc.caladrius.config,SecurityConfig,44,252,5,1,9,28,6,7,3,7
+caladrius,br.ufpb.dsc.caladrius.config,SecurityConfig,44,260,5,1,9,29,6,7,3,7
 caladrius,br.ufpb.dsc.caladrius.config,OAuth2ClientConfig,22,0,0,0,7,0,2,0,2,0
 caladrius,br.ufpb.dsc.caladrius.config,AuditoriaSecurityListener,1,72,2,2,0,23,2,4,0,4
 caladrius,br.ufpb.dsc.caladrius.config,WhatsappConfig,37,53,3,9,9,12,4,6,2,2
 caladrius,br.ufpb.dsc.caladrius.config,GlobalModelAttributes,2,37,1,3,0,11,1,6,0,5
 caladrius,br.ufpb.dsc.caladrius.config,ManutencaoFilter,2,136,9,29,1,33,9,15,0,5
 caladrius,br.ufpb.dsc.caladrius.util,Documentos,2,158,2,32,1,34,2,20,0,5
+caladrius,br.ufpb.dsc.caladrius.multitenancia,ContextoTenant,0,28,0,4,0,10,0,7,0,5
+caladrius,br.ufpb.dsc.caladrius.multitenancia,ContextoTenantFilter,0,150,10,26,0,37,10,13,0,5
 caladrius,br.ufpb.dsc.caladrius.controller,AnaliseController,0,27,0,0,0,7,0,2,0,2
 caladrius,br.ufpb.dsc.caladrius.controller,PerfilController,38,67,5,3,7,14,4,4,0,4
 caladrius,br.ufpb.dsc.caladrius.controller,LinhaController,19,188,5,9,2,44,5,12,0,10
 caladrius,br.ufpb.dsc.caladrius.controller,GestaoSolicitacaoController,48,29,0,0,12,9,2,3,2,3
 caladrius,br.ufpb.dsc.caladrius.controller,AtivacaoController,7,27,0,0,2,9,0,3,0,3
 caladrius,br.ufpb.dsc.caladrius.controller,SolicitacaoController,33,88,1,3,9,18,2,4,1,3
+caladrius,br.ufpb.dsc.caladrius.controller,ContextoController,0,38,0,0,0,10,0,3,0,3
 caladrius,br.ufpb.dsc.caladrius.controller,PingController,1,22,1,1,0,6,1,2,0,2
 caladrius,br.ufpb.dsc.caladrius.controller,RecuperacaoSenhaController,39,52,6,2,9,14,5,4,1,4
 caladrius,br.ufpb.dsc.caladrius.controller,ContaController,40,101,6,6,11,28,6,5,1,4

@@ -33,11 +33,11 @@ Mapeamento spec → pacote:
 
 | Spec | Controller | Service | Entidade | Repositório |
 |---|---|---|---|---|
-| [SPEC-01](specs/SPEC-01-autenticacao.md) | `AuthController` + Spring Security | `UsuarioService` (registro) | `Usuario` | `UsuarioRepository` |
-| [SPEC-02](specs/SPEC-02-gestao-usuarios.md) | `UsuarioController` | `UsuarioService` | `Usuario` | `UsuarioRepository` |
-| [SPEC-03](specs/SPEC-03-gestao-veiculos.md) | `VeiculoController` | `VeiculoService` | `Veiculo` | `VeiculoRepository` |
-| [SPEC-04](specs/SPEC-04-gestao-cidades.md) | `CidadeController` | `CidadeService` | `Cidade` | `CidadeRepository` |
-| [SPEC-05](specs/SPEC-05-gestao-viagens.md) | `ViagemController` | `ViagemService` | `Viagem` | `ViagemRepository` |
+| [SPEC-ACE-01](specs/acesso/SPEC-ACE-01-autenticacao.md) | `AuthController` + Spring Security | `UsuarioService` (registro) | `Usuario` | `UsuarioRepository` |
+| [SPEC-CAD-01](specs/cadastros/SPEC-CAD-01-gestao-usuarios.md) | `UsuarioController` | `UsuarioService` | `Usuario` | `UsuarioRepository` |
+| [SPEC-CAD-02](specs/cadastros/SPEC-CAD-02-gestao-veiculos.md) | `VeiculoController` | `VeiculoService` | `Veiculo` | `VeiculoRepository` |
+| [SPEC-CAD-03](specs/cadastros/SPEC-CAD-03-gestao-cidades.md) | `CidadeController` | `CidadeService` | `Cidade` | `CidadeRepository` |
+| [SPEC-VIA-01](specs/viagens/SPEC-VIA-01-gestao-viagens.md) | `ViagemController` | `ViagemService` | `Viagem` | `ViagemRepository` |
 | Painel | `HomeController` | (consulta direta) | — | os 4 repositórios (`count*`) |
 
 ---
@@ -149,23 +149,23 @@ devolvem **linha** (sucesso) ou **modal** (erro), `DELETE` responde `200`/`404`.
 
 | Método | Rota | Spec | Acesso | Resposta |
 |---|---|---|---|---|
-| GET | `/ping` | SPEC-01 | público | 200 JSON |
-| GET | `/login` | SPEC-01 | público | página |
-| POST | `/login` | SPEC-01 | público | (Spring Security) |
-| GET | `/registrar` | SPEC-01 | público | página |
-| POST | `/registrar` | SPEC-01 | público | redirect/ível |
-| POST | `/logout` | SPEC-01 | autenticado | redirect `/login?logout` |
+| GET | `/ping` | SPEC-ACE-01 | público | 200 JSON |
+| GET | `/login` | SPEC-ACE-01 | público | página |
+| POST | `/login` | SPEC-ACE-01 | público | (Spring Security) |
+| GET | `/registrar` | SPEC-ACE-01 | público | página |
+| POST | `/registrar` | SPEC-ACE-01 | público | redirect/ível |
+| POST | `/logout` | SPEC-ACE-01 | autenticado | redirect `/login?logout` |
 | GET | `/` | Painel | autenticado | página (totais) |
-| GET | `/usuarios` | SPEC-02 | GERENTE | página/fragmento |
-| GET | `/usuarios/fragmento-tabela` | SPEC-02 | GERENTE | fragmento |
-| GET | `/usuarios/novo` · `/{id}/editar` | SPEC-02 | GERENTE | modal |
-| POST | `/usuarios` · PUT `/usuarios/{id}` | SPEC-02 | GERENTE | linha/modal |
-| DELETE | `/usuarios/{id}` | SPEC-02 | GERENTE | 200/404 (soft-delete) |
-| GET/POST/PUT/DELETE | `/veiculos/**` | SPEC-03 | GERENTE | idem (soft-delete) |
-| GET/POST/PUT/DELETE | `/cidades/**` | SPEC-04 | GERENTE | idem (delete físico) |
-| GET | `/viagens` · `/viagens/nova` | SPEC-05 | GERENTE | página/modal |
-| POST | `/viagens` | SPEC-05 | GERENTE | linha/modal |
-| DELETE | `/viagens/{id}` | SPEC-05 | GERENTE | 200/404 (delete físico) |
+| GET | `/usuarios` | SPEC-CAD-01 | GERENTE | página/fragmento |
+| GET | `/usuarios/fragmento-tabela` | SPEC-CAD-01 | GERENTE | fragmento |
+| GET | `/usuarios/novo` · `/{id}/editar` | SPEC-CAD-01 | GERENTE | modal |
+| POST | `/usuarios` · PUT `/usuarios/{id}` | SPEC-CAD-01 | GERENTE | linha/modal |
+| DELETE | `/usuarios/{id}` | SPEC-CAD-01 | GERENTE | 200/404 (soft-delete) |
+| GET/POST/PUT/DELETE | `/veiculos/**` | SPEC-CAD-02 | GERENTE | idem (soft-delete) |
+| GET/POST/PUT/DELETE | `/cidades/**` | SPEC-CAD-03 | GERENTE | idem (delete físico) |
+| GET | `/viagens` · `/viagens/nova` | SPEC-VIA-01 | GERENTE | página/modal |
+| POST | `/viagens` | SPEC-VIA-01 | GERENTE | linha/modal |
+| DELETE | `/viagens/{id}` | SPEC-VIA-01 | GERENTE | 200/404 (delete físico) |
 
 ---
 
@@ -247,26 +247,28 @@ Resumo das decisões já tomadas (detalhe e justificativa na Constituição e na
 
 | ADR | Decisão | Status | Referência |
 |---|---|---|---|
-| **ADR-01** | Autenticação no banco com login por e-mail **ou** telefone | Aceita | Art. VIII, SPEC-01 |
+| **ADR-01** | Autenticação no banco com login por e-mail **ou** telefone | Aceita | Art. VIII, SPEC-ACE-01 |
 | **ADR-02** | Enums como `VARCHAR` (não enum nativo do PG) | Aceita | Art. VI |
 | **ADR-03** | UUID com `gen_random_uuid()` nativo (sem `pgcrypto`) | Aceita | Art. VI |
-| **ADR-04** | Soft-delete em usuários e veículos; índices únicos parciais | Aceita | Art. III, SPEC-02/03 |
+| **ADR-04** | Soft-delete em usuários e veículos; índices únicos parciais | Aceita | Art. III, SPEC-CAD-01/03 |
 | **ADR-05** | `V1` intocada; toda mudança como nova migration | Aceita | Art. IV |
 | **ADR-06** | HTMX + fragmentos (sem SPA/JS customizado) | Aceita | Art. X |
 | **ADR-07** | Admin semeado em Java (`DataInitializer`), não no Flyway | Aceita | §5 |
-| **ADR-08** | Cidades e viagens com remoção **física** (exceção ao soft-delete) | Aceita | SPEC-04/05 |
+| **ADR-08** | Cidades e viagens com remoção **física** (exceção ao soft-delete) | Aceita | SPEC-CAD-03/05 |
 | **ADR-09** | Pool de conexões de produção limitado a 5 | Aceita | Art. XIV |
 | **ADR-10** | Papel `SYSADMIN` **isolado** (least privilege); sessão **dinâmica** (DB) | Aceita | SPEC Config., §5 |
-| **ADR-11** | Onboarding por **token de ativação** (convite); meios via `NotificacaoService` | Aceita | SPEC-01, #20 |
-| **ADR-12** | `dias_semana` da linha como **tabela filha `linha_dias`** (1-N), não bitmask/coluna | **Aprovada** | SPEC-06 §2.1 |
-| **ADR-13** | Endereço do passageiro em **tabela `enderecos` estruturada** (FK cidade), não JSONB | **Aprovada** | SPEC-07 |
-| **ADR-14** | WhatsApp via **porta `ProvedorWhatsapp`** (trocar de provedor = novo adaptador); **Evolution API** self-hosted em VPS própria; bot desacoplado da integração | **Aprovada** | SPEC-10 |
-| **ADR-15** | Solicitação **sob demanda** estende `solicitacoes_viagem` (coluna `tipo`, `linha_programada` nullable) — fila única, não tabela nova; **onboarding** pelo WhatsApp cria PASSAGEIRO **ATIVO sem senha**; "Acesso à plataforma" reusa o **token de ativação** (ADR-11) | **Aprovada** | SPEC-11 |
-| **ADR-16** | Verificação de contato e reset em modelo **híbrido**: **OTP** (código de 6 dígitos, tabela `codigos_verificacao` com hash+expiração+lockout) via **WhatsApp** para telefone e "esqueci a senha"; **link mágico** (`tokens_ativacao` + coluna `finalidade`) via **e-mail** para verificar o e-mail. Anti-enumeração, throttle e hash em repouso; reusa `TokenAtivacao` (ADR-11) e o `NotificacaoService` | **Aceita** (V14) | SPEC-12 |
-| **ADR-17** | **Feature toggle** de runtime: flags globais (`feature.bot_whatsapp`, `feature.modo_manutencao`) e **parâmetros de negócio** (`param.*`) **reusam** `configuracoes_sistema` (ADR-10) via `FeatureFlagService` com cache e **defaults seguros** (fail-safe); **entitlement** de pagamento por município via coluna `municipios.pagamento_habilitado` (V15); gestão pela área admin. Sem lib externa (Togglz descartado) | **Aceita** (V15) | SPEC-13 |
-| **ADR-18** | **Observabilidade via OpenTelemetry**: **agente Java** (auto: HTTP/JDBC/JVM/logs) + **camada manual mínima** (`RastreamentoService`, só a API OTel no `pom.xml`; o SDK vem do agente) para spans de negócio; export **OTLP** ao **backend central** da disciplina (logs no Loki pela mesma via); ligado/desligado por env (`JAVA_TOOL_OPTIONS`), **sem migration**. | **Aprovada** | SPEC-14 |
-| **ADR-19** | **Multi-ambiente por secretaria** = isolamento por **instância (silo — Opção A)**: cada cliente roda um **stack próprio** (app + **banco dedicado** + subdomínio + `.env`/segredos), _namespaced_ por `name: caladrius-<slug>` no Compose — **isolamento físico** (impossível vazar entre clientes), **zero código de tenant, sem migration**. Descartadas por ora: **schema-por-tenant (B)** e **linha-a-linha (C** — coluna `organizacao` + filtro em toda consulta), C reservada para quando exigir **painel único multi-secretaria**. Provisionamento por modelo + `scripts/novo-ambiente.sh`. | **Aceita** | SPEC-15 |
-| **ADR-20** | **Venda self-service + multi-tenancy lógica**: entidade **`Organizacao`** (uma por **secretaria**, não por gestor) com `Assinatura`/`Pagamento`; o papel **`GERENTE` só é concedido pela confirmação servidor-a-servidor do pagamento** (webhook + reconsulta na API — nunca pelo formulário nem pelo redirect de retorno); pagamento via **porta `ProvedorPagamento`** + adaptador **Mercado Pago Checkout Pro** (mesmo padrão da ADR-14, sem escopo PCI); isolamento pela **Opção C** da SPEC-15 (coluna `organizacao` + **`@TenantId` do Hibernate 6**, para não depender de lembrar o `WHERE`). **Substitui a ADR-19 como estratégia padrão** quando a venda por autoatendimento entrar em operação — a Opção A permanece válida para cliente que exija isolamento **físico**. | **Proposta** | SPEC-16 |
+| **ADR-11** | Onboarding por **token de ativação** (convite); meios via `NotificacaoService` | Aceita | SPEC-ACE-01, #20 |
+| **ADR-12** | `dias_semana` da linha como **tabela filha `linha_dias`** (1-N), não bitmask/coluna | **Aprovada** | SPEC-VIA-02 §2.1 |
+| **ADR-13** | Endereço do passageiro em **tabela `enderecos` estruturada** (FK cidade), não JSONB | **Aprovada** | SPEC-CAD-04 |
+| **ADR-14** | WhatsApp via **porta `ProvedorWhatsapp`** (trocar de provedor = novo adaptador); **Evolution API** self-hosted em VPS própria; bot desacoplado da integração | **Aprovada** | SPEC-WPP-01 |
+| **ADR-15** | Solicitação **sob demanda** estende `solicitacoes_viagem` (coluna `tipo`, `linha_programada` nullable) — fila única, não tabela nova; **onboarding** pelo WhatsApp cria PASSAGEIRO **ATIVO sem senha**; "Acesso à plataforma" reusa o **token de ativação** (ADR-11) | **Aprovada** | SPEC-WPP-02 |
+| **ADR-16** | Verificação de contato e reset em modelo **híbrido**: **OTP** (código de 6 dígitos, tabela `codigos_verificacao` com hash+expiração+lockout) via **WhatsApp** para telefone e "esqueci a senha"; **link mágico** (`tokens_ativacao` + coluna `finalidade`) via **e-mail** para verificar o e-mail. Anti-enumeração, throttle e hash em repouso; reusa `TokenAtivacao` (ADR-11) e o `NotificacaoService` | **Aceita** (V14) | SPEC-ACE-03 |
+| **ADR-17** | **Feature toggle** de runtime: flags globais (`feature.bot_whatsapp`, `feature.modo_manutencao`) e **parâmetros de negócio** (`param.*`) **reusam** `configuracoes_sistema` (ADR-10) via `FeatureFlagService` com cache e **defaults seguros** (fail-safe); **entitlement** de pagamento por município via coluna `municipios.pagamento_habilitado` (V15); gestão pela área admin. Sem lib externa (Togglz descartado) | **Aceita** (V15) | SPEC-PLT-01 |
+| **ADR-18** | **Observabilidade via OpenTelemetry**: **agente Java** (auto: HTTP/JDBC/JVM/logs) + **camada manual mínima** (`RastreamentoService`, só a API OTel no `pom.xml`; o SDK vem do agente) para spans de negócio; export **OTLP** ao **backend central** da disciplina (logs no Loki pela mesma via); ligado/desligado por env (`JAVA_TOOL_OPTIONS`), **sem migration**. | **Aprovada** | SPEC-OPE-01 |
+| **ADR-19** | **Multi-ambiente por secretaria** = isolamento por **instância (silo — Opção A)**: cada cliente roda um **stack próprio** (app + **banco dedicado** + subdomínio + `.env`/segredos), _namespaced_ por `name: caladrius-<slug>` no Compose — **isolamento físico** (impossível vazar entre clientes), **zero código de tenant, sem migration**. Descartadas por ora: **schema-por-tenant (B)** e **linha-a-linha (C** — coluna `organizacao` + filtro em toda consulta), C reservada para quando exigir **painel único multi-secretaria**. Provisionamento por modelo + `scripts/novo-ambiente.sh`. | **Aceita** — desde a **ADR-21**, restrita ao ***tier* dedicado** (cliente que exija isolamento físico por contrato); deixou de ser a estratégia padrão | SPEC-PLT-02 |
+| **ADR-20** | **Venda self-service + multi-tenancy lógica**: entidade **`Organizacao`** (uma por **secretaria**, não por gestor) com `Assinatura`/`Pagamento`; o papel **`GERENTE` só é concedido pela confirmação servidor-a-servidor do pagamento** (webhook + reconsulta na API — nunca pelo formulário nem pelo redirect de retorno); pagamento via **porta `ProvedorPagamento`** + adaptador **Mercado Pago Checkout Pro** (mesmo padrão da ADR-14, sem escopo PCI); isolamento pela **Opção C** da SPEC-PLT-02 (coluna `organizacao` + **`@TenantId` do Hibernate 6**, para não depender de lembrar o `WHERE`). **Substitui a ADR-19 como estratégia padrão** quando a venda por autoatendimento entrar em operação — a Opção A permanece válida para cliente que exija isolamento **físico**. | **Proposta** — a parte de **isolamento** (Opção C) foi **substituída pela ADR-21**; o restante (organização, RN-PAG-01, porta de pagamento) segue de pé | SPEC-PLT-03 |
+| **ADR-21** | **Multi-tenancy por schema (Opção B2)**: os dados operacionais de cada secretaria vivem em `tenant_<slug>`, e o **plano de controle** (identidades, vínculos, organizações, assinaturas, pagamentos, dados de referência) fica no `public`; o tenant vem do **vínculo autenticado** e é aplicado no `search_path` da conexão (RN-MT-08/09). Escolhida sobre a **Opção C** porque o isolamento fica **abaixo do ORM** — SQL nativo também é isolado, o que o `@TenantId` não garante — e porque exportar/encerrar um cliente vira um comando (`pg_dump -n` / `DROP SCHEMA`); e sobre a **Opção A** porque o provisionamento cabe no webhook de pagamento (segundos), sem *control plane* com acesso ao Docker. A estratégia é **substituível por configuração** (`schema`/`dedicado`/`legado`, FR-MT-10): sem privilégio de `CREATE` no banco, degrada para schemas pré-criados ou para a Opção C, sem reescrever a lógica. | **Proposta** — fase 1 implementada (V16) | SPEC-PLT-02 |
+| **ADR-22** | **Identidade global + vínculos**: a pessoa é **uma** credencial no `public` (`identidades`) e N **vínculos** (`vinculos`: identidade × organização × papel × status), com o perfil dentro do schema da secretaria (`membros`). É o que permite **login sem seletor de secretaria** — autentica-se primeiro e só então se escolhe o contexto, de modo que a tela de entrada **nunca enumera a carteira de clientes** (FR-MT-09) — e o que faz a mesma pessoa ser motorista em uma secretaria e passageira em outra. Sucede `papeis_usuario`, que já era N papéis por pessoa: a novidade é a **dimensão organização**. O papel passa a vir do vínculo escolhido, e o vínculo nasce `PENDENTE` (RN-MT-08) — escolher uma secretaria na tela não concede acesso a ela. | **Proposta** — fase 1 implementada (V16) | SPEC-PLT-02 |
 
 **Como registrar uma nova ADR:** ao emendar a Constituição ou tomar uma decisão técnica
 relevante, acrescente uma linha aqui (com motivação) e atualize a `CLAUDE.md`.

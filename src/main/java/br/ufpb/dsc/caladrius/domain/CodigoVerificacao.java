@@ -16,7 +16,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Código OTP de verificação (SPEC-12). Guarda apenas o <strong>hash</strong> do
+ * Código OTP de verificação (SPEC-ACE-03). Guarda apenas o <strong>hash</strong> do
  * valor cru (nunca os 6 dígitos), com expiração curta, uso único e contador de
  * tentativas para o <em>lockout</em> (RN-VER-05). Espelha a política do
  * {@link TokenAtivacao}, acrescentando o que o OTP exige: finalidade, canal e

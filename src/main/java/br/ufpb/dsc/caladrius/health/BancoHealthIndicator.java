@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 
 /**
- * Health check do <strong>banco de dados</strong> (SPEC-17) — verificação
+ * Health check do <strong>banco de dados</strong> (SPEC-OPE-02) — verificação
  * <em>explícita</em> de que o PostgreSQL responde a uma consulta.
  *
  * <p><strong>Por que esta classe existe</strong>, se o Spring Boot já traz o

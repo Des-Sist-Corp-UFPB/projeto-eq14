@@ -34,7 +34,7 @@ public class Municipio {
 
     /**
      * Adesão do município ao (futuro) fluxo de pagamento — <em>entitlement</em> da
-     * SPEC-13 (RN-FLG-05, migration V15). Default {@code false}: ninguém entra no
+     * SPEC-PLT-01 (RN-FLG-05, migration V15). Default {@code false}: ninguém entra no
      * fluxo sem decisão explícita da administração.
      */
     @Column(name = "pagamento_habilitado", nullable = false)

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Engine de códigos OTP de verificação (SPEC-12): gera, envia, valida (com
+ * Engine de códigos OTP de verificação (SPEC-ACE-03): gera, envia, valida (com
  * expiração, uso único e <em>lockout</em> de tentativas) e confirma o telefone.
  *
  * <p>Guarda apenas o <strong>hash</strong> do código (nunca os 6 dígitos), como
@@ -60,7 +60,7 @@ public class VerificacaoService {
         this.featureFlags = featureFlags;
     }
 
-    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06). Os valores
+    // Parâmetros de negócio configuráveis em runtime (SPEC-PLT-01, FR-FLG-06). Os valores
     // de fábrica (10 min / 5 tentativas / 60 s) continuam sendo os defaults do código:
     // sem configuração no banco, o comportamento é exatamente o de antes (RN-FLG-02).
 

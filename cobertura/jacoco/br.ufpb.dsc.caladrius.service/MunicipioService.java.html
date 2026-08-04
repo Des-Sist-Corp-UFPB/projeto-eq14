@@ -13,13 +13,13 @@ import java.util.UUID;
 
 /**
  * Municípios de referência e o &lt;strong&gt;entitlement de pagamento&lt;/strong&gt; por
- * município (SPEC-13, RN-FLG-05 / migration V15).
+ * município (SPEC-PLT-01, RN-FLG-05 / migration V15).
  *
- * &lt;p&gt;É o terceiro tipo de toggle da SPEC-13: enquanto {@link ChaveFeature} liga/desliga
+ * &lt;p&gt;É o terceiro tipo de toggle da SPEC-PLT-01: enquanto {@link ChaveFeature} liga/desliga
  * uma funcionalidade para &lt;em&gt;todo mundo&lt;/em&gt;, aqui a feature é liberada
  * &lt;strong&gt;por município&lt;/strong&gt; — o marcador que a futura integração de pagamento vai
  * consultar. A avaliação é feita pelo município de &lt;em&gt;origem&lt;/em&gt; do passageiro, que
- * vem do endereço (SPEC-07).
+ * vem do endereço (SPEC-CAD-04).
  */
 @Service
 @Transactional(readOnly = true)

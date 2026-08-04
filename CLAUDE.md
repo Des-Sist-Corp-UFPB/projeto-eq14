@@ -13,7 +13,8 @@ organiza **viagens**, **veículos**, **motoristas** e **cidades**. Sistema basea
 (RBAC): **PASSAGEIRO**, **MOTORISTA**, **GERENTE**, **SYSADMIN** (papel isolado de administração).
 
 > **A fonte da verdade do projeto é o SDD em [`docs/sdd/`](docs/sdd/)** (Spec-Driven Development):
-> constituição, especificação de produto, plano técnico, specs por feature (SPEC-01..10), ADRs,
+> constituição, especificação de produto, plano técnico, specs por área (`acesso/`, `cadastros/`,
+> `viagens/`, `whatsapp/`, `plataforma/`, `operacao/` — ver o índice em [`docs/sdd/README.md`](docs/sdd/README.md)), ADRs,
 > cenários de teste e o roadmap. **Comece por lá** ao retomar — ver a seção
 > "Estado atual e como retomar" no fim deste arquivo.
 
@@ -23,17 +24,17 @@ organiza **viagens**, **veículos**, **motoristas** e **cidades**. Sistema basea
 programadas, painel semanal, designação, conflito, ciclo de status, visão do motorista);
 **endereço estruturado do passageiro** (municípios PB) + aba de análise; redesign do shell;
 **solicitação de transporte do passageiro via sistema** (linhas disponíveis + minhas viagens, com
-alocação automática e isolamento — SPEC-09); **integração WhatsApp** (SPEC-10: porta
+alocação automática e isolamento — SPEC-VIA-03); **integração WhatsApp** (SPEC-WPP-01: porta
 `ProvedorWhatsapp` + Evolution API, webhook, painel `/whatsapp` com QR — código pronto; **falta a
 infra**: Evolution na VPS + variáveis de ambiente no deploy);
-**solicitação sob demanda + onboarding pelo WhatsApp** (SPEC-11: número novo se cadastra pelo bot;
+**solicitação sob demanda + onboarding pelo WhatsApp** (SPEC-WPP-02: número novo se cadastra pelo bot;
 pede destino+data+horário+condições; **gestor aprova/recusa** em `/gestao/solicitacoes` e o passageiro
 é notificado; "Acesso à plataforma" define senha via token). Bot desacoplado (só serviços + porta).
-**Observabilidade (SPEC-14):** agente OpenTelemetry exportando **traces/métricas/logs** via OTLP ao
+**Observabilidade (SPEC-OPE-01):** agente OpenTelemetry exportando **traces/métricas/logs** via OTLP ao
 **backend central da disciplina** (Grafana+Tempo+Prometheus+Loki, `service.name=dsc-eq14`) + **2 spans de
 negócio** manuais (`RastreamentoService` → `solicitar-sob-demanda`/`aprovar-solicitacao`); **sem migration**; liga/desliga por
 env (`JAVA_TOOL_OPTIONS`) — em produção.
-**Feature toggle (SPEC-13):** `FeatureFlagService` sobre `configuracoes_sistema` (cache + default
+**Feature toggle (SPEC-PLT-01):** `FeatureFlagService` sobre `configuracoes_sistema` (cache + default
 seguro + auditoria); **kill switches** `feature.bot_whatsapp` e `feature.modo_manutencao`
 (`ManutencaoFilter` → 503, libera SYSADMIN e `/ping`); **parâmetros de negócio** (`param.*`, lidos por
 `VerificacaoService`/`ConviteService`); **entitlement** `municipios.pagamento_habilitado` (**V15**);
@@ -42,9 +43,15 @@ telas `/admin/features` e `/admin/municipios`.
 **etiqueta de área** por evento (`AreaSistema` — derivada da ação/entidade, **sem coluna nova**),
 filtro por área e busca livre. `/historico` ficou só com o ciclo das **solicitações**. Painel WhatsApp
 e solicitações passaram a ser auditados (antes não deixavam rastro).
+**Multi-tenancy — fase 1 (SPEC-PLT-02 / ADR-21 e ADR-22):** plano de controle com `organizacoes` e
+`vinculos` (**V16**), `ContextoTenant`/`ContextoTenantFilter` (organização da requisição, limpa em
+`finally`) e a tela `/entrar/onde` (quem tem vínculo com mais de uma secretaria, ou mais de um papel,
+escolhe por onde entra). **Aditiva e inerte em produção**: sem vínculo — que é o caso de todas as
+contas hoje — nada muda. **Falta a fase 2**: dividir `usuarios` em identidade + membro, schema por
+tenant (`search_path`) e provisionamento automático.
 **Ainda fora do escopo:** alocação/assentos (capacidade) e prioridade automática,
 escalas de motorista, perfil/CNH do motorista, integração com o WhatsApp dos motoristas,
-**pagamento/organização** (especificado na SPEC-16, não implementado).
+**pagamento/organização** (especificado na SPEC-PLT-03, não implementado).
 
 ## Stack Técnica
 | Camada | Tecnologia | Versão |
@@ -67,17 +74,21 @@ br.ufpb.dsc.caladrius
 │                    #   Linha, MotoristaViagem, Solicitacao (passageiro), Admin, Configuracao,
 │                    #   Auditoria, Log (central /logs), Feature (/admin/features + municipios),
 │                    #   Manutencao, Convite, Ativacao, Conta, Notificacao, Perfil, Analise, Ping,
+│                    #   Contexto (/entrar/onde — escolha de secretaria/papel),
 │                    #   Whatsapp (painel do gerente), WhatsappWebhook (POST /webhooks/whatsapp)
 ├── domain/          # Usuario, Veiculo, Cidade, Viagem, LinhaProgramada, SolicitacaoViagem, Endereco,
+│   │                #   Organizacao, Vinculo (multi-tenancy — SPEC-PLT-02),
 │   │                #   Municipio, ConfiguracaoSistema, LogAuditoria, Notificacao, TokenAtivacao,
 │   │                #   ConversaBot, MensagemWhatsapp
 │   └── enums/       # Papel(+SYSADMIN), StatusUsuario, Tipo/StatusVeiculo, TipoCidade, StatusViagem,
 │                    #   TipoViagem, StatusSolicitacao, DiaSemana, CategoriaAuditoria,
-│                    #   AreaSistema (etiqueta da central de logs), EtapaConversa, DirecaoMensagem
+│                    #   AreaSistema (etiqueta da central de logs), EtapaConversa, DirecaoMensagem,
+│                    #   StatusOrganizacao, StatusVinculo
 ├── dto/             # Records de formulário (ViagemForm, LinhaProgramadaForm, DesignacaoForm,
 │                    #   EnderecoForm, PainelSemana, ...)
+├── multitenancia/   # ContextoTenant (organização da requisição) + ContextoTenantFilter (SPEC-PLT-02)
 ├── notificacao/     # CanalNotificacao (interface) + InApp/Email/Whatsapp + CanalTipo
-├── observabilidade/ # RastreamentoService (spans de negócio, OTel API) + TelemetriaConfig (SPEC-14)
+├── observabilidade/ # RastreamentoService (spans de negócio, OTel API) + TelemetriaConfig (SPEC-OPE-01)
 ├── whatsapp/        # Porta ProvedorWhatsapp + EvolutionApiProvedor (adaptador), records da porta,
 │   └── bot/         #   ProcessadorMensagemRecebida; bot/ = BotAtendimentoService + MensagensBot
 ├── exception/       # RecursoNaoEncontradoException, RegraNegocioException
@@ -123,7 +134,7 @@ docker build -f docker/Dockerfile -t caladrius:latest .
 para dígitos) e carrega o usuário do PostgreSQL. Substitui o `InMemoryUserDetailsManager` do
 boilerplate. Conforme o redesenho v3 da equipe. Senhas com BCrypt.
 
-### Login social com Google (OAuth2/OIDC) — SPEC-08
+### Login social com Google (OAuth2/OIDC) — SPEC-ACE-02
 `oauth2Login` nativo do Spring Security coexiste com o `formLogin` (mantém o modelo stateful/sessão).
 O `CaladriusOidcUserService` resolve a identidade em 3 passos (vínculo `identidades_oauth` →
 e-mail verificado → auto-provisão de PASSAGEIRO) e devolve um `UsuarioAutenticado` — que agora também
@@ -156,15 +167,18 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 - `V7` tokens_ativacao + notificacoes · `V8` municipios (seed PB) + enderecos (drop JSONB)
 - `V9` linhas_programadas + linha_dias + evolução de viagens (tipo, FK linha, origem, horario_retorno)
 - `V10` identidades_oauth (login social Google) + `usuarios.perfil_incompleto` + telefone nullable
-- `V11` solicitacoes_viagem (solicitação de transporte do passageiro — SPEC-09)
-- `V12` conversas_bot + mensagens_whatsapp (integração WhatsApp — SPEC-10)
+- `V11` solicitacoes_viagem (solicitação de transporte do passageiro — SPEC-VIA-03)
+- `V12` conversas_bot + mensagens_whatsapp (integração WhatsApp — SPEC-WPP-01)
 - `V13` solicitação sob demanda (`solicitacoes_viagem.tipo`/`cidade_destino`, linha nullable) +
-  contexto de cadastro no `conversas_bot` (SPEC-11)
+  contexto de cadastro no `conversas_bot` (SPEC-WPP-02)
 - `V14` verificação de contato e recuperação de senha (`codigos_verificacao`, `tokens_ativacao.finalidade`,
-  `usuarios.telefone_verificado_em`/`email_verificado_em`) — SPEC-12
-- `V15` feature toggle: `municipios.pagamento_habilitado` (entitlement) — SPEC-13. As **flags** e os
+  `usuarios.telefone_verificado_em`/`email_verificado_em`) — SPEC-ACE-03
+- `V15` feature toggle: `municipios.pagamento_habilitado` (entitlement) — SPEC-PLT-01. As **flags** e os
   **parâmetros** NÃO têm schema: são linhas chave/valor em `configuracoes_sistema` (V5)
-- **SPEC-14 (observabilidade/OpenTelemetry) — SEM migration** (infra/config + camada de código fina; não altera schema)
+- `V16` **`organizacoes` + `vinculos`** — multi-tenancy fase 1 (SPEC-PLT-02 / ADR-21 e ADR-22).
+  **Aditiva**: nenhuma tabela existente muda. Sem vínculo, a app opera no **tenant legado** (o
+  comportamento de hoje). A divisão de `usuarios` e o schema por tenant são a **fase 2**
+- **SPEC-OPE-01 (observabilidade/OpenTelemetry) — SEM migration** (infra/config + camada de código fina; não altera schema)
 
 > **Política em banco compartilhado:** ver [`docs/sdd/02-plano-tecnico.md` §2.5](docs/sdd/02-plano-tecnico.md).
 > Migrations aditivas, sem extensões/superusuário; backup próprio (`pg_dump`) antes de alterações sensíveis.
@@ -187,7 +201,7 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 ## Documentação Técnica
 | Documento | Conteúdo |
 |-----------|----------|
-| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs (SPEC-01..16), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
+| **[docs/sdd/](docs/sdd/)** | **SDD — fonte da verdade**: constituição, produto, plano técnico (ADRs), specs **por área** em [`specs/`](docs/sdd/specs/), [roadmap](docs/sdd/03-tarefas-e-roadmap.md), [cenários de teste](docs/sdd/cenarios-de-teste.md) |
 | **[docs/testes/](docs/testes/)** | **Suíte de testes documentada**: o que cada cenário verifica e por quê, cobertura por camada e como rodar |
 | [docs/checklist.md](docs/checklist.md) | Requisitos cobrados na disciplina × estado atual |
 | [README.md](README.md) | Visão geral, como rodar, acesso, estrutura |
@@ -201,47 +215,56 @@ o Flyway compara checksum). Toda alteração futura = **nova** migration (forwar
 > dívidas técnicas DT-01..DT-18) e o [`docs/checklist.md`](docs/checklist.md). Este `CLAUDE.md` é
 > carregado automaticamente em todo chat.
 
-- **Último marco**: **feature toggle (SPEC-13 / ADR-17)** — `FeatureFlagService` (fachada sobre
+- **Último marco**: **multi-tenancy, fase 1 (SPEC-PLT-02 / ADR-21 e ADR-22)** — `organizacoes` +
+  `vinculos` (**V16**), `OrganizacaoService` (slug único e normalizado), `VinculoService` (solicitar
+  idempotente, aprovar, revogar, **isolamento por dono com 404**), `multitenancia.ContextoTenant` +
+  `ContextoTenantFilter` e a tela `/entrar/onde`. **24 testes novos**; a decisão de arquitetura passou
+  da Opção A (silo) para a **B2** — schema por tenant + plano de controle no `public`. **Fase 2 (o
+  trabalho pesado) está aberta**: dividir `usuarios` em `identidades` + `membros`, ligar a
+  multi-tenancy do Hibernate (`search_path`), trilha Flyway `tenant/` e provisionamento — com o
+  **teste de isolamento entre dois schemas** como critério de saída.
+- **Marco anterior**: **feature toggle (SPEC-PLT-01 / ADR-17)** — `FeatureFlagService` (fachada sobre
   `ConfiguracaoService`, com **cache**, **default seguro** e **auditoria**), catálogos `ChaveFeature` e
   `ParametroSistema`, `ManutencaoFilter` (503 + página pública, libera SYSADMIN e o contrato `/ping`),
   gate do bot no webhook, `MunicipioService` (entitlement) e telas `/admin/features` + `/admin/municipios`.
   **Migration V15** (só `municipios.pagamento_habilitado`). **Cobertura de testes com gate**: `jacoco:check`
-  falha abaixo de **85%** — hoje **398 testes verdes**, **88,1% de linhas**. Cenários documentados em
-  **[`docs/testes/`](docs/testes/)**. Antes: SPEC-14 (OpenTelemetry, em produção), SPEC-12 (V14),
-  SPEC-11/10 (WhatsApp). Migrations até **V15**; teste de contexto Testcontainers cobre V1→V15.
+  falha abaixo de **85%** — hoje **422 testes verdes**, **88,0% de linhas**. Cenários documentados em
+  **[`docs/testes/`](docs/testes/)**. Antes: SPEC-OPE-01 (OpenTelemetry, em produção), SPEC-ACE-03 (V14),
+  SPEC-WPP-02/10 (WhatsApp). Migrations até **V15**; teste de contexto Testcontainers cobre V1→V15.
 - **Como rodar o build sem Java na máquina** (é o que valida antes do push):
   `docker run --rm -v "$PWD":/app -w /app -v caladrius-m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock --network host maven:3.9.9-eclipse-temurin-21 mvn -B verify`
-- **Specs implementadas (✅)**: SPEC-01..14 (a 13 e a 14 completas). **SPEC-15** = proposta + protótipo
-  (multi-ambiente, Opção A). **SPEC-16** = proposta (organização/planos/pagamento) — ver o status no
-  topo de cada arquivo em `docs/sdd/specs/`.
+- **Specs implementadas (✅)**: tudo em `acesso/`, `cadastros/`, `viagens/`, `whatsapp/` e `operacao/`,
+  mais a **SPEC-PLT-01** (feature toggle). **SPEC-PLT-02** = proposta + protótipo (multi-ambiente,
+  Opção A). **SPEC-PLT-03** = proposta (organização/planos/pagamento) — ver o status no topo de cada
+  arquivo em `docs/sdd/specs/`.
 - **Pontos de atenção / dívidas em aberto** (do roadmap):
-  - **Observabilidade — ✅ em produção (SPEC-14)**: `dsc-eq14` recebendo traces/métricas/logs no Grafana
+  - **Observabilidade — ✅ em produção (SPEC-OPE-01)**: `dsc-eq14` recebendo traces/métricas/logs no Grafana
     (`otel.dsc.rodrigor.com`). Ativado pelo **portal da disciplina** (editor de `.env` que recria o
     container). Armadilhas da ativação (nome `JAVA_TOOL_OPTIONS` **singular**; **hífen** do `-javaagent`;
-    diagnóstico via Dozzle no boot) documentadas na **SPEC-14 §11**.
-  - **WhatsApp — infra pendente**: subir a **Evolution API na VPS da equipe** (SPEC-10 §8) e configurar
+    diagnóstico via Dozzle no boot) documentadas na **SPEC-OPE-01 §11**.
+  - **WhatsApp — infra pendente**: subir a **Evolution API na VPS da equipe** (SPEC-WPP-01 §8) e configurar
     as variáveis de ambiente do deploy (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`,
     `APP_URL_PUBLICA`). Sem elas, o canal opera como stub e o painel mostra "não configurada"
     (RN-WPP-02) — nada quebra. Em teste local: Evolution no Railway + túnel (cloudflared) p/ o webhook.
-  - **Passageiro**: solicita via sistema ✅ (SPEC-09), via WhatsApp ✅ (SPEC-11: onboarding + sob demanda),
+  - **Passageiro**: solicita via sistema ✅ (SPEC-VIA-03), via WhatsApp ✅ (SPEC-WPP-02: onboarding + sob demanda),
     e o gestor **aprova/recusa** ✅. **Falta**: **assentos/capacidade** e **prioridade automática**.
   - **Motorista**: `/minhas-viagens` (ver + status) funciona; **falta** perfil/CNH (`perfis_motorista`),
-    visão de "Veículos" e **integração com o WhatsApp dos motoristas** (próxima etapa pós-SPEC-11).
+    visão de "Veículos" e **integração com o WhatsApp dos motoristas** (próxima etapa pós-SPEC-WPP-02).
   - **Home (`/`)**: ainda mostra os totais do sistema para **qualquer** papel (**DT-17**) — ajustar
     para esconder de não-gerentes e dar landing por papel.
   - **DT-03** (carga horária do motorista via `escalas_motorista`) ainda pendente.
   - **DT-12**: **sem lockout do login por senha** (o OTP tem trava, o `formLogin` não).
   - **DT-16**: horário de atendimento do WhatsApp é salvo mas **não aplicado** — agora dá para
-    resolver como parâmetro da SPEC-13.
-  - **Pagamento/organização (SPEC-16)**: **proposta escrita, com decisões em aberto** (planos/preços,
+    resolver como parâmetro da SPEC-PLT-01.
+  - **Pagamento/organização (SPEC-PLT-03)**: **proposta escrita, com decisões em aberto** (planos/preços,
     como o passageiro descobre a organização dele, destino da `configuracoes_sistema`). A regra que
     sustenta a spec: o papel `GERENTE` **só** vem da confirmação servidor-a-servidor do pagamento.
 
 ## Próximos Passos Sugeridos
-1. **Infra da SPEC-10/11**: Evolution API na VPS (docker compose + TLS) e variáveis no `.env` do
+1. **Infra da SPEC-WPP-01/11**: Evolution API na VPS (docker compose + TLS) e variáveis no `.env` do
    servidor (`EVOLUTION_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_TOKEN`, `APP_URL_PUBLICA` — ver
    `.env.example`; o `docker-compose.prod.yml` já as repassa).
-2. **Decidir a SPEC-16** (planos, resolução de organização, faseamento) e implementar a **fase 1**
+2. **Decidir a SPEC-PLT-03** (planos, resolução de organização, faseamento) e implementar a **fase 1**
    (V16: `Organizacao`/`Assinatura`/`Pagamento` + checkout + webhook).
 3. **WhatsApp dos motoristas**: avisar o motorista da viagem designada pelo chat (reusa a porta).
 4. **Assentos/capacidade** (`assentos_viagem`) + **alocação por prioridade** (Incremento B).

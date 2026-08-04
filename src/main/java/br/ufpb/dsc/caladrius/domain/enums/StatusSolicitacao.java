@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.domain.enums;
 
 /**
- * Ciclo de vida de uma {@code SolicitacaoViagem} do passageiro (SPEC-09).
+ * Ciclo de vida de uma {@code SolicitacaoViagem} do passageiro (SPEC-VIA-03).
  *
  * <p>Fluxo: {@code PENDENTE} (aguardando a designação da viagem pelo gerente) →
  * {@code ALOCADA} (a viagem da linha+data foi designada e o passageiro está

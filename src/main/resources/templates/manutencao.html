@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Página de manutenção (SPEC-13, RN-FLG-03).
+  Página de manutenção (SPEC-PLT-01, RN-FLG-03).
 
   Renderizada com HTTP 503 sempre que a flag feature.modo_manutencao está ligada e
   quem acessa não é SYSADMIN. É PÚBLICA e AUTOCONTIDA de propósito: não usa o layout
@@ -44,7 +44,7 @@
         }
         .cal-btn--primary { background: var(--cal-primary); border-color: var(--cal-primary); color: #fff; }
     </style>
-    <!-- Analytics de uso (Umami) — SPEC-17. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
+    <!-- Analytics de uso (Umami) — SPEC-OPE-02. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
     <th:block th:replace="~{fragments/analytics :: umami}"></th:block>
 </head>
 <body>

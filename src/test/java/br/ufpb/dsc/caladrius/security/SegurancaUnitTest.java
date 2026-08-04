@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Testes unitários da camada de segurança: a resolução do login flexível
- * (e-mail <em>ou</em> telefone — SPEC-01), o principal {@link UsuarioAutenticado}
+ * (e-mail <em>ou</em> telefone — SPEC-ACE-01), o principal {@link UsuarioAutenticado}
  * (papéis → authorities, conta habilitada) e o listener que audita acessos (#19).
  */
 @ExtendWith(MockitoExtension.class)
@@ -58,7 +58,7 @@ class SegurancaUnitTest {
     // ------------------------------------------------- CaladriusUserDetailsService
 
     @Nested
-    @DisplayName("CaladriusUserDetailsService (SPEC-01)")
+    @DisplayName("CaladriusUserDetailsService (SPEC-ACE-01)")
     class CarregarUsuario {
 
         @Mock private UsuarioRepository usuarioRepository;

@@ -18,14 +18,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Testes unitários de {@link RastreamentoService} — a <em>ferramenta</em> de
- * instrumentação manual (SPEC-14), em isolamento e sem agente/rede.
+ * instrumentação manual (SPEC-OPE-01), em isolamento e sem agente/rede.
  *
  * <p>O {@link OpenTelemetryExtension} instala um SDK de teste com um
  * {@code InMemorySpanExporter}; os spans criados pelo helper ficam disponíveis em
  * {@link OpenTelemetryExtension#getSpans()} para asserção. É a lib oficial do
  * OpenTelemetry para este fim.
  */
-@DisplayName("RastreamentoService — instrumentação manual de traces (SPEC-14)")
+@DisplayName("RastreamentoService — instrumentação manual de traces (SPEC-OPE-01)")
 class RastreamentoServiceTest {
 
     @RegisterExtension

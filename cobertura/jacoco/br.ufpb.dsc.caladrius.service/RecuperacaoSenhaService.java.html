@@ -14,7 +14,7 @@ import org.springframework.util.StringUtils;
 import java.util.Optional;
 
 /**
- * Recuperação de senha (&quot;esqueci a senha&quot;) — SPEC-12, área {@code REC}.
+ * Recuperação de senha (&quot;esqueci a senha&quot;) — SPEC-ACE-03, área {@code REC}.
  *
  * &lt;p&gt;A pessoa escolhe o &lt;strong&gt;método&lt;/strong&gt; (E-mail ou Telefone); ele define
  * o campo de busca e o canal do OTP. A solicitação é &lt;strong&gt;anti-enumeração&lt;/strong&gt;
@@ -58,7 +58,7 @@ public class RecuperacaoSenhaService {
 
     /**
      * Redefine a senha: valida o código {@code RESET_SENHA} e grava a nova senha
-     * (BCrypt). Conta ativa &lt;strong&gt;sem senha&lt;/strong&gt; (passageiro do bot — SPEC-11)
+     * (BCrypt). Conta ativa &lt;strong&gt;sem senha&lt;/strong&gt; (passageiro do bot — SPEC-WPP-02)
      * define aqui a primeira senha (RN-REC-05).
      */
     @Transactional

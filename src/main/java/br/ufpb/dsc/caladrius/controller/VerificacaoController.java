@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * Telas públicas de verificação de contato (SPEC-12): confirmar o telefone por
+ * Telas públicas de verificação de contato (SPEC-ACE-03): confirmar o telefone por
  * código (OTP) e o e-mail por link mágico.
  */
 @Controller

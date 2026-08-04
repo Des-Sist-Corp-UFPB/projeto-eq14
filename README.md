@@ -77,7 +77,7 @@ integração só é criado quando as variáveis de ambiente existem; sem elas a 
 | Resolução da identidade Google (vínculo → e-mail verificado → auto-provisão) | [`security/CaladriusOidcUserService.java`](src/main/java/br/ufpb/dsc/caladrius/security/CaladriusOidcUserService.java) |
 | Vínculo conta ↔ provedor | [`domain/IdentidadeOauth.java`](src/main/java/br/ufpb/dsc/caladrius/domain/IdentidadeOauth.java) · [`service/IdentidadeOauthService.java`](src/main/java/br/ufpb/dsc/caladrius/service/IdentidadeOauthService.java) · migration [`V10__criar_identidades_oauth.sql`](src/main/resources/db/migration/V10__criar_identidades_oauth.sql) |
 | Botão "Continuar com Google" | [`templates/auth/login.html`](src/main/resources/templates/auth/login.html) → `GET /oauth2/authorization/google` |
-| Especificação | [`docs/sdd/specs/SPEC-08-login-social-google.md`](docs/sdd/specs/SPEC-08-login-social-google.md) |
+| Especificação | [`docs/sdd/specs/acesso/SPEC-ACE-02-login-social-google.md`](docs/sdd/specs/acesso/SPEC-ACE-02-login-social-google.md) |
 | Teste | [`service/IdentidadeOauthServiceTest.java`](src/test/java/br/ufpb/dsc/caladrius/service/IdentidadeOauthServiceTest.java) |
 
 O login social está **ativo em produção** (`https://eq14.dsc.rodrigor.com`). Sem as variáveis
@@ -94,7 +94,7 @@ some.
 | Fachada (envio + log + estado) | [`service/WhatsappService.java`](src/main/java/br/ufpb/dsc/caladrius/service/WhatsappService.java) |
 | Webhook de recebimento | [`controller/WhatsappWebhookController.java`](src/main/java/br/ufpb/dsc/caladrius/controller/WhatsappWebhookController.java) → `POST /webhooks/whatsapp` |
 | Bot de atendimento | [`whatsapp/bot/BotAtendimentoService.java`](src/main/java/br/ufpb/dsc/caladrius/whatsapp/bot/BotAtendimentoService.java) |
-| Especificações | [SPEC-10](docs/sdd/specs/SPEC-10-integracao-whatsapp.md) · [SPEC-11](docs/sdd/specs/SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md) |
+| Especificações | [SPEC-WPP-01](docs/sdd/specs/whatsapp/SPEC-WPP-01-integracao-whatsapp.md) · [SPEC-WPP-02](docs/sdd/specs/whatsapp/SPEC-WPP-02-solicitacao-sob-demanda-e-onboarding-whatsapp.md) |
 
 ## Cobertura de Testes
 
@@ -115,8 +115,8 @@ some.
     -v /var/run/docker.sock:/var/run/docker.sock --network host \
     maven:3.9.9-eclipse-temurin-21 mvn -B clean test jacoco:report
   ```
-- **Percentual total: `88,1%` de cobertura de linhas** (3017 de 3425; 88,3% de instruções,
-  71,5% de ramos), com **398 testes — 0 falhas, 0 erros**. Medição de **2026-08-04**, com o
+- **Percentual total: `88,0%` de cobertura de linhas** (3192 de 3626; 88,2% de instruções,
+  71,0% de ramos), com **422 testes — 0 falhas, 0 erros**. Medição de **2026-08-04**, com o
   relatório commitado em `cobertura/`.
 
 | Pacote | Linhas | | Pacote | Linhas |
@@ -133,7 +133,7 @@ some.
 
 ## Healthcheck e Analytics de Uso
 
-**Healthcheck que consulta o banco** ([SPEC-17](docs/sdd/specs/SPEC-17-healthcheck-de-banco-e-analytics-de-uso.md)) —
+**Healthcheck que consulta o banco** ([SPEC-OPE-02](docs/sdd/specs/operacao/SPEC-OPE-02-healthcheck-de-banco-e-analytics-de-uso.md)) —
 a verificação é código do projeto, não delegada ao framework:
 
 | Item | Localização |

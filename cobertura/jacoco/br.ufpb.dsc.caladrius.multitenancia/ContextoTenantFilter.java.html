@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContextoTenantFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.multitenancia</a> &gt; <span class="el_source">ContextoTenantFilter.java</span></div><h1>ContextoTenantFilter.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.multitenancia;
+
+import br.ufpb.dsc.caladrius.domain.Vinculo;
+import br.ufpb.dsc.caladrius.security.UsuarioAutenticado;
+import br.ufpb.dsc.caladrius.service.VinculoService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Estabelece o {@link ContextoTenant} da requisição a partir do vínculo escolhido no
+ * login (SPEC-PLT-02 §5.3) e, quando há mais de um vínculo, leva a pessoa à tela de
+ * escolha antes de liberar o sistema.
+ *
+ * &lt;p&gt;Regras, em ordem:
+ *
+ * &lt;ol&gt;
+ *   &lt;li&gt;&lt;strong&gt;nenhum vínculo ⇒ tenant legado&lt;/strong&gt; — é a situação de 100% das
+ *       contas hoje, e nada muda para elas. A fase 1 desta spec é aditiva: não pode
+ *       alterar o comportamento de produção;&lt;/li&gt;
+ *   &lt;li&gt;&lt;strong&gt;um vínculo ⇒ assumido em silêncio&lt;/strong&gt; — perguntar seria fricção
+ *       sem escolha;&lt;/li&gt;
+ *   &lt;li&gt;&lt;strong&gt;dois ou mais ⇒ {@code /entrar/onde}&lt;/strong&gt; — a pessoa decide se entra
+ *       como passageira em uma secretaria ou motorista em outra.&lt;/li&gt;
+ * &lt;/ol&gt;
+ *
+ * &lt;p&gt;A decisão fica na &lt;strong&gt;sessão&lt;/strong&gt;, inclusive quando o resultado é &quot;não tem
+ * vínculo&quot;: sem isso, cada requisição faria uma consulta a mais — e o pool de produção
+ * tem cinco conexões (Art. XIV).
+ *
+ * &lt;p&gt;Não é um {@code @Component}: como o {@code PerfilIncompletoFilter}, é instanciado
+ * dentro da cadeia de segurança, depois que o {@code SecurityContext} está populado.
+ */
+public class ContextoTenantFilter extends OncePerRequestFilter {
+
+    /** Organização escolhida (UUID) — ausente quando se opera no tenant legado. */
+    public static final String ATRIBUTO_ORGANIZACAO = &quot;CALADRIUS_CONTEXTO_ORGANIZACAO&quot;;
+
+    /** Marca que a escolha já foi resolvida nesta sessão (mesmo que sem vínculo). */
+    public static final String ATRIBUTO_RESOLVIDO = &quot;CALADRIUS_CONTEXTO_RESOLVIDO&quot;;
+
+    private final VinculoService vinculoService;
+
+<span class="fc" id="L53">    public ContextoTenantFilter(VinculoService vinculoService) {</span>
+<span class="fc" id="L54">        this.vinculoService = vinculoService;</span>
+<span class="fc" id="L55">    }</span>
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        try {
+<span class="fc" id="L61">            UsuarioAutenticado usuario = autenticado();</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (usuario == null) {</span>
+<span class="fc" id="L63">                filterChain.doFilter(request, response);</span>
+<span class="fc" id="L64">                return;</span>
+            }
+<span class="fc" id="L66">            HttpSession sessao = request.getSession();</span>
+<span class="fc bfc" id="L67" title="All 4 branches covered.">            if (!Boolean.TRUE.equals(sessao.getAttribute(ATRIBUTO_RESOLVIDO)) &amp;&amp; !resolver(usuario, sessao)) {</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">                if (!caminhoLiberado(request)) {</span>
+<span class="fc" id="L69">                    response.sendRedirect(request.getContextPath() + &quot;/entrar/onde&quot;);</span>
+<span class="fc" id="L70">                    return;</span>
+                }
+            }
+<span class="fc" id="L73">            ContextoTenant.definir((UUID) sessao.getAttribute(ATRIBUTO_ORGANIZACAO));</span>
+<span class="fc" id="L74">            filterChain.doFilter(request, response);</span>
+        } finally {
+            // A thread volta ao pool do servidor: deixar contexto aqui é vazar tenant.
+<span class="fc" id="L77">            ContextoTenant.limpar();</span>
+        }
+<span class="fc" id="L79">    }</span>
+
+    /**
+     * Tenta resolver o contexto sem perguntar nada.
+     *
+     * @return {@code true} se resolveu (sem vínculo ou com um só); {@code false} quando
+     *         há mais de um e a pessoa precisa escolher
+     */
+    private boolean resolver(UsuarioAutenticado usuario, HttpSession sessao) {
+<span class="fc" id="L88">        List&lt;Vinculo&gt; ativos = vinculoService.ativosDe(usuario.getId());</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (ativos.size() &gt; 1) {</span>
+<span class="fc" id="L90">            return false;</span>
+        }
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (ativos.size() == 1) {</span>
+<span class="fc" id="L93">            sessao.setAttribute(ATRIBUTO_ORGANIZACAO, ativos.get(0).getOrganizacao().getId());</span>
+        }
+<span class="fc" id="L95">        sessao.setAttribute(ATRIBUTO_RESOLVIDO, Boolean.TRUE);</span>
+<span class="fc" id="L96">        return true;</span>
+    }
+
+    private UsuarioAutenticado autenticado() {
+<span class="fc" id="L100">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="pc bpc" id="L101" title="2 of 6 branches missed.">        if (auth != null &amp;&amp; auth.isAuthenticated() &amp;&amp; auth.getPrincipal() instanceof UsuarioAutenticado usuario) {</span>
+<span class="fc" id="L102">            return usuario;</span>
+        }
+<span class="fc" id="L104">        return null;</span>
+    }
+
+    /** Caminhos que não podem ser interceptados (senão haveria laço de redirect). */
+    private boolean caminhoLiberado(HttpServletRequest request) {
+<span class="fc" id="L109">        String uri = request.getRequestURI().substring(request.getContextPath().length());</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        return uri.startsWith(&quot;/entrar/onde&quot;)</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/logout&quot;)</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/ping&quot;)</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/actuator&quot;)</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/css/&quot;)</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/js/&quot;)</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">                || uri.startsWith(&quot;/webjars/&quot;)</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">                || uri.equals(&quot;/favicon.ico&quot;)</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">                || uri.equals(&quot;/error&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

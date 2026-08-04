@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repositório dos endereços do passageiro + consultas de análise (SPEC-07).
+ * Repositório dos endereços do passageiro + consultas de análise (SPEC-CAD-04).
  */
 @Repository
 public interface EnderecoRepository extends JpaRepository<Endereco, UUID> {

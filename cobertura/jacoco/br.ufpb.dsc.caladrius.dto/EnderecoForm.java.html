@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 /**
- * Dados do endereço do passageiro (SPEC-07). Todos os campos são opcionais — o
+ * Dados do endereço do passageiro (SPEC-CAD-04). Todos os campos são opcionais — o
  * endereço pode ser completado depois (regra RN-END-01); a obrigatoriedade para
  * solicitar viagem é aplicada no fluxo de solicitação (futuro).
  */

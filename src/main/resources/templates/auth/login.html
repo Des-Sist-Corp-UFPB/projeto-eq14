@@ -95,7 +95,7 @@
             .cal-brand { display: none; }
         }
     </style>
-    <!-- Analytics de uso (Umami) — SPEC-17. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
+    <!-- Analytics de uso (Umami) — SPEC-OPE-02. Inerte sem UMAMI_URL/UMAMI_WEBSITE_ID. -->
     <th:block th:replace="~{fragments/analytics :: umami}"></th:block>
 </head>
 <body>
@@ -159,7 +159,7 @@
                 <button type="submit" class="cal-btn cal-btn--primary">Entrar</button>
             </form>
 
-            <!-- Login social (Google/OIDC) — SPEC-08. Exibido só quando configurado. -->
+            <!-- Login social (Google/OIDC) — SPEC-ACE-02. Exibido só quando configurado. -->
             <div th:if="${googleHabilitado}">
                 <div class="cal-divider"><span>ou</span></div>
 

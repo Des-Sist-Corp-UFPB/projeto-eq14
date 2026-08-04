@@ -25,12 +25,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Testes unitários (Mockito) do {@link OnboardingService} — SPEC-11: cria o
+ * Testes unitários (Mockito) do {@link OnboardingService} — SPEC-WPP-02: cria o
  * passageiro ATIVO sem senha a partir dos dados mínimos, valida CPF e unicidade,
  * e registra o endereço de embarque.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("OnboardingService — Testes Unitários (SPEC-11)")
+@DisplayName("OnboardingService — Testes Unitários (SPEC-WPP-02)")
 class OnboardingServiceTest {
 
     private static final String TELEFONE = "83911112222";

@@ -51,7 +51,7 @@ public class Usuario {
      * Telefone (somente dígitos). Único entre ativos. Em geral obrigatório (cadastro
      * público e criação pelo gerente exigem na camada de serviço), mas aceita
      * {@code NULL} para contas criadas por login social que ainda não o informaram
-     * (perfil incompleto — SPEC-08).
+     * (perfil incompleto — SPEC-ACE-02).
      */
     @Column(name = &quot;telefone&quot;, length = 20)
     private String telefone;
@@ -74,16 +74,16 @@ public class Usuario {
     /**
      * Marcador (ortogonal ao {@link #status}) de conta criada por login social que
      * ainda não preencheu os dados obrigatórios (telefone). Enquanto {@code true},
-     * o usuário é redirecionado a {@code /conta/completar} — SPEC-08.
+     * o usuário é redirecionado a {@code /conta/completar} — SPEC-ACE-02.
      */
 <span class="fc" id="L79">    @Column(name = &quot;perfil_incompleto&quot;, nullable = false)</span>
     private boolean perfilIncompleto = false;
 
-    /** Momento em que o telefone foi verificado por OTP (SPEC-12). {@code null} = não verificado. */
+    /** Momento em que o telefone foi verificado por OTP (SPEC-ACE-03). {@code null} = não verificado. */
     @Column(name = &quot;telefone_verificado_em&quot;)
     private Instant telefoneVerificadoEm;
 
-    /** Momento em que o e-mail foi verificado por link (SPEC-12). {@code null} = não verificado. */
+    /** Momento em que o e-mail foi verificado por link (SPEC-ACE-03). {@code null} = não verificado. */
     @Column(name = &quot;email_verificado_em&quot;)
     private Instant emailVerificadoEm;
 

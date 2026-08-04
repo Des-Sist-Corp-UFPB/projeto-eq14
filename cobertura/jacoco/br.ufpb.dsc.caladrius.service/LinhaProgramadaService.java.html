@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Lógica das linhas programadas (templates recorrentes — SPEC-06).
+ * Lógica das linhas programadas (templates recorrentes — SPEC-VIA-02).
  */
 @Service
 @Transactional(readOnly = true)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ===========================================================================
 #  dev-whatsapp.sh — sobe o túnel (cloudflared) + a app já com a URL pública
-#  correta, para testar a integração WhatsApp localmente (SPEC-10/11).
+#  correta, para testar a integração WhatsApp localmente (SPEC-WPP-01/11).
 #
 #  Resolve a dor recorrente: a URL do túnel "quick" muda a cada execução; se a
 #  app subir com uma URL antiga, o webhook da Evolution aponta para um túnel

@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repositório dos códigos OTP de verificação (SPEC-12).
+ * Repositório dos códigos OTP de verificação (SPEC-ACE-03).
  */
 @Repository
 public interface CodigoVerificacaoRepository extends JpaRepository<CodigoVerificacao, UUID> {

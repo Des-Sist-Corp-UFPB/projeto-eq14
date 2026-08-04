@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * "Meu perfil" do usuário autenticado — endereço estruturado (SPEC-07).
+ * "Meu perfil" do usuário autenticado — endereço estruturado (SPEC-CAD-04).
  */
 @Controller
 @RequestMapping("/perfil")

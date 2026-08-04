@@ -44,24 +44,30 @@ docs/
     ├── 02-plano-tecnico.md             ← como as specs viram arquitetura/dados/endpoints (ADRs)
     ├── 03-tarefas-e-roadmap.md         ← rastreabilidade (feito × pendente) + dívidas DT-XX
     ├── cenarios-de-teste.md            ← catálogo de cenários a testar (planejamento)
-    └── specs/
-        ├── SPEC-01-autenticacao.md     ← login (e-mail/telefone) + auto-cadastro
-        ├── SPEC-02-gestao-usuarios.md  ← CRUD de usuários + papéis (RBAC)
-        ├── SPEC-03-gestao-veiculos.md  ← CRUD de veículos (frota)
-        ├── SPEC-04-gestao-cidades.md   ← CRUD de cidades (origem/destino)
-        ├── SPEC-05-gestao-viagens.md   ← criação/listagem de viagens
-        ├── SPEC-06-viagens-rotineiras-e-imprevistas.md  ← linhas, painel semanal, designação
-        ├── SPEC-07-endereco-do-passageiro.md            ← endereço estruturado (municípios)
-        ├── SPEC-08-login-social-google.md               ← OAuth2/OIDC
-        ├── SPEC-09-solicitacao-de-transporte.md         ← passageiro solicita pelo sistema
-        ├── SPEC-10-integracao-whatsapp.md               ← porta + Evolution API + painel
-        ├── SPEC-11-solicitacao-sob-demanda-e-onboarding-whatsapp.md ← bot + aprovação do gestor
-        ├── SPEC-12-verificacao-de-contato-e-recuperacao-de-senha.md ← OTP + link mágico
-        ├── SPEC-13-feature-toggle.md                    ← ✅ flags, manutenção, parâmetros
-        ├── SPEC-14-observabilidade-opentelemetry.md     ← ✅ traces/métricas/logs
-        ├── SPEC-15-multi-ambiente-por-secretaria.md     ← 🚧 multi-tenancy (Opção A/silo)
-        ├── SPEC-16-organizacao-planos-e-pagamento.md    ← 🔵 venda self-service + pagamento
-        └── SPEC-17-healthcheck-de-banco-e-analytics-de-uso.md ← ✅ /ping com banco + Umami
+    └── specs/                              ← uma pasta por ÁREA; numeração reinicia em cada uma
+        ├── acesso/       (ACE)  quem entra no sistema e como
+        │   ├── SPEC-ACE-01-autenticacao.md                    ← login (e-mail/telefone) + auto-cadastro
+        │   ├── SPEC-ACE-02-login-social-google.md             ← OAuth2/OIDC
+        │   └── SPEC-ACE-03-verificacao-de-contato-e-recuperacao-de-senha.md ← OTP + link mágico
+        ├── cadastros/    (CAD)  entidades de apoio do dia a dia
+        │   ├── SPEC-CAD-01-gestao-usuarios.md                 ← CRUD de usuários + papéis (RBAC)
+        │   ├── SPEC-CAD-02-gestao-veiculos.md                 ← CRUD de veículos (frota)
+        │   ├── SPEC-CAD-03-gestao-cidades.md                  ← CRUD de cidades (origem/destino)
+        │   └── SPEC-CAD-04-endereco-do-passageiro.md          ← endereço estruturado (municípios)
+        ├── viagens/      (VIA)  o núcleo do domínio
+        │   ├── SPEC-VIA-01-gestao-viagens.md                  ← criação/listagem de viagens
+        │   ├── SPEC-VIA-02-viagens-rotineiras-e-imprevistas.md ← linhas, painel semanal, designação
+        │   └── SPEC-VIA-03-solicitacao-de-transporte.md       ← passageiro solicita pelo sistema
+        ├── whatsapp/     (WPP)  o canal conversacional
+        │   ├── SPEC-WPP-01-integracao-whatsapp.md             ← porta + Evolution API + painel
+        │   └── SPEC-WPP-02-solicitacao-sob-demanda-e-onboarding-whatsapp.md ← bot + aprovação do gestor
+        ├── plataforma/   (PLT)  o que é do PRODUTO, não do domínio
+        │   ├── SPEC-PLT-01-feature-toggle.md                  ← ✅ flags, manutenção, parâmetros
+        │   ├── SPEC-PLT-02-multi-ambiente-por-secretaria.md   ← 🚧 multi-tenancy
+        │   └── SPEC-PLT-03-organizacao-planos-e-pagamento.md  ← 🔵 venda self-service + pagamento
+        └── operacao/     (OPE)  manter de pé e enxergar
+            ├── SPEC-OPE-01-observabilidade-opentelemetry.md   ← ✅ traces/métricas/logs
+            └── SPEC-OPE-02-healthcheck-de-banco-e-analytics-de-uso.md ← ✅ /ping com banco + Umami
 ```
 
 Os três documentos da raiz de `docs/` (`ARCHITECTURE`, `CONVENTIONS`, `SECURITY`) **continuam
@@ -86,7 +92,7 @@ a camada de *requisitos* (o "o quê/por quê") acima da camada *técnica* que el
                    │ se desdobra em
                    ▼
         ┌─────────────────────┐
-        │   specs/SPEC-NN      │  Requisitos funcionais por capacidade:
+        │ specs/<área>/SPEC-…  │  Requisitos funcionais por capacidade:
         │ (requisitos por área)│  user stories, FR-XX, regras, critérios de aceite.
         └──────────┬──────────┘
                    │ é realizada por
@@ -106,7 +112,7 @@ a camada de *requisitos* (o "o quê/por quê") acima da camada *técnica* que el
 
 1. **`00-constituicao.md`** — entenda as regras que tudo o mais respeita.
 2. **`01-especificacao-produto.md`** — entenda o problema, os papéis e o escopo.
-3. **`specs/SPEC-*`** — mergulhe na capacidade que você vai mexer.
+3. **`specs/<área>/SPEC-*`** — mergulhe na capacidade que você vai mexer.
 4. **`02-plano-tecnico.md`** — veja como aquilo vira código.
 5. **`03-tarefas-e-roadmap.md`** — veja o que falta e o que vem a seguir.
 
@@ -117,7 +123,7 @@ a camada de *requisitos* (o "o quê/por quê") acima da camada *técnica* que el
 Para **qualquer** mudança não trivial (nova capacidade ou alteração de regra):
 
 1. **Atualize a spec primeiro.** Acrescente/edite os requisitos (`FR-XX`), regras de negócio
-   e critérios de aceite na `specs/SPEC-*` correspondente — ou crie uma nova spec.
+   e critérios de aceite na `specs/<área>/SPEC-*` correspondente — ou crie uma nova spec.
 2. **Cheque a Constituição.** A mudança respeita os princípios invioláveis? Se precisar
    violar um, isso é uma decisão arquitetural: documente-a (e provavelmente abra uma ADR
    no plano técnico) antes de prosseguir.
@@ -132,8 +138,13 @@ Para **qualquer** mudança não trivial (nova capacidade ou alteração de regra
 ## Convenções dos documentos de spec
 
 - **Idioma:** português (mesma convenção do código — ver `CONVENTIONS.md`).
+- **Nome do arquivo de spec:** `specs/<pasta>/SPEC-<PREFIXO>-<NN>-<slug>.md`, onde o prefixo
+  identifica a **área** (`ACE`, `CAD`, `VIA`, `WPP`, `PLT`, `OPE`) e `NN` reinicia em cada pasta.
+  Spec nova entra no fim da **sua** pasta, sem renumerar as demais.
 - **Identificadores de requisito:** `FR-<área>-<n>` (functional requirement) e
-  `RN-<área>-<n>` (regra de negócio). Ex.: `FR-USU-03`, `RN-VIA-01`. São estáveis: uma vez
+  `RN-<área>-<n>` (regra de negócio). Ex.: `FR-USU-03`, `RN-VIA-01`. **A área do requisito é
+  temática e independe da pasta** (`RN-WPP-*`, `RN-FLG-*`, `RN-VER-*` continuam como estão) — são
+  citados por centenas de pontos do código, e por isso **nunca** são renumerados. Uma vez
   publicado, um identificador não é reaproveitado para outra coisa.
 - **Critérios de aceite:** no formato **Dado / Quando / Então** (Given/When/Then).
 - **Status de cada requisito:** marcado como `✅ Implementado`, `🟡 Parcial` ou

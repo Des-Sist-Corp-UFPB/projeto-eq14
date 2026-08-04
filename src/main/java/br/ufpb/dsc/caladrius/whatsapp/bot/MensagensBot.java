@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Textos do bot de atendimento WhatsApp (SPEC-10/SPEC-11), centralizados: ajustar
+ * Textos do bot de atendimento WhatsApp (SPEC-WPP-01/SPEC-WPP-02), centralizados: ajustar
  * o roteiro do atendimento não toca a máquina de estados nem a integração.
  *
  * <p>Respostas curtas e numeradas ("responda com o número da opção"), com a
@@ -55,7 +55,7 @@ public final class MensagensBot {
         return "Olá, " + primeiroNome + "! Sou o assistente virtual do *CALADRIUS* 🚐 — transporte municipal de saúde.";
     }
 
-    // ------------------------------------------------------------ linhas disponíveis (SPEC-11)
+    // ------------------------------------------------------------ linhas disponíveis (SPEC-WPP-02)
 
     /**
      * Panorama informativo das linhas rotineiras ativas (rotas que a secretaria já
@@ -76,7 +76,7 @@ public final class MensagensBot {
         return texto.toString();
     }
 
-    // ------------------------------------------------------------ onboarding (SPEC-11)
+    // ------------------------------------------------------------ onboarding (SPEC-WPP-02)
 
     public static final String BOAS_VINDAS_CADASTRO = """
             Olá! Sou o assistente virtual do *CALADRIUS* 🚐 — transporte municipal de saúde.

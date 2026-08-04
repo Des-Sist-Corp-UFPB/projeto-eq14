@@ -19,7 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Testes unitários de {@link BancoHealthIndicator} — healthcheck de banco (SPEC-17 §9).
+ * Testes unitários de {@link BancoHealthIndicator} — healthcheck de banco (SPEC-OPE-02 §9).
  *
  * <p>Cobrem o <strong>caminho de falha</strong> e a <strong>propagação do timeout até o
  * JDBC</strong> — justamente o que não dá para observar contra um banco saudável. O caminho
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
  * {@code /actuator/health} exibe o componente {@code banco}.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("BancoHealthIndicator — Healthcheck de banco (SPEC-17)")
+@DisplayName("BancoHealthIndicator — Healthcheck de banco (SPEC-OPE-02)")
 class BancoHealthIndicatorTest {
 
     @Mock private DataSource dataSource;

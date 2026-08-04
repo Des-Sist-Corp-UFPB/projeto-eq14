@@ -30,7 +30,7 @@ class DocumentosTest {
     }
 
     @Test
-    @DisplayName("telefoneDeJid: extrai o telefone do JID do WhatsApp (SPEC-10)")
+    @DisplayName("telefoneDeJid: extrai o telefone do JID do WhatsApp (SPEC-WPP-01)")
     void telefoneDeJid() {
         assertThat(Documentos.telefoneDeJid("5583999999999@s.whatsapp.net")).isEqualTo("83999999999");
         assertThat(Documentos.telefoneDeJid("558399998888@s.whatsapp.net")).isEqualTo("8399998888"); // sem o 9º dígito

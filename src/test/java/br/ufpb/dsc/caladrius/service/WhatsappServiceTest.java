@@ -42,7 +42,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Testes unitários (Mockito) de {@link WhatsappService} — a fachada do canal
- * (SPEC-10 §10).
+ * (SPEC-WPP-01 §10).
  *
  * <p>O ponto central é a <strong>degradação graciosa</strong>: sem provedor
  * configurado (RN-WPP-02) ou com a Evolution fora do ar (RN-WPP-01), nada quebra —
@@ -116,7 +116,7 @@ class WhatsappServiceTest {
     /**
      * O caminho de <em>stub</em> (RN-WPP-02) é o que roda hoje em produção — a Evolution
      * ainda não subiu. Ele registra em log toda mensagem que <strong>deixou</strong> de ser
-     * enviada, e desde a SPEC-14 esse log é exportado ao Loki central da disciplina, fora do
+     * enviada, e desde a SPEC-OPE-01 esse log é exportado ao Loki central da disciplina, fora do
      * nosso controle. Os cenários abaixo protegem as duas propriedades que isso exige:
      *
      * <ul>
@@ -135,7 +135,7 @@ class WhatsappServiceTest {
     @DisplayName("Log do envio em stub (privacidade e CWE-117)")
     class LogDoStub {
 
-        /** Um convite real: o token no link é segredo de uso único (SPEC-11/SPEC-12). */
+        /** Um convite real: o token no link é segredo de uso único (SPEC-WPP-02/SPEC-ACE-03). */
         private static final String CONVITE =
                 "Acesse https://caladrius.app/ativar?token=abc123 para definir sua senha";
 

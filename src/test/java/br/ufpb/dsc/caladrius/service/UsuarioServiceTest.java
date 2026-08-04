@@ -68,7 +68,7 @@ class UsuarioServiceTest {
     }
 
     @Test
-    @DisplayName("registrarPassageiro: com WhatsApp configurado, nasce PENDENTE e dispara OTP (SPEC-12)")
+    @DisplayName("registrarPassageiro: com WhatsApp configurado, nasce PENDENTE e dispara OTP (SPEC-ACE-03)")
     void registrarPassageiro_whatsappConfigurado_pendenteEEnviaOtp() {
         RegistroForm form = new RegistroForm("João Silva", "83999999999", null, null, "secret123",
                 null, null, null, null, null, null, null);

@@ -17,7 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.UUID;
 
 /**
- * Visão do motorista (SPEC-06, item 6): vê as suas viagens e altera o status das
+ * Visão do motorista (SPEC-VIA-02, item 6): vê as suas viagens e altera o status das
  * próprias (PLANEJADA→…→CONCLUIDA|CANCELADA).
  */
 @Controller

@@ -3,7 +3,7 @@ package br.ufpb.dsc.caladrius.domain.enums;
 import br.ufpb.dsc.caladrius.notificacao.CanalTipo;
 
 /**
- * Método escolhido pela pessoa na recuperação de senha (SPEC-12): define o
+ * Método escolhido pela pessoa na recuperação de senha (SPEC-ACE-03): define o
  * <strong>campo de busca</strong> do usuário e o <strong>canal</strong> do OTP.
  * O login usa a heurística "{@code @}" — aqui a escolha é <em>explícita</em>
  * (RN-REC-01).

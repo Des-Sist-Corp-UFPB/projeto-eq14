@@ -10,10 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração HTTP das telas de verificação/recuperação (SPEC-12):
+ * Testes de integração HTTP das telas de verificação/recuperação (SPEC-ACE-03):
  * rotas públicas, anti-enumeração e redirecionamentos.
  */
-@DisplayName("Web — Verificação de contato e recuperação de senha (SPEC-12)")
+@DisplayName("Web — Verificação de contato e recuperação de senha (SPEC-ACE-03)")
 class VerificacaoRecuperacaoWebTest extends IntegracaoWebTestBase {
 
     @Test

@@ -14,7 +14,7 @@ import java.util.UUID;
  * entrar e recuperar a conta. O CPF é opcional (validado no serviço quando
  * preenchido).
  *
- * <p>SPEC-07: o <strong>endereço é opcional</strong> no cadastro (pode ser
+ * <p>SPEC-CAD-04: o <strong>endereço é opcional</strong> no cadastro (pode ser
  * completado depois no perfil); a obrigatoriedade vale na solicitação de viagem.
  */
 public record RegistroForm(
@@ -38,7 +38,7 @@ public record RegistroForm(
         @Size(min = 6, max = 72, message = "A senha deve ter entre 6 e 72 caracteres")
         String senha,
 
-        // ----- Endereço (opcional, SPEC-07) -----
+        // ----- Endereço (opcional, SPEC-CAD-04) -----
         UUID municipioId,
         @Size(max = 120) String bairro,
         @Size(max = 180) String logradouro,

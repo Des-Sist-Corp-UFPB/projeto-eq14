@@ -33,11 +33,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Lógica das solicitações de transporte do passageiro (SPEC-09).
+ * Lógica das solicitações de transporte do passageiro (SPEC-VIA-03).
  *
  * &lt;p&gt;O passageiro vê as linhas disponíveis e solicita transporte numa data. A
  * &lt;strong&gt;alocação&lt;/strong&gt; acontece quando existe a viagem materializada da
- * linha naquela data (designada pelo gerente — SPEC-06): a solicitação aponta
+ * linha naquela data (designada pelo gerente — SPEC-VIA-02): a solicitação aponta
  * para a viagem e o passageiro passa a ver os dados dela.
  */
 @Service
@@ -199,10 +199,10 @@ public class SolicitacaoViagemService {
 <span class="fc" id="L199">                solicitacaoId.toString(), &quot;Cancelada pelo passageiro — &quot; + nomeDestino(solicitacao));</span>
 <span class="fc" id="L200">    }</span>
 
-    // ===================== SPEC-11 — sob demanda =====================
+    // ===================== SPEC-WPP-02 — sob demanda =====================
 
     /**
-     * Registra uma solicitação &lt;strong&gt;sob demanda&lt;/strong&gt; (SPEC-11): sem linha,
+     * Registra uma solicitação &lt;strong&gt;sob demanda&lt;/strong&gt; (SPEC-WPP-02): sem linha,
      * o passageiro informa destino + data + horário + condições. Nasce
      * {@code PENDENTE} aguardando a &lt;strong&gt;avaliação do gestor&lt;/strong&gt; (não há
      * alocação automática). Reaproveitada pelo bot do WhatsApp e por telas web.
@@ -217,7 +217,7 @@ public class SolicitacaoViagemService {
 <span class="fc" id="L217">        Cidade destino = cidadeRepository.findById(cidadeDestinoId)</span>
 <span class="pc" id="L218">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Cidade&quot;, cidadeDestinoId));</span>
 
-        // Span de negócio (SPEC-14): nomeia a operação de domínio e anexa atributos
+        // Span de negócio (SPEC-OPE-01): nomeia a operação de domínio e anexa atributos
         // (destino/tipo) — sem PII (RN-OBS-08). Uma violação de regra abaixo é gravada
         // no span como ERROR; com o agente desligado, todo o rastrear() é no-op (RN-OBS-06).
 <span class="fc" id="L223">        Map&lt;String, String&gt; atributos = Map.of(</span>
@@ -279,7 +279,7 @@ public class SolicitacaoViagemService {
 <span class="fc" id="L279">        SolicitacaoViagem solicitacao = solicitacaoRepository.findById(solicitacaoId)</span>
 <span class="pc" id="L280">                .orElseThrow(() -&gt; new RecursoNaoEncontradoException(&quot;Solicitação&quot;, solicitacaoId));</span>
 
-        // 2º span de negócio (SPEC-14): a decisão do gestor (aprovar/alocar). Erros de
+        // 2º span de negócio (SPEC-OPE-01): a decisão do gestor (aprovar/alocar). Erros de
         // regra (não pendente, destino divergente) e a viagem inexistente caem no span
         // como ERROR; sem agente, todo o rastrear() é no-op (RN-OBS-06).
 <span class="fc" id="L285">        Map&lt;String, String&gt; atributos = Map.of(</span>

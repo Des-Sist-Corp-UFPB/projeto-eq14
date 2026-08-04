@@ -5,9 +5,9 @@ package br.ufpb.dsc.caladrius.domain.enums;
  *
  * <ul>
  *   <li>{@link #POR_LINHA} — o passageiro escolhe uma {@code LinhaProgramada}
- *       existente (SPEC-09); a alocação deriva da designação da viagem.</li>
+ *       existente (SPEC-VIA-03); a alocação deriva da designação da viagem.</li>
  *   <li>{@link #SOB_DEMANDA} — o passageiro informa destino + data + horário +
- *       condições, sem linha (SPEC-11); o gestor avalia, aprova (designando uma
+ *       condições, sem linha (SPEC-WPP-02); o gestor avalia, aprova (designando uma
  *       viagem imprevista) ou recusa.</li>
  * </ul>
  */

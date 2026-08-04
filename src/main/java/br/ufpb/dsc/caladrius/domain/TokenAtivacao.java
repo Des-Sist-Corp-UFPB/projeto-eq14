@@ -30,7 +30,7 @@ public class TokenAtivacao {
     @Column(name = "token_hash", nullable = false, length = 120, unique = true)
     private String tokenHash;
 
-    /** Para que serve este token (SPEC-12). Padrão {@code ATIVACAO} — o convite original. */
+    /** Para que serve este token (SPEC-ACE-03). Padrão {@code ATIVACAO} — o convite original. */
     @Enumerated(EnumType.STRING)
     @Column(name = "finalidade", nullable = false, length = 30)
     private FinalidadeToken finalidade = FinalidadeToken.ATIVACAO;

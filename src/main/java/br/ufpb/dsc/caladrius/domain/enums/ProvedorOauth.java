@@ -5,7 +5,7 @@ package br.ufpb.dsc.caladrius.domain.enums;
  *
  * <p>Mapeado como {@code VARCHAR} em {@code identidades_oauth.provedor} (com
  * {@code CHECK}). Por ora só o Google; a modelagem já comporta novos provedores
- * (Apple, Microsoft) sem alteração de esquema além do {@code CHECK} — ver SPEC-08.
+ * (Apple, Microsoft) sem alteração de esquema além do {@code CHECK} — ver SPEC-ACE-02.
  */
 public enum ProvedorOauth {
 

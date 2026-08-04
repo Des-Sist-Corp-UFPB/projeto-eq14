@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Testes unitários de {@link ConfiguracaoUmami} — analytics de uso (SPEC-17 §9).
+ * Testes unitários de {@link ConfiguracaoUmami} — analytics de uso (SPEC-OPE-02 §9).
  *
  * <p>O valor desta classe está em <strong>não</strong> ligar o rastreador por engano e em
  * normalizar a URL colada do painel; é isso que os casos abaixo fixam.
  */
-@DisplayName("ConfiguracaoUmami — Analytics de uso (SPEC-17)")
+@DisplayName("ConfiguracaoUmami — Analytics de uso (SPEC-OPE-02)")
 class ConfiguracaoUmamiTest {
 
     private static final String ID = "18d3d5e0-9a19-426f-a74e-72f5c837fc74";

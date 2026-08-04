@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.whatsapp;
 
 /**
- * Situação da conexão devolvida pela porta {@link ProvedorWhatsapp} (SPEC-10):
+ * Situação da conexão devolvida pela porta {@link ProvedorWhatsapp} (SPEC-WPP-01):
  * o estado e, quando o pareamento está em andamento, o QR code a exibir.
  *
  * @param status       estado da conexão

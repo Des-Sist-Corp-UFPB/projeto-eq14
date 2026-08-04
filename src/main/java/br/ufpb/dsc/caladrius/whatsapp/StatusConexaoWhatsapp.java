@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.whatsapp;
 
 /**
- * Estado da conexão da conta WhatsApp no provedor (SPEC-10).
+ * Estado da conexão da conta WhatsApp no provedor (SPEC-WPP-01).
  *
  * <p>Vocabulário da porta {@link ProvedorWhatsapp} — independente do provedor
  * (na Evolution: {@code open} → CONECTADO, {@code connecting} → AGUARDANDO_QR,

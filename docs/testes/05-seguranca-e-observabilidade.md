@@ -7,7 +7,7 @@ sistema** e **o que conseguimos enxergar** quando algo dá errado em produção.
 
 ## Segurança — `SegurancaUnitTest` (11 cenários)
 
-### `CaladriusUserDetailsService` — o login flexível (SPEC-01)
+### `CaladriusUserDetailsService` — o login flexível (SPEC-ACE-01)
 
 O mesmo campo aceita **e-mail ou telefone**; o serviço detecta o formato.
 
@@ -20,7 +20,7 @@ O mesmo campo aceita **e-mail ou telefone**; o serviço detecta o formato.
 
 ### `UsuarioAutenticado` — o principal único
 
-Um único tipo de principal serve ao `formLogin` **e** ao login Google/OIDC (SPEC-08) — decisão que
+Um único tipo de principal serve ao `formLogin` **e** ao login Google/OIDC (SPEC-ACE-02) — decisão que
 evita dois caminhos de autorização divergentes.
 
 | Cenário | Protege |
@@ -56,7 +56,7 @@ adaptação ao Spring Security.
 
 ---
 
-## Observabilidade — SPEC-14 (7 cenários)
+## Observabilidade — SPEC-OPE-01 (7 cenários)
 
 Dois níveis: a instrumentação em si e o seu efeito nos fluxos reais de negócio.
 

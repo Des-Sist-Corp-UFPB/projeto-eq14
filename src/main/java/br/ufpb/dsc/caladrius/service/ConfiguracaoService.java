@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Parâmetros de runtime do sistema (DT-10 e SPEC-06), geridos pelo SYSADMIN
+ * Parâmetros de runtime do sistema (DT-10 e SPEC-VIA-02), geridos pelo SYSADMIN
  * <strong>sem redeploy</strong> — a configuração é <em>dinâmica</em> (lida do
  * banco), não estática do {@code application.yml}.
  */
@@ -19,7 +19,7 @@ public class ConfiguracaoService {
 
     /** Tempo de inatividade da sessão, em minutos (aplicado via HttpSessionListener). */
     public static final String CHAVE_TIMEOUT = "sessao.timeout_minutos";
-    /** Cidade-sede (origem padrão das viagens — SPEC-06). */
+    /** Cidade-sede (origem padrão das viagens — SPEC-VIA-02). */
     public static final String CHAVE_CIDADE_SEDE = "geral.cidade_sede_id";
 
     private static final int TIMEOUT_PADRAO_MIN = 30;

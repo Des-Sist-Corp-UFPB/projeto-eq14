@@ -17,12 +17,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração HTTP do {@code UsuarioController} (SPEC-02): CRUD completo
+ * Testes de integração HTTP do {@code UsuarioController} (SPEC-CAD-01): CRUD completo
  * via HTMX, incluindo os caminhos de erro que a tela precisa exibir bem — validação
  * de formulário, regra de negócio (telefone duplicado) e as travas da DT-02
  * (não excluir a si mesmo nem o último gerente).
  */
-@DisplayName("Web — UsuarioController (SPEC-02)")
+@DisplayName("Web — UsuarioController (SPEC-CAD-01)")
 class UsuarioControllerTest extends IntegracaoWebTestBase {
 
     // ------------------------------------------------------------------ leitura

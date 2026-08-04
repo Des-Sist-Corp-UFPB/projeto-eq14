@@ -42,13 +42,13 @@ services:
       DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/eq14}
       DATABASE_USERNAME: ${DATABASE_USERNAME:-eq14}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      # Login social com Google (SPEC-08) — opcional. Defina no .env do servidor
+      # Login social com Google (SPEC-ACE-02) — opcional. Defina no .env do servidor
       # para ativar; o default vazio mantém o login social desligado (o app sobe só
       # com senha). Cadastre também o redirect URI de produção no Google Console:
       #   https://eq14.dsc.rodrigor.com/login/oauth2/code/google
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      # Observabilidade com OpenTelemetry (SPEC-14) — OPCIONAL. Sem estas variáveis o
+      # Observabilidade com OpenTelemetry (SPEC-OPE-01) — OPCIONAL. Sem estas variáveis o
       # app sobe idêntico ao de hoje: o agente existe na imagem mas fica inerte
       # (JAVA_TOOL_OPTIONS vazio → a JVM não o carrega) — RN-OBS-01. Preencha-as no .env
       # do servidor para exportar traces/métricas/logs ao backend central da disciplina.
@@ -62,7 +62,7 @@ services:
       # Interruptor mestre: liga o agente na JVM. Vazio por padrão (agente inerte). No
       # .env: JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
-      # Integração WhatsApp / Evolution API (SPEC-10) — OPCIONAL. Mesmo padrão das
+      # Integração WhatsApp / Evolution API (SPEC-WPP-01) — OPCIONAL. Mesmo padrão das
       # anteriores: sem EVOLUTION_URL/EVOLUTION_API_KEY o bean do provedor NÃO é criado
       # (WhatsappConfig, @ConditionalOnExpression), o canal opera como stub e o painel
       # /whatsapp informa "integração não configurada" (RN-WPP-02) — nada quebra.
@@ -76,7 +76,7 @@ services:
       EVOLUTION_INSTANCIA: ${EVOLUTION_INSTANCIA:-caladrius}
       WHATSAPP_WEBHOOK_TOKEN: ${WHATSAPP_WEBHOOK_TOKEN:-}
       APP_URL_PUBLICA: ${APP_URL_PUBLICA:-}
-      # Analytics de uso / Umami (SPEC-17) — OPCIONAL, mesmo padrão condicional: sem
+      # Analytics de uso / Umami (SPEC-OPE-02) — OPCIONAL, mesmo padrão condicional: sem
       # UMAMI_URL/UMAMI_WEBSITE_ID nenhum script é renderizado nas páginas (RN-ANL-01).
       # Aponta para a instância CENTRAL da disciplina (não subimos nada).
       #   UMAMI_URL         base do Umami (https://umami.dsc.rodrigor.com)

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Testes unitários (Mockito) de {@link FeatureFlagService} — feature toggle (SPEC-13 §11).
+ * Testes unitários (Mockito) de {@link FeatureFlagService} — feature toggle (SPEC-PLT-01 §11).
  * Escritos <strong>antes</strong> da implementação (TDD).
  *
  * <p>Cobrem as três garantias do mecanismo: <em>fail-safe</em> (RN-FLG-02), intervalo

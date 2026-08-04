@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Testes unitários (Mockito) de {@link MunicipioService} — o <em>entitlement</em> de
- * pagamento por município (SPEC-13, RN-FLG-05). Escritos <strong>antes</strong> da
+ * pagamento por município (SPEC-PLT-01, RN-FLG-05). Escritos <strong>antes</strong> da
  * implementação (TDD).
  */
 @ExtendWith(MockitoExtension.class)

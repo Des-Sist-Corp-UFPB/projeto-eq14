@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração do <strong>analytics de uso (Umami)</strong> — SPEC-17 §9.
+ * Testes de integração do <strong>analytics de uso (Umami)</strong> — SPEC-OPE-02 §9.
  *
  * <p>Sobe o contexto <em>com</em> as variáveis do Umami definidas (o oposto de
  * {@link PaginasPublicasTest}) e verifica as três garantias que sustentam a entrega:
@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "UMAMI_WEBSITE_ID=18d3d5e0-9a19-426f-a74e-72f5c837fc74",
         "UMAMI_DOMINIOS=eq14.dsc.rodrigor.com"
 })
-@DisplayName("Web — Analytics de uso (Umami / SPEC-17)")
+@DisplayName("Web — Analytics de uso (Umami / SPEC-OPE-02)")
 class AnalyticsUmamiWebTest extends IntegracaoWebTestBase {
 
     private static final String SCRIPT = "https://umami.dsc.rodrigor.com/script.js";

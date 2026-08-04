@@ -86,7 +86,7 @@ abstract class IntegracaoWebTestBase {
     protected RequestPostProcessor comoPassageiro() { return como(Papel.PASSAGEIRO); }
     protected RequestPostProcessor comoSysadmin() { return como(Papel.SYSADMIN); }
 
-    /** Principal de PASSAGEIRO com perfil incompleto (login social sem telefone) — SPEC-08. */
+    /** Principal de PASSAGEIRO com perfil incompleto (login social sem telefone) — SPEC-ACE-02. */
     protected RequestPostProcessor comoPassageiroIncompleto() {
         Usuario u = new Usuario();
         u.setId(java.util.UUID.randomUUID());

@@ -10,33 +10,33 @@
     `SEGURANCA` (login/logout), `OPERACAO` (CRUD) e `SISTEMA` (configuração/feature flags).
   - **Área administrativa**: papel `SYSADMIN` + `/admin` (configuração de sessão dinâmica, auditoria,
     convites e — novo — **funcionalidades**/feature toggle).
-  - **Logs**: SLF4J/Logback + envio ao **Loki** via OpenTelemetry (SPEC-14); log de mensagens do
+  - **Logs**: SLF4J/Logback + envio ao **Loki** via OpenTelemetry (SPEC-OPE-01); log de mensagens do
     WhatsApp (`mensagens_whatsapp`).
   - 🟡 **LGPD**: há os **fundamentos** (BCrypt, soft-delete, CSRF, auditoria, isolamento por dono/papel,
     consentimento no onboarding do bot); **falta** um programa formal (política de privacidade,
     exportação/eliminação de dados a pedido, gestão de consentimento).
 
 - [x] **Integração com serviços externos** — ✅
-  - **Google** OAuth/OIDC (SPEC-08) e **WhatsApp/Evolution API** (SPEC-10 — código pronto, infra
+  - **Google** OAuth/OIDC (SPEC-ACE-02) e **WhatsApp/Evolution API** (SPEC-WPP-01 — código pronto, infra
     pendente: falta subir a Evolution na VPS e preencher `EVOLUTION_URL`, `EVOLUTION_API_KEY`,
     `WHATSAPP_WEBHOOK_TOKEN`, `APP_URL_PUBLICA` no `.env` do servidor — ver `.env.example`).
-  - **OpenTelemetry** → backend central da disciplina (SPEC-14, em produção).
+  - **OpenTelemetry** → backend central da disciplina (SPEC-OPE-01, em produção).
 
 - [ ] **Pontos extras: integração com pagamento** — ⬜ **especificado, não implementado**
-  - [SPEC-16](sdd/specs/SPEC-16-organizacao-planos-e-pagamento.md) (proposta): cadastro de gestor com
+  - [SPEC-PLT-03](sdd/specs/plataforma/SPEC-PLT-03-organizacao-planos-e-pagamento.md) (proposta): cadastro de gestor com
     escolha de plano → checkout → o papel `GERENTE` só é concedido pela **confirmação
     servidor-a-servidor** do pagamento (RN-PAG-01). Entidades `Organizacao`/`Assinatura`/`Pagamento`.
   - **Base já pronta**: o *entitlement* por município (`municipios.pagamento_habilitado`, V15) que a
-    integração vai consultar (SPEC-13, RN-FLG-05).
+    integração vai consultar (SPEC-PLT-01, RN-FLG-05).
 
-- [ ] **Testar Mercado Pago** — ⬜ depende da SPEC-16 (Checkout Pro + sandbox + webhook assinado).
+- [ ] **Testar Mercado Pago** — ⬜ depende da SPEC-PLT-03 (Checkout Pro + sandbox + webhook assinado).
 
 - [x] **Versionamento de banco** — ✅
   - **Flyway** V1→**V15**, forward-only, política de checksum, banco compartilhado
     (ver `docs/sdd/02-plano-tecnico.md` §2.5).
 
 - [x] **Feature toggle (ligar/desligar coisas no sistema)** — ✅ **implementado**
-  - **[SPEC-13](sdd/specs/SPEC-13-feature-toggle.md)** (ADR-17): `FeatureFlagService` sobre a
+  - **[SPEC-PLT-01](sdd/specs/plataforma/SPEC-PLT-01-feature-toggle.md)** (ADR-17): `FeatureFlagService` sobre a
     `configuracoes_sistema` (sem tabela nova), com **cache**, **default seguro** e **auditoria**.
   - **Kill switches**: `feature.bot_whatsapp` (webhook registra a mensagem e não aciona o bot) e
     `feature.modo_manutencao` (`ManutencaoFilter` → 503 para todos menos o SYSADMIN; `/ping` e o
@@ -67,4 +67,4 @@
 |---|---|
 | ✅ **Feito** | Logs/auditoria/área admin · Integração com serviços externos · Versionamento de banco · **Feature toggle** · **Cobertura ≥ 85% (com gate)** · Segurança e dependências |
 | 🟡 **Parcial** | LGPD formal · WhatsApp (código pronto, **infra** da Evolution pendente) |
-| ⬜ **Pendente** | Integração com pagamento / Mercado Pago — **especificado** na [SPEC-16](sdd/specs/SPEC-16-organizacao-planos-e-pagamento.md), aguardando aprovação das decisões em aberto |
+| ⬜ **Pendente** | Integração com pagamento / Mercado Pago — **especificado** na [SPEC-PLT-03](sdd/specs/plataforma/SPEC-PLT-03-organizacao-planos-e-pagamento.md), aguardando aprovação das decisões em aberto |

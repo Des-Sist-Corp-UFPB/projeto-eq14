@@ -12,11 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração do painel {@code /whatsapp} (SPEC-10 §10): RBAC
+ * Testes de integração do painel {@code /whatsapp} (SPEC-WPP-01 §10): RBAC
  * (exclusivo do GERENTE — RN-WPP-09) e comportamento sem a integração
  * configurada (RN-WPP-02).
  */
-@DisplayName("WhatsappController — Integração (SPEC-10)")
+@DisplayName("WhatsappController — Integração (SPEC-WPP-01)")
 class WhatsappControllerTest extends IntegracaoWebTestBase {
 
     @Test

@@ -20,7 +20,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 /**
- * Estado da conversa do bot de atendimento WhatsApp com um número (SPEC-10).
+ * Estado da conversa do bot de atendimento WhatsApp com um número (SPEC-WPP-01).
  *
  * &lt;p&gt;Mapeada para {@code conversas_bot} (migração V12) — uma conversa por
  * telefone (normalizado, sem DDI). Persistir a máquina de estados permite que
@@ -59,20 +59,20 @@ public class ConversaBot {
     @Column(name = &quot;data_desejada&quot;)
     private LocalDate dataDesejada;
 
-    /** Destino escolhido no fluxo sob demanda (contexto temporário — SPEC-11). */
+    /** Destino escolhido no fluxo sob demanda (contexto temporário — SPEC-WPP-02). */
     @ManyToOne
     @JoinColumn(name = &quot;cidade_destino&quot;)
     private Cidade cidadeDestino;
 
-    /** Horário desejado no fluxo sob demanda (contexto temporário — SPEC-11). */
+    /** Horário desejado no fluxo sob demanda (contexto temporário — SPEC-WPP-02). */
     @Column(name = &quot;horario_desejado&quot;)
     private LocalTime horarioDesejado;
 
-    /** Condições informadas no fluxo sob demanda (contexto temporário — SPEC-11). */
+    /** Condições informadas no fluxo sob demanda (contexto temporário — SPEC-WPP-02). */
     @Column(name = &quot;condicoes&quot;, length = 280)
     private String condicoes;
 
-    /** Rascunho do cadastro (onboarding) enquanto o bot coleta os dados — SPEC-11. */
+    /** Rascunho do cadastro (onboarding) enquanto o bot coleta os dados — SPEC-WPP-02. */
     @Column(name = &quot;cad_nome&quot;, length = 160)
     private String cadNome;
 

@@ -20,7 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Testes unitários (Mockito) de {@link EnderecoService} — SPEC-07.
+ * Testes unitários (Mockito) de {@link EnderecoService} — SPEC-CAD-04.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("EnderecoService — Testes Unitários")

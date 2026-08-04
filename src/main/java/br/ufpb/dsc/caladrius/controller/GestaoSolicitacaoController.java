@@ -16,7 +16,7 @@ import java.util.UUID;
 
 /**
  * Painel do gerente para avaliar as solicitações de transporte <strong>sob
- * demanda</strong> (SPEC-11): listar as pendentes, aprovar (alocando a uma
+ * demanda</strong> (SPEC-WPP-02): listar as pendentes, aprovar (alocando a uma
  * viagem) ou recusar (com motivo). O passageiro é notificado do resultado pelo
  * WhatsApp/in-app (no serviço).
  *

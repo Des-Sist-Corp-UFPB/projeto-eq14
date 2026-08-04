@@ -52,7 +52,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/caladrius_dev
       SPRING_DATASOURCE_USERNAME: caladrius
       SPRING_DATASOURCE_PASSWORD: caladrius123
-      # Observabilidade (SPEC-14): em DEV a telemetria vai para o otel-lgtm LOCAL
+      # Observabilidade (SPEC-OPE-01): em DEV a telemetria vai para o otel-lgtm LOCAL
       # (efêmero, sem token). Abra o Grafana em http://localhost:3000 → Explore.
       OTEL_SERVICE_NAME: dsc-eq14-dev
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-lgtm:4318
@@ -92,7 +92,7 @@ services:
       - caladrius-net
 
   # ---------------------------------------------------------------------------
-  # otel-lgtm: backend de observabilidade LOCAL para desenvolvimento (SPEC-14)
+  # otel-lgtm: backend de observabilidade LOCAL para desenvolvimento (SPEC-OPE-01)
   # Um único container com Grafana + Tempo + Prometheus + Loki + coletor OTLP.
   #   Grafana:  http://localhost:3000  (Explore → Tempo/Loki, filtrando dsc-eq14-dev)
   #   OTLP:     4317 (gRPC) · 4318 (HTTP)

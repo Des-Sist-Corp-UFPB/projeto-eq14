@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Área de <strong>feature toggle</strong> do SYSADMIN (SPEC-13, FR-FLG-01/02/03):
+ * Área de <strong>feature toggle</strong> do SYSADMIN (SPEC-PLT-01, FR-FLG-01/02/03):
  *
  * <ul>
  *   <li>{@code /admin/features} — liga/desliga as flags globais (bot do WhatsApp,

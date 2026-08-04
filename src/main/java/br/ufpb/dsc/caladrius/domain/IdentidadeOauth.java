@@ -8,7 +8,7 @@ import java.util.UUID;
 
 /**
  * Vínculo entre um {@link Usuario} e uma identidade de provedor externo
- * (OAuth2/OIDC), como o Google — SPEC-08.
+ * (OAuth2/OIDC), como o Google — SPEC-ACE-02.
  *
  * <p>A chave de identidade é o par <strong>({@link #provedor}, {@link #subjectId})</strong>,
  * único. O {@code subjectId} é o {@code sub} <em>imutável</em> do provedor — preferido

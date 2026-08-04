@@ -18,7 +18,7 @@ import java.util.UUID;
  * Adapta um {@link Usuario} do domínio para o contrato {@link UserDetails} do
  * Spring Security.
  *
- * <p><strong>Principal único (SPEC-08):</strong> esta classe implementa também
+ * <p><strong>Principal único (SPEC-ACE-02):</strong> esta classe implementa também
  * {@link OidcUser}, de modo que tanto o login por senha ({@code formLogin}) quanto
  * o login social ({@code oauth2Login}) produzem o <em>mesmo</em> tipo de principal.
  * Assim, {@code @AuthenticationPrincipal UsuarioAutenticado} e
@@ -156,7 +156,7 @@ public class UsuarioAutenticado implements UserDetails, OidcUser {
         return email;
     }
 
-    /** {@code true} se faltam dados obrigatórios (telefone) — ver SPEC-08. */
+    /** {@code true} se faltam dados obrigatórios (telefone) — ver SPEC-ACE-02. */
     public boolean isPerfilIncompleto() {
         return perfilIncompleto;
     }

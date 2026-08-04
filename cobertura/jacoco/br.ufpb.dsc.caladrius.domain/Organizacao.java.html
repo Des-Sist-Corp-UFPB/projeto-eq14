@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Organizacao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">caladrius</a> &gt; <a href="index.source.html" class="el_package">br.ufpb.dsc.caladrius.domain</a> &gt; <span class="el_source">Organizacao.java</span></div><h1>Organizacao.java</h1><pre class="source lang-java linenums">package br.ufpb.dsc.caladrius.domain;
+
+import br.ufpb.dsc.caladrius.domain.enums.StatusOrganizacao;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Secretaria cliente — a &lt;strong&gt;fronteira de isolamento&lt;/strong&gt; do modelo
+ * multi-tenant (SPEC-PLT-02 / ADR-21).
+ *
+ * &lt;p&gt;O {@link #slug} identifica o tenant: vira subdomínio e, na fase 2, o nome do
+ * schema de dados. Enquanto {@link #schemaDados} for nulo, a organização é servida
+ * pelo &lt;em&gt;schema legado&lt;/em&gt; — que é o estado de todo o sistema hoje.
+ */
+@Entity
+@Table(name = &quot;organizacoes&quot;)
+public class Organizacao {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;id&quot;, updatable = false, nullable = false)
+    private UUID id;
+
+    @Column(name = &quot;nome&quot;, nullable = false, length = 160)
+    private String nome;
+
+    @Column(name = &quot;slug&quot;, nullable = false, length = 60)
+    private String slug;
+
+    /** CNPJ da secretaria; opcional enquanto a organização está em rascunho. */
+    @Column(name = &quot;documento&quot;, length = 18)
+    private String documento;
+
+<span class="fc" id="L44">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = false, length = 30)
+    private StatusOrganizacao status = StatusOrganizacao.RASCUNHO;
+
+    /** Schema de dados do tenant (fase 2). Nulo ⇒ servida pelo schema legado. */
+    @Column(name = &quot;schema_dados&quot;, length = 63)
+    private String schemaDados;
+
+    @Column(name = &quot;criado_em&quot;, nullable = false)
+    private Instant criadoEm;
+
+<span class="fc" id="L55">    public Organizacao() {</span>
+<span class="fc" id="L56">    }</span>
+
+<span class="fc" id="L58">    public Organizacao(String nome, String slug) {</span>
+<span class="fc" id="L59">        this.nome = nome;</span>
+<span class="fc" id="L60">        this.slug = slug;</span>
+<span class="fc" id="L61">    }</span>
+
+    @PrePersist
+    protected void prePersist() {
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">        if (this.criadoEm == null) {</span>
+<span class="fc" id="L66">            this.criadoEm = Instant.now();</span>
+        }
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (this.status == null) {</span>
+<span class="nc" id="L69">            this.status = StatusOrganizacao.RASCUNHO;</span>
+        }
+<span class="fc" id="L71">    }</span>
+
+    /** {@code true} se a secretaria já tem schema próprio (provisionada — fase 2). */
+    public boolean provisionada() {
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        return schemaDados != null;</span>
+    }
+
+    // ===================== Getters e Setters =====================
+
+    public UUID getId() {
+<span class="fc" id="L81">        return id;</span>
+    }
+
+    public void setId(UUID id) {
+<span class="fc" id="L85">        this.id = id;</span>
+<span class="fc" id="L86">    }</span>
+
+    public String getNome() {
+<span class="fc" id="L89">        return nome;</span>
+    }
+
+    public void setNome(String nome) {
+<span class="fc" id="L93">        this.nome = nome;</span>
+<span class="fc" id="L94">    }</span>
+
+    public String getSlug() {
+<span class="fc" id="L97">        return slug;</span>
+    }
+
+    public void setSlug(String slug) {
+<span class="fc" id="L101">        this.slug = slug;</span>
+<span class="fc" id="L102">    }</span>
+
+    public String getDocumento() {
+<span class="fc" id="L105">        return documento;</span>
+    }
+
+    public void setDocumento(String documento) {
+<span class="fc" id="L109">        this.documento = documento;</span>
+<span class="fc" id="L110">    }</span>
+
+    public StatusOrganizacao getStatus() {
+<span class="fc" id="L113">        return status;</span>
+    }
+
+    public void setStatus(StatusOrganizacao status) {
+<span class="nc" id="L117">        this.status = status;</span>
+<span class="nc" id="L118">    }</span>
+
+    public String getSchemaDados() {
+<span class="fc" id="L121">        return schemaDados;</span>
+    }
+
+    public void setSchemaDados(String schemaDados) {
+<span class="nc" id="L125">        this.schemaDados = schemaDados;</span>
+<span class="nc" id="L126">    }</span>
+
+    public Instant getCriadoEm() {
+<span class="nc" id="L129">        return criadoEm;</span>
+    }
+
+    public void setCriadoEm(Instant criadoEm) {
+<span class="nc" id="L133">        this.criadoEm = criadoEm;</span>
+<span class="nc" id="L134">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

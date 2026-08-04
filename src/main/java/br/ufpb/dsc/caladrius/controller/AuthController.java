@@ -23,7 +23,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * <p>O Spring Security processa o {@code POST /login} internamente; este
  * controller apenas serve a <strong>página</strong> de login (que aceita e-mail
  * OU telefone) e cuida do auto-cadastro de passageiros (incluindo o endereço
- * opcional — SPEC-07).
+ * opcional — SPEC-CAD-04).
  */
 @Controller
 public class AuthController {
@@ -73,18 +73,18 @@ public class AuthController {
         Usuario novo;
         try {
             novo = usuarioService.registrarPassageiro(form);
-            // SPEC-07: salva o endereço, se algum campo foi informado (opcional).
+            // SPEC-CAD-04: salva o endereço, se algum campo foi informado (opcional).
             enderecoService.salvar(novo.getId(), form.paraEnderecoForm());
         } catch (RegraNegocioException e) {
             bindingResult.reject("cadastro.invalido", e.getMessage());
             model.addAttribute("municipios", enderecoService.listarMunicipios());
             return "auth/registro";
         }
-        // SPEC-12: se informou e-mail, dispara o link de verificação (não bloqueia).
+        // SPEC-ACE-03: se informou e-mail, dispara o link de verificação (não bloqueia).
         if (StringUtils.hasText(novo.getEmail())) {
             conviteService.enviarVerificacaoEmail(novo);
         }
-        // SPEC-12: com verificação exigida, a conta nasce PENDENTE — leva para o
+        // SPEC-ACE-03: com verificação exigida, a conta nasce PENDENTE — leva para o
         // código do telefone antes de liberar o login.
         if (novo.getStatus() == StatusUsuario.PENDENTE) {
             redirectAttributes.addFlashAttribute("telefone", novo.getTelefone());

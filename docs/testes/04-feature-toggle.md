@@ -1,7 +1,7 @@
-# 04 — Feature toggle (SPEC-13)
+# 04 — Feature toggle (SPEC-PLT-01)
 
 Testes do mecanismo de **ligar/desligar funcionalidades em runtime**, sem redeploy
-([SPEC-13](../sdd/specs/SPEC-13-feature-toggle.md), ADR-17). Foram escritos **antes** da
+([SPEC-PLT-01](../sdd/specs/plataforma/SPEC-PLT-01-feature-toggle.md), ADR-17). Foram escritos **antes** da
 implementação (TDD): os cenários são a tradução direta das regras `RN-FLG-*` e dos critérios
 `CA-FLG-*` da spec.
 
@@ -54,7 +54,7 @@ O *entitlement* por município (`municipios.pagamento_habilitado`, migration **V
 | listar sem termo devolve tudo; com termo, filtra por nome | a lista da PB tem 223 municípios |
 | marcar adesão persiste **e audita** (RN-FLG-05/07) | decisão comercial rastreável |
 | município inexistente ⇒ 404 de domínio, **sem salvar nem auditar** | |
-| passageiro de município aderido é elegível; de município comum, não | **RN-FLG-05** — a avaliação é pelo município de **origem** (endereço, SPEC-07) |
+| passageiro de município aderido é elegível; de município comum, não | **RN-FLG-05** — a avaliação é pelo município de **origem** (endereço, SPEC-CAD-04) |
 | **sem endereço (ou sem município) ⇒ `false`** | **RN-FLG-02** — o default seguro aqui é "não cobra" |
 
 ---
@@ -96,4 +96,4 @@ funcionando: a flag pausa o **atendimento automático**, não o canal.
 - **Cache distribuído**: a invalidação é por instância (**DT-18**). Com réplicas, desligar uma flag
   em uma não afeta a outra. Hoje roda um container por ambiente — aceito e registrado.
 - **Janela de atendimento do WhatsApp** (**DT-16**): o horário é persistido mas ainda não aplicado;
-  quando virar parâmetro da SPEC-13, entra aqui.
+  quando virar parâmetro da SPEC-PLT-01, entra aqui.

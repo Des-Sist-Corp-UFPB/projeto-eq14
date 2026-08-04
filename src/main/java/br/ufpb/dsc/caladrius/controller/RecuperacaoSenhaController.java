@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * Telas públicas de recuperação de senha (SPEC-12): "esqueci a senha" (escolha do
+ * Telas públicas de recuperação de senha (SPEC-ACE-03): "esqueci a senha" (escolha do
  * método) e a redefinição com o código. Respostas <strong>genéricas</strong>
  * (anti-enumeração — RN-REC-02).
  */

@@ -14,7 +14,7 @@ import org.springframework.util.StringUtils;
 import java.util.EnumSet;
 
 /**
- * Auto-cadastro (onboarding) do passageiro pelo WhatsApp (SPEC-11).
+ * Auto-cadastro (onboarding) do passageiro pelo WhatsApp (SPEC-WPP-02).
  *
  * <p>Cria um {@code Usuario} <strong>PASSAGEIRO ATIVO sem senha</strong>
  * (decisão D2): o telefone verificado pelo WhatsApp é a identidade; a conta
@@ -22,7 +22,7 @@ import java.util.EnumSet;
  * sem credencial, não há login). O acesso web é obtido depois pela opção
  * "Acesso à plataforma" do bot ({@link ConviteService#gerarAcessoPlataforma}).
  *
- * <p>Reaproveita o {@link EnderecoService} (SPEC-07) para o endereço de embarque.
+ * <p>Reaproveita o {@link EnderecoService} (SPEC-CAD-04) para o endereço de embarque.
  * É um serviço de domínio puro — não conhece o WhatsApp; o bot o invoca.
  */
 @Service

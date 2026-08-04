@@ -13,11 +13,11 @@ complemento executável do SDD — cada regra de negócio (`RN-*`) e critério d
 
 | Métrica | Valor |
 |---|---|
-| **Testes** | **398** (JUnit 5), 0 falhas |
-| **Cobertura de linhas** | **88,1%** (3017 de 3425) |
-| **Cobertura de instruções** | **88,3%** |
-| **Cobertura de métodos** | **87,3%** |
-| **Cobertura de ramos** | **71,5%** |
+| **Testes** | **422** (JUnit 5), 0 falhas |
+| **Cobertura de linhas** | **88,0%** (3192 de 3626) |
+| **Cobertura de instruções** | **88,2%** |
+| **Cobertura de métodos** | **86,5%** |
+| **Cobertura de ramos** | **71,0%** |
 | **Gate no build** | `jacoco:check` — **falha** abaixo de **85%** (linhas e instruções) e **65%** (ramos) |
 
 > Medição de **2026-08-04**, com o relatório commitado em [`cobertura/jacoco/`](../../cobertura/jacoco/index.html).
@@ -103,8 +103,9 @@ fixture (`persistir(...)`, `persistirVeiculo()`, `cidadeDestino()`, `telefoneUni
 | [01 — Serviços (regra de negócio)](01-servicos.md) | `UsuarioService`, `ViagemService`, `SolicitacaoViagemService`, `VerificacaoService`, `ConviteService`, `RecuperacaoSenhaService`, `LinhaProgramadaService`, `CidadeService`, `VeiculoService`, `EnderecoService`, `NotificacaoService`, `AuditoriaService`, `ConfiguracaoService`, `IdentidadeOauthService`, `OnboardingService`, `Documentos` |
 | [02 — Web / API (HTTP, RBAC, HTMX)](02-web-api.md) | controllers de autenticação, usuários, veículos, cidades, viagens, linhas, solicitações, telas administrativas, páginas públicas e controle de acesso |
 | [03 — WhatsApp e bot](03-whatsapp-e-bot.md) | `WhatsappService`, `EvolutionApiProvedor`, `BotAtendimentoService`, webhook |
-| [04 — Feature toggle](04-feature-toggle.md) | `FeatureFlagService`, `MunicipioService`, modo de manutenção, bot on/off, entitlement (SPEC-13) |
-| [05 — Segurança e observabilidade](05-seguranca-e-observabilidade.md) | login flexível, principal, auditoria de acesso, spans de negócio (SPEC-14) |
+| [04 — Feature toggle](04-feature-toggle.md) | `FeatureFlagService`, `MunicipioService`, modo de manutenção, bot on/off, entitlement (SPEC-PLT-01) |
+| [05 — Segurança e observabilidade](05-seguranca-e-observabilidade.md) | login flexível, principal, auditoria de acesso, spans de negócio (SPEC-OPE-01) |
+| [06 — Multi-tenancy](06-multi-tenancy.md) | `OrganizacaoService`, `VinculoService`, `ContextoTenant` e a escolha de contexto em `/entrar/onde` (SPEC-PLT-02, fase 1) |
 
 ---
 
@@ -129,8 +130,8 @@ fixture (`persistir(...)`, `persistirVeiculo()`, `cidadeDestino()`, `telefoneUni
 
 | Lacuna | Por quê / o que faria |
 |---|---|
-| `CaladriusOidcUserService` (SPEC-08) | exige simular o fluxo OIDC completo (`OidcUserRequest` + `ClientRegistration`); a lógica de resolução de identidade **já é coberta** por `IdentidadeOauthServiceTest` |
+| `CaladriusOidcUserService` (SPEC-ACE-02) | exige simular o fluxo OIDC completo (`OidcUserRequest` + `ClientRegistration`); a lógica de resolução de identidade **já é coberta** por `IdentidadeOauthServiceTest` |
 | Ramos (69,7%) | muitos `catch` de degradação e ternários de template ainda sem cenário próprio |
-| Isolamento multi-tenant | não existe ainda — vira **critério de saída** da fase 2 da [SPEC-16](../sdd/specs/SPEC-16-organizacao-planos-e-pagamento.md) (CA-PAG-06) |
+| Isolamento multi-tenant | não existe ainda — vira **critério de saída** da fase 2 da [SPEC-PLT-03](../sdd/specs/plataforma/SPEC-PLT-03-organizacao-planos-e-pagamento.md) (CA-PAG-06) |
 | Carga/performance | há um template k6 em `loadtest/`, fora do `mvn verify` |
 | Front-end (JS/HTMX) | sem testes de navegador; o comportamento HTMX é verificado pelo **fragmento devolvido** no teste de API |

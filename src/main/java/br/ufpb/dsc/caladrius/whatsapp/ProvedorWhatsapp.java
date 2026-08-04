@@ -3,7 +3,7 @@ package br.ufpb.dsc.caladrius.whatsapp;
 import java.util.Optional;
 
 /**
- * Porta de acesso ao WhatsApp (SPEC-10/ADR-14) — cobre <strong>conexão</strong>
+ * Porta de acesso ao WhatsApp (SPEC-WPP-01/ADR-14) — cobre <strong>conexão</strong>
  * e <strong>envio</strong>, tudo o que o restante do sistema precisa do canal.
  *
  * <p>A Evolution API ({@link EvolutionApiProvedor}) é apenas o primeiro

@@ -46,7 +46,7 @@ public interface ViagemRepository extends JpaRepository<Viagem, UUID> {
     /** Conta as viagens associadas a um motorista (regras de disponibilidade/usuários). */
     long countByMotorista_Id(UUID motoristaId);
 
-    // ===================== SPEC-06 =====================
+    // ===================== SPEC-VIA-02 =====================
 
     /** Viagens de um intervalo de datas (painel semanal), com relacionamentos carregados. */
     @Query("""
@@ -61,7 +61,7 @@ public interface ViagemRepository extends JpaRepository<Viagem, UUID> {
     Optional<Viagem> findByLinhaProgramada_IdAndDataViagem(UUID linhaId, LocalDate data);
 
     /**
-     * Viagens candidatas para alocar uma solicitação sob demanda (SPEC-11): mesmo
+     * Viagens candidatas para alocar uma solicitação sob demanda (SPEC-WPP-02): mesmo
      * destino e data, não canceladas, com veículo/motorista carregados.
      */
     @Query("""

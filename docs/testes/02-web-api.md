@@ -29,7 +29,7 @@ O mapa de acesso do sistema: o que é público (`/login`, `/registrar`, `/ping`,
 o que exige autenticação e o que exige papel. `ControleAcessoTest` é a rede de segurança do
 `SecurityConfig`: mudar um `requestMatcher` sem querer quebra aqui, não em produção.
 
-## `AuthControllerTest` — 5 cenários (SPEC-01/07/12)
+## `AuthControllerTest` — 5 cenários (SPEC-ACE-01/07/12)
 
 | Cenário | Verifica |
 |---|---|
@@ -39,24 +39,24 @@ o que exige autenticação e o que exige papel. `ControleAcessoTest` é a rede d
 | telefone já cadastrado reexibe o formulário | **regra de negócio** (caminho diferente da validação de formato) |
 | CPF inválido reexibe o formulário e **não cria** a conta | |
 
-## `UsuarioControllerTest` — 12 cenários (SPEC-02)
+## `UsuarioControllerTest` — 12 cenários (SPEC-CAD-01)
 
 CRUD completo por HTTP: listagem (página × fragmento HTMX × rota de fragmento), modais de novo e
 edição, criação válida/ inválida/duplicada, atualização (inclusive com **senha em branco**, que deve
 manter o hash), exclusão com soft-delete, 404 de id inexistente e **409 ao tentar excluir a si
 mesmo** (DT-02, com a mensagem da regra no corpo). Fecha com o RBAC (passageiro/motorista → 403).
 
-## `VeiculoControllerTest` — 11 cenários (SPEC-03)
+## `VeiculoControllerTest` — 11 cenários (SPEC-CAD-02)
 
 Listagem e fragmentos, modal novo/editar (com a placa atual), criação válida e com placa inválida,
 `PUT` válido e inválido, `DELETE` (soft-delete) e 404. RBAC: passageiro → 403.
 
-## `CidadeControllerTest` — 7 cenários (SPEC-04)
+## `CidadeControllerTest` — 7 cenários (SPEC-CAD-03)
 
 Listagem, fragmentos, criação válida/inválida, edição (modal + `PUT` válido e inválido), exclusão e
 404. A exclusão exercita a cascata da **DT-01** pelo caminho HTTP real.
 
-## `ViagemControllerTest` — 12 cenários (SPEC-05/06)
+## `ViagemControllerTest` — 12 cenários (SPEC-VIA-01/06)
 
 | Cenário | Verifica |
 |---|---|
@@ -75,19 +75,19 @@ Listagem, fragmentos, criação válida/inválida, edição (modal + `PUT` váli
 > Estes testes usam um gerente **persistido** (`autenticar(persistir(...))`): o serviço registra quem
 > criou a viagem e recarrega esse usuário do banco — com um principal sintético a FK estouraria.
 
-## `LinhaControllerTest` — 9 cenários (SPEC-06)
+## `LinhaControllerTest` — 9 cenários (SPEC-VIA-02)
 
 Telas de lista e formulário, criação com dias da semana, validação (sem destino) e regra de negócio
 (chegada antes da saída), edição, **`alternar`** (desativa e reativa) e **`excluir`** (linha sem
 viagens sai; com viagens, a trava do serviço responde em flash). RBAC completo.
 
-## `SolicitacaoControllerTest` — 5 cenários (SPEC-09)
+## `SolicitacaoControllerTest` — 5 cenários (SPEC-VIA-03)
 
 A visão do passageiro: acesso exclusivo (`GERENTE`/`MOTORISTA` → 403; anônimo → login), o calendário
 que **só oferece as linhas do dia selecionado** e — o cenário mais importante — o **isolamento**:
 um passageiro não vê a solicitação de outro **pela API**, não só no serviço.
 
-## `GestaoSolicitacaoControllerTest` — 2 cenários (SPEC-11)
+## `GestaoSolicitacaoControllerTest` — 2 cenários (SPEC-WPP-02)
 
 O painel do gestor (`/gestao/solicitacoes`) e o RBAC da avaliação de demandas sob demanda.
 
@@ -103,15 +103,15 @@ O painel do gestor (`/gestao/solicitacoes`) e o RBAC da avaliação de demandas 
 | convite com telefone repetido → erro em flash | |
 | `GERENTE` convida `MOTORISTA` | a mesma engine, outro papel |
 | `GET /ativar` público; `POST` com token inválido → erro | ativação não vaza se o token existe |
-| `/perfil` abre para qualquer autenticado e salva o endereço | SPEC-07 |
+| `/perfil` abre para qualquer autenticado e salva o endereço | SPEC-CAD-04 |
 
-## `ContaCompletarTest` — 5 cenários (SPEC-08)
+## `ContaCompletarTest` — 5 cenários (SPEC-ACE-02)
 
 O filtro `PerfilIncompletoFilter`: conta criada por login social (sem telefone) é levada a
 `/conta/completar` e **só sai de lá** ao informar o telefone. Cobre também os caminhos liberados
 (para não haver laço de redirecionamento).
 
-## `VerificacaoRecuperacaoWebTest` — 4 cenários (SPEC-12)
+## `VerificacaoRecuperacaoWebTest` — 4 cenários (SPEC-ACE-03)
 
 Telas públicas de verificação/recuperação; `POST /esqueci-senha` com identificador desconhecido
 **redireciona igual** (anti-enumeração); telefone desconhecido na verificação volta com erro; e o

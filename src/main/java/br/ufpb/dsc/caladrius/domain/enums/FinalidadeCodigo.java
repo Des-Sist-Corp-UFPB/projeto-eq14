@@ -1,7 +1,7 @@
 package br.ufpb.dsc.caladrius.domain.enums;
 
 /**
- * Finalidade de um código OTP (SPEC-12): o que a validação do código autoriza.
+ * Finalidade de um código OTP (SPEC-ACE-03): o que a validação do código autoriza.
  *
  * <ul>
  *   <li>{@link #VERIFICAR_TELEFONE} — confirma que o telefone pertence à pessoa

@@ -21,12 +21,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração do {@code POST /webhooks/whatsapp} (SPEC-10 §10):
+ * Testes de integração do {@code POST /webhooks/whatsapp} (SPEC-WPP-01 §10):
  * token secreto (RN-WPP-03), mensagens de grupo/{@code fromMe} ignoradas
  * (RN-WPP-04), idempotência e a entrega ao bot (que responde e persiste a
  * conversa).
  */
-@DisplayName("WhatsappWebhookController — Integração (SPEC-10)")
+@DisplayName("WhatsappWebhookController — Integração (SPEC-WPP-01)")
 class WhatsappWebhookControllerTest extends IntegracaoWebTestBase {
 
     private static final String TOKEN = "token-de-teste"; // de application-test.yml
@@ -127,7 +127,7 @@ class WhatsappWebhookControllerTest extends IntegracaoWebTestBase {
     }
 
     @Test
-    @DisplayName("CA-FLG-03 (SPEC-13): bot desligado registra a mensagem, não aciona o bot e responde 200")
+    @DisplayName("CA-FLG-03 (SPEC-PLT-01): bot desligado registra a mensagem, não aciona o bot e responde 200")
     void botDesligadoNaoAciona() throws Exception {
         passageiroComTelefone("83955550005");
         featureFlags.definir(ChaveFeature.BOT_WHATSAPP, false);

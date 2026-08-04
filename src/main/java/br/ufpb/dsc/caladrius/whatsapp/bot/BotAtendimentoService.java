@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Bot de atendimento do WhatsApp (SPEC-10/SPEC-11) — máquina de estados persistida
+ * Bot de atendimento do WhatsApp (SPEC-WPP-01/SPEC-WPP-02) — máquina de estados persistida
  * em {@code conversas_bot}. Permite ao passageiro <strong>cadastrar-se, solicitar
  * transporte sob demanda, consultar e cancelar</strong> viagens e obter
  * <strong>acesso à plataforma</strong>, tudo pela conversa.
@@ -101,7 +101,7 @@ public class BotAtendimentoService implements ProcessadorMensagemRecebida {
         }
 
         if (usuario == null) {
-            // Número desconhecido → cadastro guiado (SPEC-11, RN-ONB-01).
+            // Número desconhecido → cadastro guiado (SPEC-WPP-02, RN-ONB-01).
             atenderOnboarding(conversa, telefone, texto);
         } else {
             conversa.setUsuario(usuario);
@@ -340,7 +340,7 @@ public class BotAtendimentoService implements ProcessadorMensagemRecebida {
 
     /**
      * Resolve o usuário ativo pelo telefone normalizado. JIDs antigos podem vir
-     * sem o 9º dígito — as variantes cobrem o caso (SPEC-10 §4.5).
+     * sem o 9º dígito — as variantes cobrem o caso (SPEC-WPP-01 §4.5).
      */
     private Optional<Usuario> identificar(String telefone) {
         for (String variante : Documentos.variantesTelefoneBr(telefone)) {

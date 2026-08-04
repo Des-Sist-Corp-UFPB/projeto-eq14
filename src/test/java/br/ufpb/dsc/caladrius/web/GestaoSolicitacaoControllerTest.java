@@ -13,10 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de integração do painel de avaliação sob demanda (SPEC-11): RBAC
+ * Testes de integração do painel de avaliação sob demanda (SPEC-WPP-02): RBAC
  * (exclusivo do GERENTE) e as ações de aprovar/recusar com validação.
  */
-@DisplayName("GestaoSolicitacaoController — Integração (SPEC-11)")
+@DisplayName("GestaoSolicitacaoController — Integração (SPEC-WPP-02)")
 class GestaoSolicitacaoControllerTest extends IntegracaoWebTestBase {
 
     @Test

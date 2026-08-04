@@ -12,7 +12,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 /**
- * {@code OAuth2UserService} customizado para o login social (OIDC) — SPEC-08.
+ * {@code OAuth2UserService} customizado para o login social (OIDC) — SPEC-ACE-02.
  *
  * <p>Carrega o {@link OidcUser} padrão (claims do provedor), resolve no
  * {@link Usuario} do sistema via {@link IdentidadeOauthService} (identidade →

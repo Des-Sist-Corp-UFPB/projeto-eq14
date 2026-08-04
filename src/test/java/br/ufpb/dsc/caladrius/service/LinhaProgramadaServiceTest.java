@@ -29,10 +29,10 @@ import static org.mockito.Mockito.*;
 
 /**
  * Testes unitários (Mockito) de {@link LinhaProgramadaService} — linhas recorrentes
- * (SPEC-06): validação de horários/dias, origem por cidade-sede e proteção na exclusão.
+ * (SPEC-VIA-02): validação de horários/dias, origem por cidade-sede e proteção na exclusão.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("LinhaProgramadaService — Testes Unitários (SPEC-06)")
+@DisplayName("LinhaProgramadaService — Testes Unitários (SPEC-VIA-02)")
 class LinhaProgramadaServiceTest {
 
     @Mock private LinhaProgramadaRepository linhaRepository;

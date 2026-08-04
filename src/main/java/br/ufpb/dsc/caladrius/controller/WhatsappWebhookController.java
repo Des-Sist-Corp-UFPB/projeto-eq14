@@ -23,7 +23,7 @@ import java.security.MessageDigest;
 import java.time.Instant;
 
 /**
- * Webhook de recebimento de eventos do provedor WhatsApp (SPEC-10 §4.3).
+ * Webhook de recebimento de eventos do provedor WhatsApp (SPEC-WPP-01 §4.3).
  *
  * <p>Chamado servidor-a-servidor pela Evolution (rota {@code permitAll} e fora
  * do CSRF — ver {@code SecurityConfig}); a autenticação é o header
@@ -100,7 +100,7 @@ public class WhatsappWebhookController {
         if (!whatsappService.registrarRecebida(mensagem)) {
             return;
         }
-        // Kill switch do atendimento automático (SPEC-13, RN-FLG-04): a mensagem já
+        // Kill switch do atendimento automático (SPEC-PLT-01, RN-FLG-04): a mensagem já
         // está registrada — só o bot não é acionado. O webhook responde 200 para a
         // Evolution não re-tentar, e as notificações de SAÍDA seguem funcionando.
         if (!featureFlags.ativo(ChaveFeature.BOT_WHATSAPP)) {

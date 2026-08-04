@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Linha programada (template recorrente) das viagens rotineiras (SPEC-06).
+ * Linha programada (template recorrente) das viagens rotineiras (SPEC-VIA-02).
  *
  * <p>Define origem→destino, horários e os <strong>dias da semana</strong>
  * (tabela filha {@code linha_dias}, via {@link ElementCollection} — ADR-12) em

@@ -49,7 +49,7 @@ class ConviteServiceTest {
 
     /**
      * Validade do convite e tamanho mínimo de senha passaram a vir do feature toggle
-     * (SPEC-13, FR-FLG-06); o mock devolve o <strong>default do código</strong> — o
+     * (SPEC-PLT-01, FR-FLG-06); o mock devolve o <strong>default do código</strong> — o
      * mesmo comportamento de quando não há configuração no banco (RN-FLG-02).
      */
     @BeforeEach
@@ -157,7 +157,7 @@ class ConviteServiceTest {
         verify(usuarioRepository, never()).save(any());
     }
 
-    // ---------------------------------------- verificação de e-mail (SPEC-12)
+    // ---------------------------------------- verificação de e-mail (SPEC-ACE-03)
 
     @Test
     @DisplayName("enviarVerificacaoEmail: cria token VERIFICAR_EMAIL e envia o link por e-mail")

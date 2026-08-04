@@ -47,13 +47,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Testes unitários (Mockito) do {@link BotAtendimentoService} — SPEC-11:
+ * Testes unitários (Mockito) do {@link BotAtendimentoService} — SPEC-WPP-02:
  * onboarding do número desconhecido, solicitação sob demanda (destino → data →
  * horário → condições → confirmar), minhas viagens/cancelar, acesso à plataforma
  * e expiração. O bot só fala com serviços de domínio + {@link WhatsappService}.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("BotAtendimentoService — Testes Unitários (SPEC-11)")
+@DisplayName("BotAtendimentoService — Testes Unitários (SPEC-WPP-02)")
 class BotAtendimentoServiceTest {
 
     private static final String TELEFONE = "83911112222";

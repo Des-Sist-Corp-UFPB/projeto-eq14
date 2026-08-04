@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# novo-ambiente.sh — provisiona um ambiente ISOLADO por secretaria (SPEC-15, Opção A)
+# novo-ambiente.sh — provisiona um ambiente ISOLADO por secretaria (SPEC-PLT-02, Opção A)
 # =============================================================================
 # Gera ambientes/<slug>/.env a partir de docker/.env.tenant.example, com a senha do
 # banco SORTEADA (RN-MT-03), e imprime os próximos passos (Caddy + subir o stack).
@@ -15,7 +15,7 @@
 #       --nome "Secretaria de Saúde de Campina Grande" \
 #       --dominio campina.caladrius.app --porta 8114
 #
-# Runbook completo: docs/multi-ambiente.md · decisão: docs/sdd/specs/SPEC-15-*.md
+# Runbook completo: docs/multi-ambiente.md · decisão: docs/sdd/specs/SPEC-PLT-02-*.md
 # =============================================================================
 set -euo pipefail
 

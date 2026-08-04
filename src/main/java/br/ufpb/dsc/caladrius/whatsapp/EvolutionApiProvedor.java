@@ -12,7 +12,7 @@ import java.util.Optional;
 
 /**
  * Adaptador da porta {@link ProvedorWhatsapp} para a <strong>Evolution API v2</strong>
- * (SPEC-10/ADR-14) — self-hosted na VPS da equipe, autenticada pelo header
+ * (SPEC-WPP-01/ADR-14) — self-hosted na VPS da equipe, autenticada pelo header
  * {@code apikey}.
  *
  * <p>Todo o vocabulário da Evolution (paths, payloads, estados {@code open}/

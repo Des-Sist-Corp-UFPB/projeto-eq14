@@ -13,9 +13,9 @@ import org.springframework.web.client.RestClient;
 import java.util.regex.Pattern;
 
 /**
- * Configuração da integração WhatsApp (Evolution API) — SPEC-10/ADR-14.
+ * Configuração da integração WhatsApp (Evolution API) — SPEC-WPP-01/ADR-14.
  *
- * <p>Mesmo padrão do {@link OAuth2ClientConfig} (SPEC-08): o bean da porta
+ * <p>Mesmo padrão do {@link OAuth2ClientConfig} (SPEC-ACE-02): o bean da porta
  * {@link ProvedorWhatsapp} só é criado quando {@code EVOLUTION_URL} e
  * {@code EVOLUTION_API_KEY} estão presentes <em>e não-vazias</em> no ambiente.
  * Sem elas, não há provedor: o canal WhatsApp do {@code NotificacaoService}

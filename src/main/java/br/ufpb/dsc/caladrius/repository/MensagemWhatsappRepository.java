@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Repositório Spring Data JPA para {@link MensagemWhatsapp} (SPEC-10).
+ * Repositório Spring Data JPA para {@link MensagemWhatsapp} (SPEC-WPP-01).
  */
 @Repository
 public interface MensagemWhatsappRepository extends JpaRepository<MensagemWhatsapp, UUID> {

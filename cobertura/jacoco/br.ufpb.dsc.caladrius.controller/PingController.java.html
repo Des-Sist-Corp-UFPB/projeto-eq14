@@ -14,7 +14,7 @@ import java.util.Map;
  * {@code {&quot;status&quot;:&quot;ok&quot;,&quot;service&quot;:&quot;eq14&quot;,&quot;database&quot;:&quot;up&quot;,&quot;timestamp&quot;:&quot;...&quot;}}.
  *
  * &lt;p&gt;O campo {@code database} vem do {@link BancoHealthIndicator}, que executa um
- * {@code SELECT} de verdade contra o PostgreSQL (SPEC-17) — não é um valor fixo.
+ * {@code SELECT} de verdade contra o PostgreSQL (SPEC-OPE-02) — não é um valor fixo.
  *
  * &lt;p&gt;&lt;strong&gt;O status HTTP é sempre 200, mesmo com o banco fora&lt;/strong&gt; (RN-HC-03).
  * O {@code /ping} é o contrato de &lt;em&gt;liveness&lt;/em&gt; da disciplina e alimenta monitores

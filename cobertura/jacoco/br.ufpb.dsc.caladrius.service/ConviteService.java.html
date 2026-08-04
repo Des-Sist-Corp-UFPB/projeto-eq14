@@ -59,7 +59,7 @@ public class ConviteService {
 <span class="fc" id="L59">        this.featureFlags = featureFlags;</span>
 <span class="fc" id="L60">    }</span>
 
-    // Parâmetros de negócio configuráveis em runtime (SPEC-13, FR-FLG-06) — os defaults
+    // Parâmetros de negócio configuráveis em runtime (SPEC-PLT-01, FR-FLG-06) — os defaults
     // do código (7 dias / 6 caracteres) preservam o comportamento anterior (RN-FLG-02).
 
     private int validadeDias() {
@@ -125,7 +125,7 @@ public class ConviteService {
     }
 
     /**
-     * &quot;Acesso à plataforma&quot; (SPEC-11): gera um token de ativação para um usuário
+     * &quot;Acesso à plataforma&quot; (SPEC-WPP-02): gera um token de ativação para um usuário
      * &lt;strong&gt;já existente&lt;/strong&gt; (ex.: passageiro auto-cadastrado pelo WhatsApp,
      * sem senha) definir a sua senha e passar a logar na web. Reaproveita a mesma
      * engine de token do convite (ADR-11); não cria mecanismo de segurança novo.
@@ -161,7 +161,7 @@ public class ConviteService {
 <span class="fc bfc" id="L161" title="All 2 branches covered.">        if (!token.valido()) {</span>
 <span class="fc" id="L162">            throw new RegraNegocioException(&quot;Convite expirado ou já utilizado.&quot;);</span>
         }
-        // Um token de verificação de e-mail não pode definir senha (SPEC-12).
+        // Um token de verificação de e-mail não pode definir senha (SPEC-ACE-03).
 <span class="fc bfc" id="L165" title="All 2 branches covered.">        if (token.getFinalidade() != FinalidadeToken.ATIVACAO) {</span>
 <span class="fc" id="L166">            throw new RegraNegocioException(&quot;Convite inválido.&quot;);</span>
         }
@@ -185,7 +185,7 @@ public class ConviteService {
 <span class="fc" id="L185">                usuario.getId(), usuario.getNomeCompleto(), AuditoriaService.ipDaRequisicao());</span>
 <span class="fc" id="L186">    }</span>
 
-    // ------------------------------------------------- verificação de e-mail (SPEC-12)
+    // ------------------------------------------------- verificação de e-mail (SPEC-ACE-03)
 
     /**
      * Envia um &lt;strong&gt;link mágico&lt;/strong&gt; por e-mail para confirmar o endereço

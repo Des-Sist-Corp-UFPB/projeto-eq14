@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Página pública de manutenção (SPEC-13, RN-FLG-03) — o destino para onde o
+ * Página pública de manutenção (SPEC-PLT-01, RN-FLG-03) — o destino para onde o
  * {@code ManutencaoFilter} encaminha as requisições enquanto a flag
  * {@code feature.modo_manutencao} está ligada.
  *

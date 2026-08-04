@@ -25,11 +25,11 @@ import static org.mockito.Mockito.*;
 
 /**
  * Testes unitários (Mockito) de {@link IdentidadeOauthService} — núcleo da resolução
- * do login social Google (SPEC-08): a sequência identidade → e-mail verificado →
+ * do login social Google (SPEC-ACE-02): a sequência identidade → e-mail verificado →
  * auto-provisão. Estas são as regras de negócio mais sensíveis da feature.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("IdentidadeOauthService — Testes Unitários (SPEC-08)")
+@DisplayName("IdentidadeOauthService — Testes Unitários (SPEC-ACE-02)")
 class IdentidadeOauthServiceTest {
 
     @Mock private IdentidadeOauthRepository identidadeRepository;

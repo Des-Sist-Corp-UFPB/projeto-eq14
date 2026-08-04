@@ -22,11 +22,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Testes do adaptador {@link EvolutionApiProvedor} (SPEC-10 §10) com
+ * Testes do adaptador {@link EvolutionApiProvedor} (SPEC-WPP-01 §10) com
  * {@link MockRestServiceServer}: mapeamento dos endpoints da Evolution v2,
  * header {@code apikey}, tradução dos estados e falha HTTP → exceção da porta.
  */
-@DisplayName("EvolutionApiProvedor — Testes Unitários (SPEC-10)")
+@DisplayName("EvolutionApiProvedor — Testes Unitários (SPEC-WPP-01)")
 class EvolutionApiProvedorTest {
 
     private static final String BASE = "https://evo.teste";

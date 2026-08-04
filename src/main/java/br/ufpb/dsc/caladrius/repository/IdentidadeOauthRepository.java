@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repositório Spring Data JPA para {@link IdentidadeOauth} (SPEC-08).
+ * Repositório Spring Data JPA para {@link IdentidadeOauth} (SPEC-ACE-02).
  */
 @Repository
 public interface IdentidadeOauthRepository extends JpaRepository<IdentidadeOauth, UUID> {

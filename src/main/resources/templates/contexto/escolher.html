@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!--
+  Escolha de contexto (SPEC-PLT-02 §5.3) — exibida quando a pessoa tem vínculo ativo
+  com mais de uma secretaria, ou mais de um papel. Standalone (sem o shell de
+  navegação): até escolher, não há contexto para montar o menu.
+
+  A lista traz SOMENTE os vínculos de quem está logado (FR-MT-09) — o sistema nunca
+  expõe a carteira de secretarias ao usuário final.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Entrar como — CALADRIUS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --cal-font: 'Instrument Sans', system-ui, sans-serif;
+            --cal-primary: oklch(0.55 0.17 257);
+            --cal-surface: #ffffff;
+            --cal-border: oklch(0.92 0.008 250);
+            --cal-text: oklch(0.26 0.03 257);
+            --cal-muted: oklch(0.55 0.02 257);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: var(--cal-font); background: oklch(0.98 0.004 250); color: var(--cal-text);
+               min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px; }
+        .cal-card { width: 460px; max-width: 100%; background: var(--cal-surface);
+                    border: 1px solid var(--cal-border); border-radius: 14px; padding: 34px; }
+        .cal-logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 17px;
+                    letter-spacing: 0.09em; margin-bottom: 22px; }
+        h1 { font-size: 20px; margin: 0 0 6px; }
+        p.cal-sub { color: var(--cal-muted); font-size: 14px; margin: 0 0 22px; }
+        .cal-opcao { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+                     background: var(--cal-surface); border: 1px solid var(--cal-border); border-radius: 10px;
+                     padding: 15px 17px; margin-bottom: 10px; cursor: pointer; text-align: left;
+                     font-family: var(--cal-font); font-size: 15px; color: var(--cal-text); }
+        .cal-opcao:hover { border-color: var(--cal-primary); }
+        .cal-opcao strong { display: block; font-weight: 600; }
+        .cal-papel { font-size: 13px; color: var(--cal-muted); }
+        .cal-vazio { color: var(--cal-muted); font-size: 14px; }
+        .cal-sair { display: inline-block; margin-top: 18px; font-size: 13px; color: var(--cal-muted); }
+    </style>
+</head>
+<body>
+<main class="cal-card">
+    <div class="cal-logo">CALADRIUS</div>
+
+    <h1>Entrar como</h1>
+    <p class="cal-sub">Você tem acesso a mais de um contexto. Escolha por onde quer entrar agora —
+        dá para trocar depois saindo e entrando de novo.</p>
+
+    <form th:each="vinculo : ${vinculos}" method="post" th:action="@{/entrar/onde}">
+        <input type="hidden" name="vinculo" th:value="${vinculo.id}"/>
+        <button type="submit" class="cal-opcao">
+            <span>
+                <strong th:text="${vinculo.organizacao.nome}">Secretaria</strong>
+                <span class="cal-papel" th:text="${vinculo.papel.rotulo}">Papel</span>
+            </span>
+            <span aria-hidden="true">→</span>
+        </button>
+    </form>
+
+    <p class="cal-vazio" th:if="${#lists.isEmpty(vinculos)}">
+        Você ainda não tem vínculo ativo com nenhuma secretaria. Peça o convite ao gestor
+        responsável.
+    </p>
+
+    <a class="cal-sair" th:href="@{/logout}">Sair</a>
+</main>
+</body>
+</html>

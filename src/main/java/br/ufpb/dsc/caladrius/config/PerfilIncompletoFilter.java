@@ -14,7 +14,7 @@ import java.io.IOException;
 /**
  * Redireciona usuários com <strong>perfil incompleto</strong> para
  * {@code /conta/completar} até que informem os dados obrigatórios (telefone) —
- * SPEC-08 (FR-AUT-14).
+ * SPEC-ACE-02 (FR-AUT-14).
  *
  * <p>Aplica-se a contas criadas por login social (Google), que nascem sem telefone.
  * Caminhos essenciais (a própria tela de completar, logout, recursos estáticos,

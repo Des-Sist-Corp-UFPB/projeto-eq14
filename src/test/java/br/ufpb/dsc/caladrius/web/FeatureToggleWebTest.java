@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Testes de API (MockMvc + Testcontainers) do feature toggle — SPEC-13 §8.
+ * Testes de API (MockMvc + Testcontainers) do feature toggle — SPEC-PLT-01 §8.
  *
  * <p>Exercem os critérios de aceite de ponta a ponta: RBAC das telas, o efeito real
  * do <strong>modo de manutenção</strong> sobre requisições de papéis distintos
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Spring, cada teste devolve tudo ao padrão no {@code @AfterEach} — senão um teste
  * deixaria o sistema "em manutenção" para os seguintes.
  */
-@DisplayName("Feature toggle — API (SPEC-13)")
+@DisplayName("Feature toggle — API (SPEC-PLT-01)")
 class FeatureToggleWebTest extends IntegracaoWebTestBase {
 
     @Autowired private FeatureFlagService featureFlags;

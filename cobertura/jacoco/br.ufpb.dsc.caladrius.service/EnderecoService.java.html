@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Endereço do passageiro e consultas de análise (SPEC-07).
+ * Endereço do passageiro e consultas de análise (SPEC-CAD-04).
  */
 @Service
 @Transactional(readOnly = true)

@@ -16,11 +16,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 /**
- * Testes de integração HTTP do {@code AuthController} (SPEC-01/07/12): a página de
+ * Testes de integração HTTP do {@code AuthController} (SPEC-ACE-01/07/12): a página de
  * login e o auto-cadastro público de passageiro, incluindo o endereço opcional e os
  * dois caminhos de erro — formato (Bean Validation) e regra de negócio (telefone/CPF).
  */
-@DisplayName("Web — AuthController (SPEC-01)")
+@DisplayName("Web — AuthController (SPEC-ACE-01)")
 class AuthControllerTest extends IntegracaoWebTestBase {
 
     @Test
